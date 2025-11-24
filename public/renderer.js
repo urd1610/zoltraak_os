@@ -6,10 +6,15 @@ const clockChip = document.getElementById('clock-chip');
 const quickActionsContainer = document.getElementById('quick-actions');
 
 const quickActions = [
-  { id: 'record', label: 'クイック録音', detail: '30秒メモ', icon: '🎙️', active: false },
-  { id: 'focus', label: 'フォーカス 25:00', detail: '集中モード', icon: '⏱️', active: true },
-  { id: 'share', label: 'ステータス共有', detail: 'チームに公開', icon: '📡', active: false },
+  { id: 'record', label: 'クイック録音', detail: '30秒メモ', icon: '🎙️', active: false, position: { x: 0, y: 0 } },
+  { id: 'focus', label: 'フォーカス 25:00', detail: '集中モード', icon: '⏱️', active: true, position: { x: 0, y: 50 } },
+  { id: 'share', label: 'ステータス共有', detail: 'チームに公開', icon: '📡', active: false, position: { x: 0, y: 100 } },
 ];
+
+// グローバル変数を関数外に移動
+let currentDraggingElement = null;
+let currentDraggingAction = null;
+let startX, startY, initialX, initialY;
 
 const renderQuickActions = () => {
   quickActionsContainer.innerHTML = '';
@@ -17,7 +22,29 @@ const renderQuickActions = () => {
     const row = document.createElement('div');
     row.className = 'quick-action';
     row.dataset.action = action.id;
-    row.addEventListener('click', () => toggleAction(action.id));
+    row.style.left = `${action.position.x}px`;
+    row.style.top = `${action.position.y}px`;
+    
+    const handleMouseDown = (e) => {
+      if (e.button === 0 && !currentDraggingElement) { // 左クリックのみ、かつ他の要素がドラッグ中でない
+        currentDraggingElement = row;
+        currentDraggingAction = action;
+        startX = e.clientX;
+        startY = e.clientY;
+        initialX = action.position.x;
+        initialY = action.position.y;
+        row.classList.add('dragging');
+        e.preventDefault();
+      }
+    };
+    
+    // ダブルクリックでトグル
+    const handleDoubleClick = () => {
+      toggleAction(action.id);
+    };
+    
+    row.addEventListener('mousedown', handleMouseDown);
+    row.addEventListener('dblclick', handleDoubleClick);
 
     const label = document.createElement('div');
     label.className = 'quick-label';
@@ -35,6 +62,40 @@ const renderQuickActions = () => {
     row.append(label, status);
     quickActionsContainer.appendChild(row);
   });
+};
+
+// グローバルイベントリスナーは一度だけ設定
+const handleGlobalMouseMove = (e) => {
+  if (!currentDraggingElement || !currentDraggingAction) return;
+  
+  const deltaX = e.clientX - startX;
+  const deltaY = e.clientY - startY;
+  
+  const newX = initialX + deltaX;
+  const newY = initialY + deltaY;
+  
+  // コンテナ内に制限
+  const container = quickActionsContainer;
+  const containerRect = container.getBoundingClientRect();
+  const rowRect = currentDraggingElement.getBoundingClientRect();
+  
+  const maxX = containerRect.width - rowRect.width;
+  const maxY = containerRect.height - rowRect.height;
+  
+  currentDraggingAction.position.x = Math.max(0, Math.min(newX, maxX));
+  currentDraggingAction.position.y = Math.max(0, Math.min(newY, maxY));
+  
+  currentDraggingElement.style.left = `${currentDraggingAction.position.x}px`;
+  currentDraggingElement.style.top = `${currentDraggingAction.position.y}px`;
+};
+
+const handleGlobalMouseUp = () => {
+  if (currentDraggingElement) {
+    currentDraggingElement.classList.remove('dragging');
+    savePositions();
+    currentDraggingElement = null;
+    currentDraggingAction = null;
+  }
 };
 
 const toggleAction = (id) => {
@@ -68,13 +129,38 @@ const updateMeters = () => {
   systemStateChip.textContent = mem > 60 || cpu > 50 ? '調整中' : '安定';
 };
 
+const savePositions = () => {
+  const positions = quickActions.reduce((acc, action) => {
+    acc[action.id] = action.position;
+    return acc;
+  }, {});
+  localStorage.setItem('quickActionsPositions', JSON.stringify(positions));
+};
+
+const loadPositions = () => {
+  const saved = localStorage.getItem('quickActionsPositions');
+  if (saved) {
+    const positions = JSON.parse(saved);
+    quickActions.forEach(action => {
+      if (positions[action.id]) {
+        action.position = positions[action.id];
+      }
+    });
+  }
+};
+
 const boot = () => {
+  loadPositions();
   renderQuickActions();
   hydrateSystemInfo();
   updateClock();
   updateMeters();
   setInterval(updateClock, 30000);
   setInterval(updateMeters, 3500);
+  
+  // グローバルイベントリスナーは一度だけ登録
+  document.addEventListener('mousemove', handleGlobalMouseMove);
+  document.addEventListener('mouseup', handleGlobalMouseUp);
 };
 
 boot();

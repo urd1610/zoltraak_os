@@ -228,11 +228,12 @@ body {
 }
 
 .quick-actions {
-  display: grid;
-  gap: 8px;
+  position: relative;
+  min-height: 200px;
 }
 
 .quick-action {
+  position: absolute;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -240,13 +241,23 @@ body {
   border-radius: 10px;
   border: 1px solid rgba(255, 255, 255, 0.05);
   background: rgba(255, 255, 255, 0.02);
-  cursor: pointer;
+  cursor: move;
   transition: transform 150ms ease, border-color 150ms ease;
+  width: calc(100% - 20px);
+  user-select: none;
 }
 
 .quick-action:hover {
   transform: translateY(-2px);
   border-color: rgba(110, 231, 255, 0.25);
+}
+
+.quick-action.dragging {
+  opacity: 0.8;
+  transform: scale(1.05);
+  z-index: 1000;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+  border-color: rgba(110, 231, 255, 0.5);
 }
 
 .quick-label {
