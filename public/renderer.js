@@ -11,6 +11,35 @@ const quickActions = [
   { id: 'share', label: 'ステータス共有', detail: 'チームに公開', icon: '📡', active: false, position: { x: 0, y: 100 } },
 ];
 
+const QUICK_ACTION_CANVAS_MIN_HEIGHT = 220;
+const QUICK_ACTION_CANVAS_PADDING = 20;
+
+const getQuickActionsCanvasHeight = () => {
+  const inlineHeight = parseFloat(quickActionsContainer.style.height || '');
+  if (!Number.isNaN(inlineHeight)) {
+    return inlineHeight;
+  }
+  return quickActionsContainer.getBoundingClientRect().height || QUICK_ACTION_CANVAS_MIN_HEIGHT;
+};
+
+const ensureCanvasHeightForBottom = (bottom) => {
+  const targetHeight = Math.max(QUICK_ACTION_CANVAS_MIN_HEIGHT, bottom + QUICK_ACTION_CANVAS_PADDING);
+  if (targetHeight > getQuickActionsCanvasHeight()) {
+    quickActionsContainer.style.height = `${targetHeight}px`;
+  }
+};
+
+const syncQuickActionsCanvasSize = () => {
+  const rows = quickActionsContainer.querySelectorAll('.quick-action');
+  let maxBottom = 0;
+  rows.forEach((row) => {
+    const top = parseFloat(row.style.top) || 0;
+    maxBottom = Math.max(maxBottom, top + row.offsetHeight);
+  });
+  const targetHeight = Math.max(QUICK_ACTION_CANVAS_MIN_HEIGHT, maxBottom + QUICK_ACTION_CANVAS_PADDING);
+  quickActionsContainer.style.height = `${targetHeight}px`;
+};
+
 // グローバル変数を関数外に移動
 let currentDraggingElement = null;
 let currentDraggingAction = null;
@@ -62,6 +91,7 @@ const renderQuickActions = () => {
     row.append(label, status);
     quickActionsContainer.appendChild(row);
   });
+  syncQuickActionsCanvasSize();
 };
 
 // グローバルイベントリスナーは一度だけ設定
@@ -74,25 +104,24 @@ const handleGlobalMouseMove = (e) => {
   const newX = initialX + deltaX;
   const newY = initialY + deltaY;
   
-  // コンテナ内に制限
-  const container = quickActionsContainer;
-  const containerRect = container.getBoundingClientRect();
+  const containerRect = quickActionsContainer.getBoundingClientRect();
   const rowRect = currentDraggingElement.getBoundingClientRect();
-  
-  const maxX = containerRect.width - rowRect.width;
-  const maxY = containerRect.height - rowRect.height;
-  
-  currentDraggingAction.position.x = Math.max(0, Math.min(newX, maxX));
-  currentDraggingAction.position.y = Math.max(0, Math.min(newY, maxY));
-  
-  currentDraggingElement.style.left = `${currentDraggingAction.position.x}px`;
-  currentDraggingElement.style.top = `${currentDraggingAction.position.y}px`;
+  const maxX = Math.max(0, containerRect.width - rowRect.width);
+  const clampedX = Math.max(0, Math.min(newX, maxX));
+  const clampedY = Math.max(0, newY);
+
+  currentDraggingAction.position.x = clampedX;
+  currentDraggingAction.position.y = clampedY;
+  currentDraggingElement.style.left = `${clampedX}px`;
+  currentDraggingElement.style.top = `${clampedY}px`;
+  ensureCanvasHeightForBottom(clampedY + rowRect.height);
 };
 
 const handleGlobalMouseUp = () => {
   if (currentDraggingElement) {
     currentDraggingElement.classList.remove('dragging');
     savePositions();
+    syncQuickActionsCanvasSize();
     currentDraggingElement = null;
     currentDraggingAction = null;
   }
