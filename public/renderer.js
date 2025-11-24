@@ -8,8 +8,8 @@ const featureCardsContainer = document.getElementById('feature-cards');
 
 const quickActions = [
   { id: 'record', label: 'クイック録音', detail: '30秒メモ', icon: '🎙️', active: false, position: { x: 0, y: 0 } },
-  { id: 'focus', label: 'フォーカス 25:00', detail: '集中モード', icon: '⏱️', active: false, position: { x: 0, y: 50 } },
-  { id: 'share', label: 'ステータス共有', detail: 'チームに公開', icon: '📡', active: false, position: { x: 0, y: 100 } },
+  { id: 'focus', label: 'フォーカス 25:00', detail: '集中モード', icon: '⏱️', active: false, position: { x: 150, y: 0 } },
+  { id: 'share', label: 'ステータス共有', detail: 'チームに公開', icon: '📡', active: false, position: { x: 300, y: 0 } },
 ];
 
 // グローバル変数を関数外に移動
@@ -58,18 +58,31 @@ const renderQuickActions = () => {
 
     const label = document.createElement('div');
     label.className = 'quick-label';
+
+    const icon = document.createElement('div');
+    icon.className = 'quick-icon';
+    icon.textContent = action.icon;
+
+    const name = document.createElement('div');
+    name.className = 'quick-name';
+    name.textContent = action.label;
+
+    const detail = document.createElement('div');
+    detail.className = 'quick-detail mono';
+    detail.textContent = action.detail;
+
+    label.append(icon, name, detail);
+
     const dot = document.createElement('span');
     dot.className = 'dot';
     dot.style.background = action.active ? '#34d399' : '#a78bfa';
-    const text = document.createElement('div');
-    text.innerHTML = `<strong>${action.icon} ${action.label}</strong><div class="mono">${action.detail}</div>`;
-    label.append(dot, text);
+    dot.setAttribute('aria-hidden', 'true');
 
     const status = document.createElement('span');
     status.className = 'chip tiny';
     status.textContent = action.active ? 'ON' : 'OFF';
 
-    row.append(label, status);
+    row.append(dot, label, status);
     quickActionsContainer.appendChild(row);
   });
 };
