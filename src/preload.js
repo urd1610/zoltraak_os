@@ -13,4 +13,5 @@ contextBridge.exposeInMainWorld('desktopBridge', {
   getNowIso: () => new Date().toISOString(),
   getWorkspaceDirectory: () => ipcRenderer.invoke('workspace:get-directory'),
   changeWorkspaceDirectory: () => ipcRenderer.invoke('workspace:change-directory'),
+  saveRecording: (buffer, mimeType) => ipcRenderer.invoke('recording:save', { buffer, mimeType }),
 });
