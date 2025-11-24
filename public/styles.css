@@ -252,6 +252,66 @@ body {
   gap: 10px;
 }
 
+.panel-stack {
+  display: grid;
+  gap: 12px;
+}
+
+.feature-card {
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.82), rgba(10, 16, 32, 0.92));
+  border: 1px solid rgba(110, 231, 255, 0.08);
+  border-radius: var(--radius);
+  padding: 12px;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+  display: grid;
+  gap: 8px;
+}
+
+.feature-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.feature-title {
+  display: grid;
+  gap: 4px;
+}
+
+.feature-title strong {
+  font-size: 15px;
+}
+
+.feature-desc {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.feature-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.recording-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(110, 231, 255, 0.08);
+}
+
+.recording-timer {
+  font-family: 'IBM Plex Mono', 'Space Grotesk', monospace;
+  font-size: 18px;
+  color: #fef08a;
+}
+
 .quick-actions {
   position: absolute;
   inset: 0;
