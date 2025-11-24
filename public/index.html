@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Zoltraak Desktop Prototype</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="background-grid"></div>
+    <header class="top-bar">
+      <div class="brand">
+        <div class="orb"></div>
+        <div>
+          <div class="brand-title">Zoltraak OS</div>
+          <div class="brand-sub">Desktop mock</div>
+        </div>
+      </div>
+      <div class="status">
+        <span id="system-chip" class="chip muted">system</span>
+        <span id="clock-chip" class="chip strong">--:--</span>
+      </div>
+    </header>
+
+    <main class="canvas">
+      <section class="desktop">
+        <div class="section-heading">
+          <div class="heading-text">
+            <span class="eyebrow">Workspace</span>
+            <h1>シーン別のデスクトップを試してみましょう</h1>
+          </div>
+          <div class="heading-actions">
+            <button id="shuffle-scene" class="ghost">シーンを入れ替える</button>
+            <button id="toggle-widgets" class="primary">ウィジェット</button>
+          </div>
+        </div>
+        <div id="desktop-grid" class="desktop-grid"></div>
+      </section>
+
+      <aside class="side-panel">
+        <div class="panel-card">
+          <div class="panel-header">
+            <span class="eyebrow">Now</span>
+            <span class="chip tiny" id="now-chip">syncing</span>
+          </div>
+          <div class="panel-body" id="now-body"></div>
+        </div>
+        <div class="panel-card">
+          <div class="panel-header">
+            <span class="eyebrow">Quick actions</span>
+            <span class="chip tiny muted">mock</span>
+          </div>
+          <div class="quick-actions" id="quick-actions"></div>
+        </div>
+        <div class="panel-card">
+          <div class="panel-header">
+            <span class="eyebrow">System</span>
+            <span class="chip tiny" id="system-state-chip">idle</span>
+          </div>
+          <div class="system-meter">
+            <div class="meter-label">メモリ</div>
+            <div class="meter-bar"><span id="memory-meter"></span></div>
+          </div>
+          <div class="system-meter">
+            <div class="meter-label">CPU</div>
+            <div class="meter-bar"><span id="cpu-meter"></span></div>
+          </div>
+        </div>
+      </aside>
+    </main>
+
+    <footer class="dock" id="dock"></footer>
+    <div id="window-layer" class="window-layer" aria-live="polite"></div>
+
+    <script src="renderer.js"></script>
+  </body>
+</html>
