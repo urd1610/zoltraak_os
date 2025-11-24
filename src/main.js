@@ -149,7 +149,7 @@ app.whenReady().then(async () => {
     return;
   }
 
-  ipcMain.handle('workspace:get-directory', () => workspaceDirectory);
+  ipcMain.handle('workspace:get-directory', () => ensureWorkspaceDirectory());
   ipcMain.handle('workspace:change-directory', changeWorkspaceDirectory);
 
   createWindow();
