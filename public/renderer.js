@@ -31,6 +31,7 @@ const renderQuickActions = () => {
   quickActions.forEach((action) => {
     const row = document.createElement('div');
     row.className = 'quick-action';
+    row.classList.toggle('active', action.active);
     row.dataset.action = action.id;
     row.style.left = `${action.position.x}px`;
     row.style.top = `${action.position.y}px`;
@@ -78,11 +79,7 @@ const renderQuickActions = () => {
     dot.style.background = action.active ? '#34d399' : '#a78bfa';
     dot.setAttribute('aria-hidden', 'true');
 
-    const status = document.createElement('span');
-    status.className = 'chip tiny';
-    status.textContent = action.active ? 'ON' : 'OFF';
-
-    row.append(dot, label, status);
+    row.append(dot, label);
     quickActionsContainer.appendChild(row);
   });
 };
