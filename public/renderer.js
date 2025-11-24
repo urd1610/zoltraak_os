@@ -74,11 +74,7 @@ const renderQuickActions = () => {
     name.className = 'quick-name';
     name.textContent = action.label;
 
-    const detail = document.createElement('div');
-    detail.className = 'quick-detail mono';
-    detail.textContent = action.detail;
-
-    label.append(icon, name, detail);
+    label.append(icon, name);
 
     const dot = document.createElement('span');
     dot.className = 'dot';
