@@ -23,28 +23,7 @@
     </header>
 
     <main class="canvas">
-      <section class="desktop">
-        <div class="section-heading">
-          <div class="heading-text">
-            <span class="eyebrow">Workspace</span>
-            <h1>シーン別のデスクトップを試してみましょう</h1>
-          </div>
-          <div class="heading-actions">
-            <button id="shuffle-scene" class="ghost">シーンを入れ替える</button>
-            <button id="toggle-widgets" class="primary">ウィジェット</button>
-          </div>
-        </div>
-        <div id="desktop-grid" class="desktop-grid"></div>
-      </section>
-
       <aside class="side-panel">
-        <div class="panel-card">
-          <div class="panel-header">
-            <span class="eyebrow">Now</span>
-            <span class="chip tiny" id="now-chip">syncing</span>
-          </div>
-          <div class="panel-body" id="now-body"></div>
-        </div>
         <div class="panel-card">
           <div class="panel-header">
             <span class="eyebrow">Quick actions</span>
@@ -68,9 +47,6 @@
         </div>
       </aside>
     </main>
-
-    <footer class="dock" id="dock"></footer>
-    <div id="window-layer" class="window-layer" aria-live="polite"></div>
 
     <script src="renderer.js"></script>
   </body>

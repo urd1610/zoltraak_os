@@ -112,25 +112,12 @@ body {
   font-size: 11px;
 }
 
+
 .canvas {
-  display: grid;
-  grid-template-columns: 3fr 1fr;
-  gap: 20px;
+  display: flex;
+  justify-content: center;
   padding: 20px 24px 100px;
   height: calc(100vh - 72px);
-}
-
-.desktop {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.section-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
 }
 
 .heading-text h1 {
@@ -217,6 +204,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  width: min(420px, 100%);
 }
 
 .panel-card {
@@ -469,16 +457,6 @@ button.ghost:hover {
 
 @media (max-width: 1100px) {
   .canvas {
-    grid-template-columns: 1fr;
     padding: 16px 14px 120px;
-  }
-
-  .section-heading {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .window-layer {
-    inset: 72px 10px 120px 10px;
   }
 }
