@@ -11,4 +11,5 @@ contextBridge.exposeInMainWorld('desktopBridge', {
   getSystemInfo: () => systemInfo,
   getNowIso: () => new Date().toISOString(),
   getWorkspaceDirectory: () => ipcRenderer.invoke('workspace:get-directory'),
+  changeWorkspaceDirectory: () => ipcRenderer.invoke('workspace:change-directory'),
 });

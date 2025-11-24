@@ -23,16 +23,25 @@ const writeSettings = async (settings) => {
   await fsp.writeFile(settingsPath, JSON.stringify(settings, null, 2), 'utf8');
 };
 
+const pickWorkspaceDirectory = async () => {
+  const { canceled, filePaths } = await dialog.showOpenDialog({
+    title: '作業ディレクトリを選択',
+    message: 'Actionで生成されるファイルの保存先に使用します。',
+    properties: ['openDirectory', 'createDirectory'],
+  });
+
+  if (!canceled && filePaths?.length) {
+    return filePaths[0];
+  }
+  return null;
+};
+
 const promptWorkspaceDirectory = async () => {
   while (true) {
-    const { canceled, filePaths } = await dialog.showOpenDialog({
-      title: '作業ディレクトリを選択',
-      message: 'Actionで生成されるファイルの保存先に使用します。',
-      properties: ['openDirectory', 'createDirectory'],
-    });
+    const selected = await pickWorkspaceDirectory();
 
-    if (!canceled && filePaths?.length) {
-      return filePaths[0];
+    if (selected) {
+      return selected;
     }
 
     const { response } = await dialog.showMessageBox({
@@ -51,6 +60,21 @@ const promptWorkspaceDirectory = async () => {
   }
 };
 
+const updateWorkspaceDirectory = async (dir) => {
+  const settings = await readSettings();
+  workspaceDirectory = dir;
+  await writeSettings({ ...settings, workspaceDirectory: dir });
+  return workspaceDirectory;
+};
+
+const changeWorkspaceDirectory = async () => {
+  const selected = await pickWorkspaceDirectory();
+  if (!selected) {
+    return workspaceDirectory;
+  }
+  return updateWorkspaceDirectory(selected);
+};
+
 const ensureWorkspaceDirectory = async () => {
   if (workspaceDirectory) {
     return workspaceDirectory;
@@ -60,14 +84,12 @@ const ensureWorkspaceDirectory = async () => {
   const savedDir = settings.workspaceDirectory;
 
   if (savedDir && fs.existsSync(savedDir)) {
-    workspaceDirectory = savedDir;
-    return workspaceDirectory;
+    return updateWorkspaceDirectory(savedDir);
   }
 
   const selectedDir = await promptWorkspaceDirectory();
   if (selectedDir) {
-    workspaceDirectory = selectedDir;
-    await writeSettings({ ...settings, workspaceDirectory: selectedDir });
+    await updateWorkspaceDirectory(selectedDir);
   }
 
   return workspaceDirectory;
@@ -106,6 +128,7 @@ app.whenReady().then(async () => {
   }
 
   ipcMain.handle('workspace:get-directory', () => workspaceDirectory);
+  ipcMain.handle('workspace:change-directory', changeWorkspaceDirectory);
 
   createWindow();
 

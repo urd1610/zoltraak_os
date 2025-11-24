@@ -1,4 +1,5 @@
 const workspaceChip = document.getElementById('workspace-chip');
+const workspaceChangeButton = document.getElementById('workspace-change');
 const systemChip = document.getElementById('system-chip');
 const clockChip = document.getElementById('clock-chip');
 const quickActionsContainer = document.getElementById('quick-actions');
@@ -16,6 +17,13 @@ let currentDraggingAction = null;
 let startX, startY, initialX, initialY;
 let recordingTimerId = null;
 let recordingStartedAt = null;
+let workspacePath = null;
+
+const updateWorkspaceChip = (dir) => {
+  if (!workspaceChip) return;
+  workspaceChip.textContent = dir ? `workspace: ${dir}` : 'workspace: --';
+  workspaceChip.title = dir ?? '';
+};
 
 const formatDuration = (ms) => {
   const totalSeconds = Math.max(0, Math.floor(ms / 1000));
@@ -252,16 +260,28 @@ const updateClock = () => {
 const hydrateWorkspaceChip = async () => {
   if (!workspaceChip) return;
   try {
-    const dir = await window.desktopBridge?.getWorkspaceDirectory?.();
-    if (dir) {
-      workspaceChip.textContent = `workspace: ${dir}`;
-      workspaceChip.title = dir;
-    } else {
-      workspaceChip.textContent = 'workspace: --';
-    }
+    workspacePath = await window.desktopBridge?.getWorkspaceDirectory?.();
+    updateWorkspaceChip(workspacePath);
   } catch (error) {
     console.error('Failed to load workspace directory', error);
     workspaceChip.textContent = 'workspace: error';
+    workspaceChip.title = '';
+  }
+};
+
+const handleWorkspaceChange = async () => {
+  if (!workspaceChangeButton || !window.desktopBridge?.changeWorkspaceDirectory) return;
+  workspaceChangeButton.disabled = true;
+  try {
+    const dir = await window.desktopBridge.changeWorkspaceDirectory();
+    workspacePath = dir || workspacePath;
+    updateWorkspaceChip(workspacePath);
+  } catch (error) {
+    console.error('Failed to change workspace directory', error);
+    workspaceChip.textContent = 'workspace: error';
+    workspaceChip.title = '';
+  } finally {
+    workspaceChangeButton.disabled = false;
   }
 };
 
@@ -302,6 +322,7 @@ const boot = () => {
   hydrateSystemInfo();
   updateClock();
   setInterval(updateClock, 30000);
+  workspaceChangeButton?.addEventListener('click', () => void handleWorkspaceChange());
   
   // グローバルイベントリスナーは一度だけ登録
   document.addEventListener('mousemove', handleGlobalMouseMove);
