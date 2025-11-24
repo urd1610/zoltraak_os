@@ -77,6 +77,11 @@ const promptWorkspaceDirectory = async () => {
   }
 };
 
+const getStoredWorkspaceDirectory = async () => {
+  const settings = await readSettings();
+  return settings.workspaceDirectory ?? null;
+};
+
 const updateWorkspaceDirectory = async (dir) => {
   const settings = await readSettings();
   workspaceDirectory = dir;
@@ -97,8 +102,7 @@ const ensureWorkspaceDirectory = async () => {
     return workspaceDirectory;
   }
 
-  const settings = await readSettings();
-  const savedDir = settings.workspaceDirectory;
+  const savedDir = await getStoredWorkspaceDirectory();
 
   if (isExistingDirectory(savedDir)) {
     return updateWorkspaceDirectory(savedDir);
@@ -149,8 +153,15 @@ app.whenReady().then(async () => {
     return;
   }
 
-  ipcMain.handle('workspace:get-directory', () => ensureWorkspaceDirectory());
+  ipcMain.handle('workspace:get-directory', async () => {
+    const ensured = await ensureWorkspaceDirectory();
+    if (ensured) {
+      return ensured;
+    }
+    return getStoredWorkspaceDirectory();
+  });
   ipcMain.handle('workspace:change-directory', changeWorkspaceDirectory);
+  ipcMain.handle('workspace:get-stored-directory', getStoredWorkspaceDirectory);
 
   createWindow();
 
