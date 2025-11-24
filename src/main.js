@@ -6,6 +6,23 @@ const fsp = fs.promises;
 const SETTINGS_FILE_NAME = 'settings.json';
 let workspaceDirectory = null;
 
+const isExistingDirectory = (dir) => {
+  if (!dir) {
+    return false;
+  }
+
+  try {
+    return fs.statSync(dir).isDirectory();
+  } catch (error) {
+    return false;
+  }
+};
+
+const getDefaultWorkspaceDirectory = () => {
+  const cwd = process.cwd();
+  return isExistingDirectory(cwd) ? cwd : null;
+};
+
 const getSettingsPath = () => path.join(app.getPath('userData'), SETTINGS_FILE_NAME);
 
 const readSettings = async () => {
@@ -76,15 +93,20 @@ const changeWorkspaceDirectory = async () => {
 };
 
 const ensureWorkspaceDirectory = async () => {
-  if (workspaceDirectory) {
+  if (isExistingDirectory(workspaceDirectory)) {
     return workspaceDirectory;
   }
 
   const settings = await readSettings();
   const savedDir = settings.workspaceDirectory;
 
-  if (savedDir && fs.existsSync(savedDir)) {
+  if (isExistingDirectory(savedDir)) {
     return updateWorkspaceDirectory(savedDir);
+  }
+
+  const fallbackDir = getDefaultWorkspaceDirectory();
+  if (fallbackDir) {
+    return updateWorkspaceDirectory(fallbackDir);
   }
 
   const selectedDir = await promptWorkspaceDirectory();
