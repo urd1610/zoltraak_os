@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <title>評価レポート</title>
+    <style>
+      body {
+        font-family: "Hiragino Sans", "Noto Sans JP", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+        line-height: 1.6;
+        margin: 24px;
+        background-color: #e9f0f2;
+        color: #1f2a30;
+      }
+      .monitor-wrapper {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 32px;
+        background: #ffffff;
+        border: 1px solid #c4d3d7;
+      }
+      .monitor-header {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-bottom: 24px;
+      }
+      .monitor-title {
+        font-size: 26px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        color: #1f2a30;
+      }
+      .monitor-description {
+        font-size: 14px;
+        color: #3a4b53;
+      }
+      table.monitor-report {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+        background: #ffffff;
+        border: 1px solid #c4d3d7;
+      }
+      col.timestamp-column {
+        width: 180px;
+      }
+      col.agent-column {
+        width: calc((100% - 180px) / 2);
+      }
+      th,
+      td {
+        border: 1px solid #c4d3d7;
+        padding: 16px;
+        vertical-align: top;
+        background-color: #ffffff;
+      }
+      th {
+        background: #d8e6e9;
+        text-align: left;
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: #2c3a40;
+      }
+      tbody tr:nth-child(even) td {
+        background-color: #eef3f4;
+      }
+      details {
+        display: block;
+        margin: 0;
+      }
+      details summary {
+        list-style: none;
+      }
+      details[open] summary {
+        margin-bottom: 12px;
+      }
+      .details-toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+        font-weight: 500;
+        font-size: 13px;
+        color: #1f2a30;
+        padding: 0;
+        background: transparent;
+        border: none;
+      }
+      .details-toggle::before {
+        content: "";
+        font-size: 10px;
+        transition: transform 160ms ease;
+        display: inline-block;
+      }
+      details[open] .details-toggle::before {
+        transform: rotate(90deg);
+      }
+      .timestamp {
+        font-weight: 600;
+        color: #2c3a40;
+        overflow-wrap: anywhere;
+      }
+      .snapshot-summary {
+        margin-bottom: 12px;
+        font-weight: 500;
+        color: #2c3a40;
+      }
+      pre {
+        white-space: pre-wrap;
+        word-break: break-word;
+        margin: 0;
+        font-size: 12px;
+        line-height: 1.55;
+        color: #1f2a30;
+        background: #f2f6f7;
+        border: 1px solid #c4d3d7;
+        padding: 16px;
+      }
+      .status-badge {
+        display: inline-block;
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        padding: 1px 6px;
+        background: #d8e6e9;
+        border: 1px solid #b8c9cd;
+        color: #1f2a30;
+        white-space: nowrap;
+        line-height: 1.3;
+        vertical-align: top;
+      }
+      .status-badge--completed {
+        background: #c3d4d8;
+        border-color: #aabfc5;
+      }
+      .status-badge--pending {
+        background: #e3edf0;
+        border-color: #cdd9dd;
+      }
+      .agent-meta {
+        display: block;
+        margin-bottom: 12px;
+        line-height: 1.5;
+      }
+      .agent-meta .status-badge {
+        margin-right: 6px;
+      }
+      .agent-meta .agent-label {
+        display: inline;
+        font-size: 13px;
+        color: #3a4b53;
+      }
+      .scoreboard {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 12px;
+        padding: 12px;
+        background: #f2f6f7;
+        border: 1px solid #c4d3d7;
+      }
+      .score-card {
+        background: #ffffff;
+        border: 1px solid #c4d3d7;
+        padding: 12px 14px;
+      }
+      .score-card .score-label {
+        font-size: 13px;
+        color: #3a4b53;
+        margin-bottom: 4px;
+      }
+      .score-card .score-value {
+        font-size: 20px;
+        font-weight: 700;
+        color: #1f2a30;
+      }
+      .radar {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        margin-bottom: 12px;
+      }
+      .radar svg {
+        width: 180px;
+        height: 180px;
+        background: #f8fbfc;
+        border: 1px solid #d2e2e6;
+      }
+      .metric-list {
+        margin: 0;
+        padding-left: 16px;
+        font-size: 13px;
+        color: #2c3a40;
+      }
+      .metric-list li {
+        margin-bottom: 6px;
+      }
+      .artifact-link {
+        font-size: 12px;
+        color: #2c3a40;
+        margin: 4px 0 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="monitor-wrapper">
+      <header class="monitor-header">
+        <h1 class="monitor-title">評価レポート: task-1763963863554-19ee9c vs task-1763963866867-6b8341</h1>
+        <p class="monitor-description">
+          ヘッダーの作業ディレクトリが "--" となる問題に対して、2つのワークツリー（異なる実装案）を比較評価しました。IPCハンドラーでのワークスペース解決や初期フォールバック処理の改善度を、安定性/コスト/価値/実装妥当性/コード品質/テスト充足の6軸で採点しています。
+        </p>
+        <div class="scoreboard">
+          <div class="score-card">
+            <div class="score-label">task-1763963863554-19ee9c</div>
+            <div class="score-value">🏆🥈 483 / 600</div>
+            <div class="score-label">主眼: 不正パス防止とフォールバックの堅牢化</div>
+          </div>
+          <div class="score-card">
+            <div class="score-label">task-1763963866867-6b8341</div>
+            <div class="score-value">🥉 464 / 600</div>
+            <div class="score-label">主眼: シンプルなフォールバックと初期化保証</div>
+          </div>
+        </div>
+      </header>
+      <table class="monitor-report">
+        <colgroup>
+          <col class="timestamp-column" />
+          <col class="agent-column" />
+          <col class="agent-column" />
+        </colgroup>
+        <thead>
+          <tr>
+            <th>Timestamp</th>
+            <th>Agent task-1763963863554-19ee9c</th>
+            <th>Agent task-1763963866867-6b8341</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="timestamp">2025-11-24 15:10</td>
+            <td>
+              <div class="agent-meta">
+                <span class="status-badge status-badge--completed">評価完了</span>
+                <span class="agent-label">branch: task/task-1763963863554-19ee9c / worktree: .worktrees/task-1763963863554-19ee9c</span>
+              </div>
+              <div class="artifact-link">成果物: <a href="file:///C:/Users/SD565/workspace/zoltraak_os/.worktrees/task-1763963863554-19ee9c">.worktrees/task-1763963863554-19ee9c</a></div>
+              <div class="radar">
+                <svg viewBox="0 0 180 180" aria-label="score-chart">
+                  <polygon points="90.0,20.0 150.6,55.0 150.6,125.0 90.0,160.0 29.4,125.0 29.4,55.0" fill="#e9f2f5" stroke="#c4d3d7" stroke-width="1" />
+                  <polygon points="90.0,28.4 142.1,59.9 140.9,119.4 90.0,144.6 40.3,118.7 50.6,67.3" fill="#5fa8d3" fill-opacity="0.45" stroke="#2f6f95" stroke-width="2" />
+                  <g font-size="10" fill="#1f2a30">
+                    <text x="88" y="14">安定性 88</text>
+                    <text x="152" y="52">実装妥当性 86</text>
+                    <text x="152" y="134">価値 84</text>
+                    <text x="82" y="174">コスト 78</text>
+                    <text x="0" y="134">コード品質 82</text>
+                    <text x="0" y="52">テスト充足 65</text>
+                  </g>
+                </svg>
+                <ul class="metric-list">
+                  <li>安定性 88: statSync ベースの isExistingDirectory で無効/削除済みパスを排除し、IPC解決も ensure 経由に統一。</li>
+                  <li>実装妥当性 86: 設定値→CWD→ダイアログの優先順で自動復旧し、workspaceDirectory の実在を毎回検証。</li>
+                  <li>価値 84: ヘッダーに "--" が出るケースを初期フォールバックで解消し、IPC経由の取得も遅延解決。</li>
+                  <li>コスト 78: sync stat を追加し I/O 増だが頻度は限定的で許容範囲。</li>
+                  <li>コード品質 82: 存在判定とデフォルト取得を関数化し再利用性を確保。</li>
+                  <li>テスト充足 65: 自動テストなし。起動/IPC パスの回帰テストが未整備。</li>
+                </ul>
+              </div>
+              <details class="snapshot-details">
+                <summary class="details-toggle">コミットログ (main..HEAD)</summary>
+                <pre>ad13693 IPC経由のワークスペース取得で解決処理を挟む
+2cfd68d ワークスペースの初期解決に作業ディレクトリをフォールバック</pre>
+              </details>
+              <details class="snapshot-details">
+                <summary class="details-toggle">差分 (main...HEAD)</summary>
+                <pre>src/main.js
+- workspaceDirectory の実在確認を statSync で厳密化
+- CWD をデフォルトのフォールバックに追加し settings が空でも初期化
+- ipcMain.handle('workspace:get-directory') を ensureWorkspaceDirectory 経由に変更</pre>
+              </details>
+            </td>
+            <td>
+              <div class="agent-meta">
+                <span class="status-badge status-badge--completed">評価完了</span>
+                <span class="agent-label">branch: task/task-1763963866867-6b8341 / worktree: .worktrees/task-1763963866867-6b8341</span>
+              </div>
+              <div class="artifact-link">成果物: <a href="file:///C:/Users/SD565/workspace/zoltraak_os/.worktrees/task-1763963866867-6b8341">.worktrees/task-1763963866867-6b8341</a></div>
+              <div class="radar">
+                <svg viewBox="0 0 180 180" aria-label="score-chart">
+                  <polygon points="90.0,20.0 150.6,55.0 150.6,125.0 90.0,160.0 29.4,125.0 29.4,55.0" fill="#e9f2f5" stroke="#c4d3d7" stroke-width="1" />
+                  <polygon points="90.0,34.0 137.3,62.7 139.7,118.7 90.0,149.5 42.1,117.7 53.6,69.0" fill="#f5a623" fill-opacity="0.45" stroke="#c47a00" stroke-width="2" />
+                  <g font-size="10" fill="#1f2a30">
+                    <text x="88" y="14">安定性 80</text>
+                    <text x="152" y="52">実装妥当性 78</text>
+                    <text x="152" y="134">価値 82</text>
+                    <text x="82" y="174">コスト 85</text>
+                    <text x="0" y="134">コード品質 79</text>
+                    <text x="0" y="52">テスト充足 60</text>
+                  </g>
+                </svg>
+                <ul class="metric-list">
+                  <li>安定性 80: fs.existsSync で存在のみ確認し、ファイルパスを誤採用するリスクが残る。</li>
+                  <li>実装妥当性 78: CWD フォールバックと保存値の復旧で基本要件を満たすが、ディレクトリ種別の検証なし。</li>
+                  <li>価値 82: 初期化漏れによる "--" 表示を軽量なフォールバックで解消。</li>
+                  <li>コスト 85: 実装差分が小さく、追加 I/O も existsSync 程度で低コスト。</li>
+                  <li>コード品質 79: 処理フローは簡潔だが存在判定の重複が残り、検証ヘルパー未導入。</li>
+                  <li>テスト充足 60: 自動テストなし。IPC/設定復旧の動作確認は手動前提。</li>
+                </ul>
+              </div>
+              <details class="snapshot-details">
+                <summary class="details-toggle">コミットログ (main..HEAD)</summary>
+                <pre>31a7e1d ワークスペース取得時に必ず初期化するよう修正
+14263b2 作業ディレクトリのデフォルトをカレントに設定</pre>
+              </details>
+              <details class="snapshot-details">
+                <summary class="details-toggle">差分 (main...HEAD)</summary>
+                <pre>src/main.js
+- workspaceDirectory 取得時に existsSync での実在確認を追加
+- CWD をデフォルトフォールバックとして初期設定
+- ipcMain.handle('workspace:get-directory') を ensureWorkspaceDirectory 関数参照に変更</pre>
+              </details>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </body>
+</html>
