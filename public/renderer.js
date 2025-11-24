@@ -1,7 +1,4 @@
 const systemChip = document.getElementById('system-chip');
-const systemStateChip = document.getElementById('system-state-chip');
-const memoryMeter = document.getElementById('memory-meter');
-const cpuMeter = document.getElementById('cpu-meter');
 const clockChip = document.getElementById('clock-chip');
 const quickActionsContainer = document.getElementById('quick-actions');
 const featureCardsContainer = document.getElementById('feature-cards');
@@ -260,14 +257,6 @@ const hydrateSystemInfo = () => {
   systemChip.textContent = `${info.user} · ${info.platform} ${info.release}`;
 };
 
-const updateMeters = () => {
-  const mem = 35 + Math.random() * 35;
-  const cpu = 18 + Math.random() * 40;
-  memoryMeter.style.width = `${mem.toFixed(0)}%`;
-  cpuMeter.style.width = `${cpu.toFixed(0)}%`;
-  systemStateChip.textContent = mem > 60 || cpu > 50 ? '調整中' : '安定';
-};
-
 const savePositions = () => {
   const positions = quickActions.reduce((acc, action) => {
     acc[action.id] = action.position;
@@ -294,9 +283,7 @@ const boot = () => {
   renderFeatureCards();
   hydrateSystemInfo();
   updateClock();
-  updateMeters();
   setInterval(updateClock, 30000);
-  setInterval(updateMeters, 3500);
   
   // グローバルイベントリスナーは一度だけ登録
   document.addEventListener('mousemove', handleGlobalMouseMove);
