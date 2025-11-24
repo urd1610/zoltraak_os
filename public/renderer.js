@@ -76,12 +76,7 @@ const renderQuickActions = () => {
 
     label.append(icon, name);
 
-    const dot = document.createElement('span');
-    dot.className = 'dot';
-    dot.style.background = action.active ? '#34d399' : '#a78bfa';
-    dot.setAttribute('aria-hidden', 'true');
-
-    row.append(dot, label);
+    row.append(label);
     quickActionsContainer.appendChild(row);
   });
 };
