@@ -92,3 +92,4 @@ pytest_cache/
 *.db
 .kamui/system-graph-state.json
 .kamui/model-versions-cache.json
+.kamui/tasks-state.json
