@@ -11,7 +11,7 @@
     "worktreePath": ".worktrees\\task-1763945681507-be4795",
     "createWorktree": true,
     "createdAt": "2025-11-24T00:54:41.507Z",
-    "updatedAt": "2025-11-24T01:48:12.163Z",
+    "updatedAt": "2025-11-24T04:01:33.255Z",
     "requiresTerminal": false,
     "bookmarked": false,
     "aiCompetitionEntry": true,
@@ -27,7 +27,8 @@
     "installSteps": [],
     "installCommand": null,
     "createdAutomatically": false,
-    "dependencies": []
+    "dependencies": [],
+    "medal": "gold"
   },
   {
     "id": "task-1763955293974-c0497c",
@@ -60,7 +61,7 @@
     "importance": "medium",
     "urgency": "medium",
     "createdAt": "2025-11-24T03:34:57.297Z",
-    "updatedAt": "2025-11-24T03:46:18.277Z",
+    "updatedAt": "2025-11-24T04:01:41.942Z",
     "requiresTerminal": true,
     "createWorktree": true,
     "branchName": "task/task-1763955297297-8c653b",
@@ -73,7 +74,8 @@
     "aiCompetitionMonitor": false,
     "monitorTargets": null,
     "scoringConfig": null,
-    "worktreePath": ".worktrees\\task-1763955297297-8c653b"
+    "worktreePath": ".worktrees\\task-1763955297297-8c653b",
+    "medal": "gold"
   },
   {
     "id": "task-1763955300296-67a4fd",
