@@ -1,5 +1,5 @@
 const os = require('os');
-const { contextBridge } = require('electron');
+const { contextBridge, ipcRenderer } = require('electron');
 
 const systemInfo = {
   user: os.userInfo().username,
@@ -10,4 +10,5 @@ const systemInfo = {
 contextBridge.exposeInMainWorld('desktopBridge', {
   getSystemInfo: () => systemInfo,
   getNowIso: () => new Date().toISOString(),
+  getWorkspaceDirectory: () => ipcRenderer.invoke('workspace:get-directory'),
 });

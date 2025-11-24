@@ -1,5 +1,77 @@
+const fs = require('fs');
 const path = require('path');
-const { app, BrowserWindow, nativeTheme } = require('electron');
+const { app, BrowserWindow, dialog, nativeTheme, ipcMain } = require('electron');
+
+const fsp = fs.promises;
+const SETTINGS_FILE_NAME = 'settings.json';
+let workspaceDirectory = null;
+
+const getSettingsPath = () => path.join(app.getPath('userData'), SETTINGS_FILE_NAME);
+
+const readSettings = async () => {
+  try {
+    const raw = await fsp.readFile(getSettingsPath(), 'utf8');
+    return JSON.parse(raw);
+  } catch (error) {
+    return {};
+  }
+};
+
+const writeSettings = async (settings) => {
+  const settingsPath = getSettingsPath();
+  await fsp.mkdir(path.dirname(settingsPath), { recursive: true });
+  await fsp.writeFile(settingsPath, JSON.stringify(settings, null, 2), 'utf8');
+};
+
+const promptWorkspaceDirectory = async () => {
+  while (true) {
+    const { canceled, filePaths } = await dialog.showOpenDialog({
+      title: '作業ディレクトリを選択',
+      message: 'Actionで生成されるファイルの保存先に使用します。',
+      properties: ['openDirectory', 'createDirectory'],
+    });
+
+    if (!canceled && filePaths?.length) {
+      return filePaths[0];
+    }
+
+    const { response } = await dialog.showMessageBox({
+      type: 'warning',
+      buttons: ['アプリを終了', '再選択'],
+      defaultId: 1,
+      cancelId: 0,
+      title: '作業ディレクトリが必要です',
+      message: '作業ディレクトリを選択してください。',
+      detail: 'Action機能で生成されるファイルを保存するため、必須設定です。',
+    });
+
+    if (response === 0) {
+      return null;
+    }
+  }
+};
+
+const ensureWorkspaceDirectory = async () => {
+  if (workspaceDirectory) {
+    return workspaceDirectory;
+  }
+
+  const settings = await readSettings();
+  const savedDir = settings.workspaceDirectory;
+
+  if (savedDir && fs.existsSync(savedDir)) {
+    workspaceDirectory = savedDir;
+    return workspaceDirectory;
+  }
+
+  const selectedDir = await promptWorkspaceDirectory();
+  if (selectedDir) {
+    workspaceDirectory = selectedDir;
+    await writeSettings({ ...settings, workspaceDirectory: selectedDir });
+  }
+
+  return workspaceDirectory;
+};
 
 const createWindow = () => {
   nativeTheme.themeSource = 'dark';
@@ -26,7 +98,15 @@ const createWindow = () => {
   win.loadFile(path.join(__dirname, '../public/index.html'));
 };
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  const dir = await ensureWorkspaceDirectory();
+  if (!dir) {
+    app.quit();
+    return;
+  }
+
+  ipcMain.handle('workspace:get-directory', () => workspaceDirectory);
+
   createWindow();
 
   app.on('activate', () => {

@@ -1,3 +1,4 @@
+const workspaceChip = document.getElementById('workspace-chip');
 const systemChip = document.getElementById('system-chip');
 const clockChip = document.getElementById('clock-chip');
 const quickActionsContainer = document.getElementById('quick-actions');
@@ -248,6 +249,22 @@ const updateClock = () => {
   clockChip.textContent = formatted;
 };
 
+const hydrateWorkspaceChip = async () => {
+  if (!workspaceChip) return;
+  try {
+    const dir = await window.desktopBridge?.getWorkspaceDirectory?.();
+    if (dir) {
+      workspaceChip.textContent = `workspace: ${dir}`;
+      workspaceChip.title = dir;
+    } else {
+      workspaceChip.textContent = 'workspace: --';
+    }
+  } catch (error) {
+    console.error('Failed to load workspace directory', error);
+    workspaceChip.textContent = 'workspace: error';
+  }
+};
+
 const hydrateSystemInfo = () => {
   const info = window.desktopBridge?.getSystemInfo?.();
   if (!info) {
@@ -281,6 +298,7 @@ const boot = () => {
   loadPositions();
   renderQuickActions();
   renderFeatureCards();
+  void hydrateWorkspaceChip();
   hydrateSystemInfo();
   updateClock();
   setInterval(updateClock, 30000);
