@@ -203,11 +203,11 @@ class AiMailMonitor {
       const messages = [];
 
       for (const entry of newEntries) {
-        const [retrStatus, , data] = await awaitEvent('retr', () => client.retr(entry.msgNumber));
+        const [retrStatus, , data, rawData] = await awaitEvent('retr', () => client.retr(entry.msgNumber));
         if (!retrStatus) {
           continue;
         }
-        const raw = Array.isArray(data) ? data.join('\n') : String(data);
+        const raw = this.buildRawEmail(data, rawData);
         messages.push({ ...entry, raw });
       }
 
@@ -296,6 +296,24 @@ class AiMailMonitor {
       const trimmed = seen.slice(seen.length - limit);
       this.state.seenUids = new Set(trimmed);
     }
+  }
+
+  buildRawEmail(data, rawData) {
+    if (rawData) {
+      if (Buffer.isBuffer(rawData)) {
+        return Buffer.from(rawData);
+      }
+      return Buffer.from(String(rawData), 'binary');
+    }
+    if (Buffer.isBuffer(data)) {
+      return Buffer.from(data);
+    }
+    if (Array.isArray(data)) {
+      const parts = data.map((line) => (Buffer.isBuffer(line) ? line : Buffer.from(String(line), 'binary')));
+      const withBreaks = parts.flatMap((part, index) => (index === parts.length - 1 ? [part] : [part, Buffer.from('\r\n', 'binary')]));
+      return Buffer.concat(withBreaks);
+    }
+    return Buffer.from(String(data ?? ''), 'binary');
   }
 
   async persistState() {
