@@ -208,33 +208,81 @@ const updateAiMailStatus = (patch) => {
   Object.assign(aiMailStatus, patch);
 };
 
-const promptForwardAddress = () => {
-  const next = prompt('転送先メールアドレスを入力', aiMailStatus.forwardTo ?? '');
-  if (next === null) return;
-  updateAiMailStatus({ forwardTo: next.trim() });
+const syncAiMailUiFromStatus = (status) => {
+  if (!status) return;
+  const aiMailAction = quickActions.find((action) => action.id === 'ai-mail-monitor');
+  const shouldActivate = Boolean(status.running || aiMailAction?.active);
+  updateAiMailStatus(status);
+  setActionActive('ai-mail-monitor', shouldActivate);
+  renderQuickActions();
   renderFeatureCards();
 };
 
-const refreshAiMailStatus = () => {
+const promptForwardAddress = async () => {
+  const next = prompt('転送先メールアドレスを入力', aiMailStatus.forwardTo ?? '');
+  if (next === null) return;
+  const trimmed = next.trim();
+
+  try {
+    const status = await window.desktopBridge?.updateAiMailForward?.(trimmed);
+    if (status) {
+      syncAiMailUiFromStatus(status);
+      return;
+    }
+  } catch (error) {
+    console.error('Failed to update ai mail forward address', error);
+  }
+
+  updateAiMailStatus({ forwardTo: trimmed, lastError: '転送先の更新が反映されませんでした' });
+  renderFeatureCards();
+};
+
+const refreshAiMailStatus = async () => {
+  try {
+    const status = await window.desktopBridge?.refreshAiMailStatus?.();
+    if (status) {
+      syncAiMailUiFromStatus(status);
+      return;
+    }
+    await hydrateAiMailStatus();
+    return;
+  } catch (error) {
+    console.error('Failed to refresh ai mail status', error);
+    updateAiMailStatus({ lastError: '状態更新に失敗しました' });
+  }
   renderFeatureCards();
 };
 
 const startAiMailMonitor = async () => {
   setActionActive('ai-mail-monitor', true);
-  updateAiMailStatus({
-    running: true,
-    lastError: null,
-    lastCheckedAt: new Date(),
-  });
   renderQuickActions();
+  renderFeatureCards();
+  try {
+    const status = await window.desktopBridge?.startAiMailMonitor?.();
+    if (status) {
+      syncAiMailUiFromStatus(status);
+      return;
+    }
+  } catch (error) {
+    console.error('Failed to start ai mail monitor', error);
+    updateAiMailStatus({ lastError: '監視開始に失敗しました' });
+  }
+  updateAiMailStatus({ lastError: '監視開始の応答がありません' });
   renderFeatureCards();
 };
 
-const stopAiMailMonitor = () => {
-  setActionActive('ai-mail-monitor', false);
-  updateAiMailStatus({ running: false });
-  renderQuickActions();
-  renderFeatureCards();
+const stopAiMailMonitor = async () => {
+  try {
+    const status = await window.desktopBridge?.stopAiMailMonitor?.();
+    if (status) {
+      syncAiMailUiFromStatus(status);
+      return;
+    }
+  } catch (error) {
+    console.error('Failed to stop ai mail monitor', error);
+    updateAiMailStatus({ lastError: '監視停止に失敗しました' });
+  }
+  syncAiMailUiFromStatus({ running: false });
 };
 
 const buildAiMailCard = () => {
@@ -477,7 +525,7 @@ const toggleAction = (id) => {
   if (!action) return;
   if (id === 'ai-mail-monitor') {
     if (aiMailStatus.running) {
-      stopAiMailMonitor();
+      void stopAiMailMonitor();
     } else {
       void startAiMailMonitor();
     }
@@ -524,6 +572,20 @@ const hydrateWorkspaceChip = async () => {
     console.error('Failed to load workspace directory', error);
     workspaceChip.textContent = 'workspace: error';
     workspaceChip.title = '';
+  }
+};
+
+const hydrateAiMailStatus = async () => {
+  if (!window.desktopBridge?.getAiMailStatus) return;
+  try {
+    const status = await window.desktopBridge.getAiMailStatus();
+    if (status) {
+      syncAiMailUiFromStatus(status);
+    }
+  } catch (error) {
+    console.error('Failed to hydrate ai mail status', error);
+    updateAiMailStatus({ lastError: 'AIメール監視の状態取得に失敗しました' });
+    renderFeatureCards();
   }
 };
 
@@ -577,6 +639,7 @@ const boot = () => {
   renderQuickActions();
   renderFeatureCards();
   void hydrateWorkspaceChip();
+  void hydrateAiMailStatus();
   hydrateSystemInfo();
   updateClock();
   setInterval(updateClock, 30000);
