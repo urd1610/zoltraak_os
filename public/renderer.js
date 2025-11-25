@@ -32,9 +32,11 @@ const aiMailStatus = {
   running: false,
   forwardedCount: 0,
 };
+
 let aiMailForwardDraft = '';
 let aiMailForwardDirty = false;
 let isSavingAiMailForward = false;
+let isFetchingAiMailOnce = false;
 
 const updateWorkspaceChip = (dir) => {
   if (!workspaceChip) return;
@@ -293,6 +295,28 @@ const refreshAiMailStatus = async () => {
   renderFeatureCards();
 };
 
+const fetchAiMailOnce = async () => {
+  if (isFetchingAiMailOnce) {
+    return;
+  }
+  isFetchingAiMailOnce = true;
+  renderFeatureCards();
+  try {
+    const status = await window.desktopBridge?.fetchAiMailOnce?.();
+    if (status) {
+      syncAiMailUiFromStatus(status);
+      return;
+    }
+    await hydrateAiMailStatus();
+  } catch (error) {
+    console.error('Failed to fetch ai mail once', error);
+    updateAiMailStatus({ lastError: '手動取得に失敗しました' });
+  } finally {
+    isFetchingAiMailOnce = false;
+    renderFeatureCards();
+  }
+};
+
 const startAiMailMonitor = async () => {
   setActionActive('ai-mail-monitor', true);
   renderQuickActions();
@@ -454,7 +478,13 @@ const buildAiMailCard = () => {
   refreshBtn.textContent = '状態更新';
   refreshBtn.addEventListener('click', refreshAiMailStatus);
 
-  actions.append(toggleBtn, refreshBtn);
+  const fetchBtn = document.createElement('button');
+  fetchBtn.className = 'ghost';
+  fetchBtn.textContent = isFetchingAiMailOnce ? '手動取得中…' : '手動取得';
+  fetchBtn.disabled = isFetchingAiMailOnce || !aiMailStatus.forwardTo;
+  fetchBtn.addEventListener('click', () => { void fetchAiMailOnce(); });
+
+  actions.append(toggleBtn, refreshBtn, fetchBtn);
 
   const desc = document.createElement('div');
   desc.className = 'feature-desc';

@@ -263,6 +263,7 @@ app.whenReady().then(async () => {
   ipcMain.handle('ai-mail:start', async () => monitor?.start());
   ipcMain.handle('ai-mail:stop', async () => monitor?.stop());
   ipcMain.handle('ai-mail:refresh', async () => monitor?.pollOnce());
+  ipcMain.handle('ai-mail:fetch-once', async () => monitor?.pollOnce({ force: true }));
 
   createWindow();
 

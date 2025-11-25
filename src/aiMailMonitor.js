@@ -105,8 +105,9 @@ class AiMailMonitor {
     return this.getStatus();
   }
 
-  async pollOnce() {
-    if (!this.state.running) {
+  async pollOnce(options = {}) {
+    const force = Boolean(options.force);
+    if (!this.state.running && !force) {
       return this.getStatus();
     }
     if (!this.state.forwardTo) {

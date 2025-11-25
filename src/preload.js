@@ -19,5 +19,6 @@ contextBridge.exposeInMainWorld('desktopBridge', {
   startAiMailMonitor: () => ipcRenderer.invoke('ai-mail:start'),
   stopAiMailMonitor: () => ipcRenderer.invoke('ai-mail:stop'),
   refreshAiMailStatus: () => ipcRenderer.invoke('ai-mail:refresh'),
+  fetchAiMailOnce: () => ipcRenderer.invoke('ai-mail:fetch-once'),
   updateAiMailForward: (forwardTo) => ipcRenderer.invoke('ai-mail:update-forward', forwardTo),
 });
