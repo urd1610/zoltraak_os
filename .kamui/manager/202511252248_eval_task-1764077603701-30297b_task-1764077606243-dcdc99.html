@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <title>評価レポート - AIメール監視アイコン強調</title>
+    <style>
+      body {
+        font-family: "Hiragino Sans", "Noto Sans JP", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+        line-height: 1.6;
+        margin: 24px;
+        background-color: #e9f0f2;
+        color: #1f2a30;
+      }
+      .monitor-wrapper {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 32px;
+        background: #ffffff;
+        border: 1px solid #c4d3d7;
+      }
+      .monitor-header {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 24px;
+      }
+      .monitor-title {
+        font-size: 26px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        color: #1f2a30;
+      }
+      .monitor-description {
+        font-size: 14px;
+        color: #3a4b53;
+      }
+      .scoreboard {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 12px;
+        margin-bottom: 24px;
+      }
+      .score-card {
+        border: 1px solid #c4d3d7;
+        background: linear-gradient(135deg, #ffffff, #eef3f4);
+        border-radius: 12px;
+        padding: 16px;
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.06);
+      }
+      .score-card.highlight {
+        border-color: #10b981;
+        box-shadow: 0 16px 34px rgba(16, 185, 129, 0.22);
+      }
+      .score-card h2 {
+        margin: 0 0 8px;
+        font-size: 16px;
+        color: #0f172a;
+      }
+      .score-value {
+        font-size: 28px;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        color: #0f172a;
+      }
+      .score-sub {
+        font-size: 13px;
+        color: #3a4b53;
+        margin-top: 4px;
+      }
+      table.monitor-report {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+        background: #ffffff;
+        border: 1px solid #c4d3d7;
+      }
+      col.timestamp-column {
+        width: 180px;
+      }
+      col.agent-column {
+        width: calc((100% - 180px) / 2);
+      }
+      th,
+      td {
+        border: 1px solid #c4d3d7;
+        padding: 16px;
+        vertical-align: top;
+        background-color: #ffffff;
+      }
+      th {
+        background: #d8e6e9;
+        text-align: left;
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: #2c3a40;
+      }
+      tbody tr:nth-child(even) td {
+        background-color: #eef3f4;
+      }
+      details {
+        display: block;
+        margin: 0;
+      }
+      details summary {
+        list-style: none;
+      }
+      details[open] summary {
+        margin-bottom: 12px;
+      }
+      .details-toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+        font-weight: 500;
+        font-size: 13px;
+        color: #1f2a30;
+        padding: 0;
+        background: transparent;
+        border: none;
+      }
+      .details-toggle::before {
+        content: "▶";
+        font-size: 10px;
+        transition: transform 160ms ease;
+        display: inline-block;
+      }
+      details[open] .details-toggle::before {
+        transform: rotate(90deg);
+      }
+      .timestamp {
+        font-weight: 600;
+        color: #2c3a40;
+        overflow-wrap: anywhere;
+      }
+      .snapshot-summary {
+        margin-bottom: 12px;
+        font-weight: 500;
+        color: #2c3a40;
+      }
+      pre {
+        white-space: pre-wrap;
+        word-break: break-word;
+        margin: 0;
+        font-size: 12px;
+        line-height: 1.55;
+        color: #1f2a30;
+        background: #f2f6f7;
+        border: 1px solid #c4d3d7;
+        padding: 16px;
+      }
+      .status-badge {
+        display: inline-block;
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        padding: 1px 6px;
+        background: #d8e6e9;
+        border: 1px solid #b8c9cd;
+        color: #1f2a30;
+        white-space: nowrap;
+        line-height: 1.3;
+        vertical-align: top;
+      }
+      .status-badge--completed {
+        background: #c3d4d8;
+        border-color: #aabfc5;
+      }
+      .status-badge--warning {
+        background: #fff4d9;
+        border-color: #f5e8b8;
+      }
+      .agent-meta {
+        display: block;
+        margin-bottom: 8px;
+        line-height: 1.5;
+      }
+      .agent-meta .status-badge {
+        margin-right: 6px;
+      }
+      .agent-meta .agent-label {
+        display: inline;
+        font-size: 13px;
+        color: #3a4b53;
+      }
+      .radar-wrapper {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+      .radar-chart {
+        position: relative;
+        width: 100%;
+        max-width: 320px;
+      }
+      .radar-chart svg {
+        width: 100%;
+        height: auto;
+        display: block;
+      }
+      .radar-legend {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 6px 12px;
+        font-size: 12px;
+        color: #1f2a30;
+        margin: 6px 0 0;
+        padding: 0;
+        list-style: none;
+      }
+      .radar-legend strong {
+        display: inline-block;
+        width: 92px;
+      }
+      .reason-list {
+        margin: 0 0 10px;
+        padding-left: 16px;
+        font-size: 13px;
+        color: #1f2a30;
+      }
+      .link-row {
+        font-size: 12px;
+        color: #3a4b53;
+      }
+      .score-flash {
+        display: inline-block;
+        margin-left: 6px;
+        font-weight: 700;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="monitor-wrapper">
+      <header class="monitor-header">
+        <h1 class="monitor-title">評価レポート</h1>
+        <p class="monitor-description">
+          AIメール監視が一度起動した後、Actionカードが残ったまま監視が停止している場合はワークスペースアイコンを黄色で強調し、
+          監視が開始されたら通常（緑）強調に戻す実装を対象ブランチごとに確認しました。対象: task-1764077603701-30297b / task-1764077606243-dcdc99。
+        </p>
+      </header>
+
+      <div class="scoreboard">
+        <div class="score-card">
+          <h2>task-1764077603701-30297b</h2>
+          <div class="score-value">🥉 410 / 600</div>
+          <div class="score-sub">総合 68 / 100 · ブランチ: task/task-1764077603701-30297b</div>
+        </div>
+        <div class="score-card highlight">
+          <h2>task-1764077606243-dcdc99</h2>
+          <div class="score-value">🏆 525 / 600</div>
+          <div class="score-sub">総合 88 / 100 · ブランチ: task/task-1764077606243-dcdc99</div>
+        </div>
+      </div>
+
+      <table class="monitor-report">
+        <colgroup>
+          <col class="timestamp-column" />
+          <col class="agent-column" />
+          <col class="agent-column" />
+        </colgroup>
+        <thead>
+          <tr>
+            <th>Timestamp</th>
+            <th>Agent task-1764077603701-30297b</th>
+            <th>Agent task-1764077606243-dcdc99</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="timestamp">2025-11-25 22:48</td>
+            <td>
+              <div class="agent-meta">
+                <span class="status-badge status-badge--warning">注意</span>
+                <span class="agent-label">実装は部分的に仕様適合。初回起動判定がなく警告色が先行する可能性。</span>
+              </div>
+              <div class="radar-wrapper">
+                <div class="radar-chart" data-scores='[
+                  {"label":"安定性","value":60},
+                  {"label":"コード品質","value":68},
+                  {"label":"コスト","value":90},
+                  {"label":"価値","value":62},
+                  {"label":"実装妥当性","value":60},
+                  {"label":"テスト/UX","value":70}
+                ]'>
+                  <svg viewBox="0 0 160 160" aria-label="task-1764077603701-30297b 六角形チャート"></svg>
+                  <ul class="radar-legend">
+                    <li><strong>安定性</strong>60点</li>
+                    <li><strong>コード品質</strong>68点</li>
+                    <li><strong>コスト</strong>90点</li>
+                    <li><strong>価値</strong>62点</li>
+                    <li><strong>実装妥当性</strong>60点</li>
+                    <li><strong>テスト/UX</strong>70点</li>
+                  </ul>
+                </div>
+              </div>
+              <div class="snapshot-summary">仕様との差分: 監視を一度でも起動したかのトラッキングがなく、AIメール監視カードを開いた時点で常に黄色警告が出る。</div>
+              <ul class="reason-list">
+                <li>安定性: 起動前でも警告色が出るため誤警告リスクあり。</li>
+                <li>コード品質: 条件は簡潔だが「一度起動」の要件未反映。</li>
+                <li>コスト: 変更は renderQuickActions と CSS のみで低コスト。</li>
+                <li>価値: 要件を満たしきらずユーザへの価値が限定的。</li>
+                <li>実装妥当性: 状態管理が aiMailStatus.running のみで初回起動履歴を欠落。</li>
+                <li>テスト/UX: 手動確認前提で自動検証無し。</li>
+              </ul>
+              <details class="snapshot-details">
+                <summary class="details-toggle">コミットと差分ログ</summary>
+                <pre>
+branch: task/task-1764077603701-30297b (worktree: /.worktrees/task-1764077603701-30297b)
+log:
+  430b430 停止時のワークスペースアイコンを黄色で強調
+  5198db6 監視停止時のAIメールアイコン状態を判定
+
+主要差分:
+- public/renderer.js: ai-mail-monitor が active かつ !aiMailStatus.running のとき attention クラスを付与し、active を外す。
+- public/styles.css: .quick-action.attention と .quick-action.attention .quick-icon で黄色トーンの枠線・影を追加。
+
+懸念:
+- 「一度起動した」フラグが無く、カードを開いただけで警告になる。
+                </pre>
+              </details>
+              <div class="link-row">成果物: /Users/urd/workspace/zoltraak_os/.worktrees/task-1764077603701-30297b/public/renderer.js, /public/styles.css</div>
+            </td>
+            <td>
+              <div class="agent-meta">
+                <span class="status-badge status-badge--completed">完了</span>
+                <span class="agent-label">仕様適合度が高い実装。起動履歴フラグで警告表示を制御。</span>
+              </div>
+              <div class="radar-wrapper">
+                <div class="radar-chart" data-scores='[
+                  {"label":"安定性","value":88},
+                  {"label":"コード品質","value":85},
+                  {"label":"コスト","value":92},
+                  {"label":"価値","value":90},
+                  {"label":"実装妥当性","value":90},
+                  {"label":"テスト/UX","value":80}
+                ]'>
+                  <svg viewBox="0 0 160 160" aria-label="task-1764077606243-dcdc99 六角形チャート"></svg>
+                  <ul class="radar-legend">
+                    <li><strong>安定性</strong>88点</li>
+                    <li><strong>コード品質</strong>85点</li>
+                    <li><strong>コスト</strong>92点</li>
+                    <li><strong>価値</strong>90点</li>
+                    <li><strong>実装妥当性</strong>90点</li>
+                    <li><strong>テスト/UX</strong>80点</li>
+                  </ul>
+                </div>
+              </div>
+              <div class="snapshot-summary">要件準拠: 監視が一度でも RUNNING になった後だけ停止時に警告（黄色）を表示し、起動中は通常の緑強調。</div>
+              <ul class="reason-list">
+                <li>安定性: 起動履歴フラグで誤警告を防止。</li>
+                <li>コード品質: 条件分岐が明確で影響範囲が限定的。</li>
+                <li>コスト: renderer.js と CSS の局所変更のみ。</li>
+                <li>価値: 要件通りの注意喚起でユーザに有益。</li>
+                <li>実装妥当性: aiMailMonitorStartedOnce を syncAiMailUiFromStatus に統合し仕様意図を反映。</li>
+                <li>テスト/UX: ビジュアル確認が必要だがリスクは低め。</li>
+              </ul>
+              <details class="snapshot-details">
+                <summary class="details-toggle">コミットと差分ログ</summary>
+                <pre>
+branch: task/task-1764077606243-dcdc99 (worktree: /.worktrees/task-1764077606243-dcdc99)
+log:
+  0d88da9 警告状態のクイックアイコンを黄色強調に変更
+  dcd6cb7 AIメール監視停止時のワークスペースアイコン警告判定
+  e00bd53 AIメール監視の開始済み状態を保持
+
+主要差分:
+- public/renderer.js: aiMailMonitorStartedOnce を導入。RUNNING になったらフラグを立て、停止時は active かつフラグ true の場合のみ warning クラスを付与。
+- public/styles.css: warning 配色（黄色）を追加し、hover とアイコン色も調整。
+
+留意点:
+- フラグはセッション内のみ保持。再読込後の状態復元が無い点は運用でカバーが必要。
+                </pre>
+              </details>
+              <div class="link-row">成果物: /Users/urd/workspace/zoltraak_os/.worktrees/task-1764077606243-dcdc99/public/renderer.js, /public/styles.css</div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <script>
+      (() => {
+        const size = 160;
+        const center = size / 2;
+        const radius = 60;
+        document.querySelectorAll('.radar-chart').forEach((chart) => {
+          const svg = chart.querySelector('svg');
+          if (!svg) return;
+          let data = [];
+          try {
+            data = JSON.parse(chart.dataset.scores || '[]');
+          } catch (e) {
+            data = [];
+          }
+          if (!data.length) return;
+          const angleStep = (Math.PI * 2) / data.length;
+          const outerPoints = [];
+          const valuePoints = [];
+          data.forEach((item, index) => {
+            const angle = -Math.PI / 2 + angleStep * index;
+            const clamped = Math.max(0, Math.min(100, Number(item.value) || 0));
+            const r = radius * (clamped / 100);
+            const x = center + Math.cos(angle) * r;
+            const y = center + Math.sin(angle) * r;
+            valuePoints.push(`${x},${y}`);
+            const ox = center + Math.cos(angle) * radius;
+            const oy = center + Math.sin(angle) * radius;
+            outerPoints.push(`${ox},${oy}`);
+          });
+          svg.innerHTML = `
+            <polygon points="${outerPoints.join(' ')}" fill="none" stroke="#c4d3d7" stroke-width="1" />
+            <polygon points="${valuePoints.join(' ')}" fill="rgba(16, 185, 129, 0.18)" stroke="#10b981" stroke-width="2" />
+          `;
+        });
+      })();
+    </script>
+  </body>
+</html>
