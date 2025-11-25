@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { app, BrowserWindow, dialog, nativeTheme, ipcMain } = require('electron');
+const { app, BrowserWindow, dialog, nativeTheme, ipcMain, shell } = require('electron');
 
 const fsp = fs.promises;
 const SETTINGS_FILE_NAME = 'settings.json';
@@ -164,6 +164,18 @@ const saveRecordingBuffer = async (arrayBuffer, mimeType) => {
   return filePath;
 };
 
+const openWorkspaceDirectory = async () => {
+  const dir = await ensureWorkspaceDirectory();
+  if (!dir) {
+    throw new Error('作業ディレクトリが設定されていません');
+  }
+  const result = await shell.openPath(dir);
+  if (result) {
+    throw new Error(`ディレクトリを開けませんでした: ${result}`);
+  }
+  return dir;
+};
+
 const createWindow = () => {
   nativeTheme.themeSource = 'dark';
 
@@ -205,6 +217,7 @@ app.whenReady().then(async () => {
   });
   ipcMain.handle('workspace:change-directory', changeWorkspaceDirectory);
   ipcMain.handle('workspace:get-stored-directory', getStoredWorkspaceDirectory);
+  ipcMain.handle('workspace:open-directory', openWorkspaceDirectory);
   ipcMain.handle('recording:save', async (_event, payload) => {
     const { buffer, mimeType } = payload ?? {};
     return saveRecordingBuffer(buffer, mimeType);
