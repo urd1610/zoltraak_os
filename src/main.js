@@ -4,6 +4,7 @@ const { app, BrowserWindow, dialog, nativeTheme, ipcMain } = require('electron')
 
 const fsp = fs.promises;
 const SETTINGS_FILE_NAME = 'settings.json';
+const RECORDING_DIR_NAME = 'Recording';
 let workspaceDirectory = null;
 
 const isExistingDirectory = (dir) => {
@@ -21,6 +22,17 @@ const isExistingDirectory = (dir) => {
 const getDefaultWorkspaceDirectory = () => {
   const cwd = process.cwd();
   return isExistingDirectory(cwd) ? cwd : null;
+};
+
+const formatDateForFilename = (date) => {
+  const pad = (value) => String(value).padStart(2, '0');
+  const year = date.getFullYear();
+  const month = pad(date.getMonth() + 1);
+  const day = pad(date.getDate());
+  const hour = pad(date.getHours());
+  const minute = pad(date.getMinutes());
+  const second = pad(date.getSeconds());
+  return `${year}${month}${day}_${hour}${minute}${second}`;
 };
 
 const getSettingsPath = () => path.join(app.getPath('userData'), SETTINGS_FILE_NAME);
@@ -121,6 +133,37 @@ const ensureWorkspaceDirectory = async () => {
   return workspaceDirectory;
 };
 
+const ensureRecordingDirectory = async () => {
+  const dir = await ensureWorkspaceDirectory();
+  if (!dir) {
+    throw new Error('作業ディレクトリが設定されていません');
+  }
+  const recordingDir = path.join(dir, RECORDING_DIR_NAME);
+  await fsp.mkdir(recordingDir, { recursive: true });
+  return recordingDir;
+};
+
+const getExtensionFromMime = (mimeType) => {
+  if (typeof mimeType !== 'string') return 'webm';
+  if (mimeType.includes('wav')) return 'wav';
+  if (mimeType.includes('ogg')) return 'ogg';
+  return 'webm';
+};
+
+const saveRecordingBuffer = async (arrayBuffer, mimeType) => {
+  if (!arrayBuffer) {
+    throw new Error('録音データが空です');
+  }
+  const recordingDir = await ensureRecordingDirectory();
+  const timestamp = formatDateForFilename(new Date());
+  const extension = getExtensionFromMime(mimeType);
+  const fileName = `recording_${timestamp}.${extension}`;
+  const filePath = path.join(recordingDir, fileName);
+  const buffer = Buffer.from(arrayBuffer);
+  await fsp.writeFile(filePath, buffer);
+  return filePath;
+};
+
 const createWindow = () => {
   nativeTheme.themeSource = 'dark';
 
@@ -162,6 +205,10 @@ app.whenReady().then(async () => {
   });
   ipcMain.handle('workspace:change-directory', changeWorkspaceDirectory);
   ipcMain.handle('workspace:get-stored-directory', getStoredWorkspaceDirectory);
+  ipcMain.handle('recording:save', async (_event, payload) => {
+    const { buffer, mimeType } = payload ?? {};
+    return saveRecordingBuffer(buffer, mimeType);
+  });
 
   createWindow();
 

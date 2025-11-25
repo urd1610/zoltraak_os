@@ -18,6 +18,10 @@ let startX, startY, initialX, initialY;
 let recordingTimerId = null;
 let recordingStartedAt = null;
 let workspacePath = null;
+let mediaRecorder = null;
+let mediaStream = null;
+let recordedChunks = [];
+let isSavingRecording = false;
 
 const updateWorkspaceChip = (dir) => {
   if (!workspaceChip) return;
@@ -140,7 +144,7 @@ const buildRecordingCard = (action) => {
   title.innerHTML = `<strong>${action.label}</strong><span class="feature-desc">音声メモを収集中</span>`;
   const chip = document.createElement('span');
   chip.className = 'chip tiny';
-  chip.textContent = 'REC';
+  chip.textContent = isSavingRecording ? 'SAVING' : 'REC';
   header.append(title, chip);
 
   const row = document.createElement('div');
@@ -148,16 +152,23 @@ const buildRecordingCard = (action) => {
   const timer = document.createElement('div');
   timer.id = 'recording-timer';
   timer.className = 'recording-timer';
-  timer.textContent = recordingStartedAt ? formatDuration(Date.now() - recordingStartedAt) : '00:00';
+  timer.textContent = isSavingRecording
+    ? '保存中...'
+    : recordingStartedAt
+      ? formatDuration(Date.now() - recordingStartedAt)
+      : '00:00';
   const stop = document.createElement('button');
   stop.className = 'primary';
-  stop.textContent = '停止';
+  stop.textContent = isSavingRecording ? '保存待ち' : '停止';
+  stop.disabled = isSavingRecording;
   stop.addEventListener('click', stopRecording);
   row.append(timer, stop);
 
   const desc = document.createElement('div');
   desc.className = 'feature-desc';
-  desc.textContent = '録音はカード内から停止できます。';
+  desc.textContent = isSavingRecording
+    ? '録音ファイルを保存しています。完了までお待ちください。'
+    : '録音はカード内から停止できます。';
 
   card.append(header, row, desc);
   return card;
@@ -202,37 +213,116 @@ const updateRecordingTimer = () => {
   timerEl.textContent = formatDuration(Date.now() - recordingStartedAt);
 };
 
-const startRecording = () => {
-  recordingStartedAt = Date.now();
-  setActionActive('record', true);
-  renderQuickActions();
-  renderFeatureCards();
-  updateRecordingTimer();
-  if (recordingTimerId) {
-    clearInterval(recordingTimerId);
-  }
-  recordingTimerId = setInterval(updateRecordingTimer, 500);
-};
-
-const stopRecording = () => {
+const cleanupRecordingTimer = () => {
   if (recordingTimerId) {
     clearInterval(recordingTimerId);
     recordingTimerId = null;
   }
+};
+
+const cleanupMediaStream = () => {
+  if (!mediaStream) return;
+  mediaStream.getTracks()?.forEach((track) => track.stop());
+  mediaStream = null;
+};
+
+const finalizeRecordingStop = () => {
+  cleanupRecordingTimer();
   recordingStartedAt = null;
   setActionActive('record', false);
   renderQuickActions();
   renderFeatureCards();
 };
 
+const saveRecordingBlob = async (blob) => {
+  if (!blob || blob.size === 0) return;
+  if (!window.desktopBridge?.saveRecording) {
+    throw new Error('録音保存のブリッジが無効です');
+  }
+  const arrayBuffer = await blob.arrayBuffer();
+  return window.desktopBridge.saveRecording(arrayBuffer, blob.type);
+};
+
+const handleRecorderStop = async () => {
+  cleanupMediaStream();
+  const blob = new Blob(recordedChunks, { type: mediaRecorder?.mimeType || 'audio/webm' });
+  recordedChunks = [];
+  mediaRecorder = null;
+  isSavingRecording = true;
+  renderFeatureCards();
+
+  try {
+    await saveRecordingBlob(blob);
+  } catch (error) {
+    console.error('Failed to save recording', error);
+    alert('録音の保存に失敗しました。');
+  } finally {
+    isSavingRecording = false;
+    finalizeRecordingStop();
+  }
+};
+
+const startRecording = async () => {
+  if (mediaRecorder || isSavingRecording) {
+    return;
+  }
+
+  try {
+    if (!workspacePath) {
+      workspacePath = await window.desktopBridge?.getWorkspaceDirectory?.();
+      updateWorkspaceChip(workspacePath);
+    }
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    mediaStream = stream;
+    recordedChunks = [];
+    const recorder = new MediaRecorder(stream);
+    mediaRecorder = recorder;
+
+    recorder.addEventListener('dataavailable', (event) => {
+      if (event.data && event.data.size > 0) {
+        recordedChunks.push(event.data);
+      }
+    });
+    recorder.addEventListener('stop', () => { void handleRecorderStop(); });
+
+    recordingStartedAt = Date.now();
+    setActionActive('record', true);
+    renderQuickActions();
+    renderFeatureCards();
+    updateRecordingTimer();
+    cleanupRecordingTimer();
+    recordingTimerId = setInterval(updateRecordingTimer, 500);
+    recorder.start();
+  } catch (error) {
+    console.error('Failed to start recording', error);
+    alert('録音を開始できませんでした。マイク設定と作業ディレクトリを確認してください。');
+    cleanupMediaStream();
+    mediaRecorder = null;
+    recordedChunks = [];
+    finalizeRecordingStop();
+  }
+};
+
+const stopRecording = () => {
+  cleanupRecordingTimer();
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+    mediaRecorder.stop();
+    return;
+  }
+  finalizeRecordingStop();
+};
+
 const toggleAction = (id) => {
   const action = quickActions.find((a) => a.id === id);
   if (!action) return;
   if (id === 'record') {
-    if (action.active) {
+    if (isSavingRecording) {
+      return;
+    }
+    if (action.active || mediaRecorder) {
       stopRecording();
     } else {
-      startRecording();
+      void startRecording();
     }
     return;
   }
