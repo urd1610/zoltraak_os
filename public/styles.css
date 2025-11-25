@@ -354,6 +354,59 @@ button.chip:disabled {
   border: 1px solid rgba(110, 231, 255, 0.08);
 }
 
+.forward-section {
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(17, 27, 47, 0.6);
+  border: 1px solid rgba(110, 231, 255, 0.08);
+}
+
+.forward-label {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.forward-form {
+  display: grid;
+  gap: 6px;
+}
+
+.forward-input-row {
+  display: flex;
+  gap: 8px;
+}
+
+.forward-input {
+  flex: 1;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(110, 231, 255, 0.18);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
+  font-size: 14px;
+}
+
+.forward-input:focus {
+  outline: none;
+  border-color: rgba(110, 231, 255, 0.45);
+  box-shadow: 0 0 0 2px rgba(110, 231, 255, 0.15);
+}
+
+.forward-input:disabled {
+  opacity: 0.7;
+}
+
+.forward-save {
+  min-width: 96px;
+}
+
+.forward-hint {
+  font-size: 12px;
+  color: var(--muted);
+}
+
 .status-row {
   display: flex;
   align-items: center;

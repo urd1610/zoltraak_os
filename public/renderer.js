@@ -32,6 +32,9 @@ const aiMailStatus = {
   running: false,
   forwardedCount: 0,
 };
+let aiMailForwardDraft = '';
+let aiMailForwardDirty = false;
+let isSavingAiMailForward = false;
 
 const updateWorkspaceChip = (dir) => {
   if (!workspaceChip) return;
@@ -56,6 +59,12 @@ const formatDateTime = (value) => {
     hour: '2-digit',
     minute: '2-digit',
   });
+};
+
+const isValidEmail = (value) => {
+  const target = String(value ?? '').trim();
+  if (!target) return false;
+  return /.+@.+\..+/.test(target);
 };
 
 const renderQuickActions = () => {
@@ -213,28 +222,59 @@ const syncAiMailUiFromStatus = (status) => {
   const aiMailAction = quickActions.find((action) => action.id === 'ai-mail-monitor');
   const shouldActivate = Boolean(status.running || aiMailAction?.active);
   updateAiMailStatus(status);
+  if (!aiMailForwardDirty || isSavingAiMailForward) {
+    aiMailForwardDraft = status.forwardTo ?? '';
+    aiMailForwardDirty = false;
+  }
   setActionActive('ai-mail-monitor', shouldActivate);
   renderQuickActions();
   renderFeatureCards();
 };
 
-const promptForwardAddress = async () => {
-  const next = prompt('転送先メールアドレスを入力', aiMailStatus.forwardTo ?? '');
-  if (next === null) return;
-  const trimmed = next.trim();
+const submitAiMailForwardForm = async () => {
+  const draft = aiMailForwardDraft ?? '';
+  const trimmed = draft.trim();
+
+  if (!window.desktopBridge?.updateAiMailForward) {
+    updateAiMailStatus({ lastError: '転送先設定のブリッジが見つかりません' });
+    renderFeatureCards();
+    return;
+  }
+
+  if (!trimmed) {
+    updateAiMailStatus({ lastError: '転送先メールアドレスを入力してください' });
+    renderFeatureCards();
+    return;
+  }
+
+  if (!isValidEmail(trimmed)) {
+    updateAiMailStatus({ lastError: 'メールアドレスの形式が正しくありません' });
+    renderFeatureCards();
+    return;
+  }
+
+  if (isSavingAiMailForward) {
+    return;
+  }
+
+  isSavingAiMailForward = true;
+  renderFeatureCards();
 
   try {
-    const status = await window.desktopBridge?.updateAiMailForward?.(trimmed);
+    const status = await window.desktopBridge.updateAiMailForward(trimmed);
     if (status) {
+      aiMailForwardDirty = false;
       syncAiMailUiFromStatus(status);
       return;
     }
+    updateAiMailStatus({ forwardTo: trimmed, lastError: '転送先の更新が反映されませんでした' });
   } catch (error) {
     console.error('Failed to update ai mail forward address', error);
+    updateAiMailStatus({ lastError: '転送先の更新に失敗しました' });
+  } finally {
+    isSavingAiMailForward = false;
+    renderFeatureCards();
   }
-
-  updateAiMailStatus({ forwardTo: trimmed, lastError: '転送先の更新が反映されませんでした' });
-  renderFeatureCards();
 };
 
 const refreshAiMailStatus = async () => {
@@ -348,6 +388,54 @@ const buildAiMailCard = () => {
     statusGrid.append(makeRow('直近のエラー', aiMailStatus.lastError, 'error'));
   }
 
+  const currentForwardDraft = aiMailForwardDraft ?? aiMailStatus.forwardTo ?? '';
+  const trimmedDraft = currentForwardDraft.trim();
+  const savedForward = (aiMailStatus.forwardTo ?? '').trim();
+  const canSaveForward = Boolean(trimmedDraft && trimmedDraft !== savedForward);
+
+  const forwardSection = document.createElement('div');
+  forwardSection.className = 'forward-section';
+
+  const forwardLabel = document.createElement('div');
+  forwardLabel.className = 'forward-label';
+  forwardLabel.textContent = '転送先メールアドレス';
+
+  const forwardForm = document.createElement('form');
+  forwardForm.className = 'forward-form';
+  forwardForm.addEventListener('submit', (event) => {
+    event.preventDefault();
+    void submitAiMailForwardForm();
+  });
+
+  const forwardRow = document.createElement('div');
+  forwardRow.className = 'forward-input-row';
+
+  const forwardInput = document.createElement('input');
+  forwardInput.type = 'email';
+  forwardInput.className = 'forward-input';
+  forwardInput.placeholder = 'example@domain.com';
+  forwardInput.value = currentForwardDraft;
+  forwardInput.disabled = isSavingAiMailForward;
+  forwardInput.addEventListener('input', (event) => {
+    aiMailForwardDraft = event.target.value;
+    aiMailForwardDirty = true;
+  });
+
+  const forwardSave = document.createElement('button');
+  forwardSave.type = 'submit';
+  forwardSave.className = 'primary forward-save';
+  forwardSave.textContent = isSavingAiMailForward ? '保存中…' : '保存';
+  forwardSave.disabled = isSavingAiMailForward || !canSaveForward;
+
+  forwardRow.append(forwardInput, forwardSave);
+  forwardForm.append(forwardRow);
+
+  const forwardHint = document.createElement('div');
+  forwardHint.className = 'forward-hint';
+  forwardHint.textContent = '監視を開始するには転送先を設定してください。';
+
+  forwardSection.append(forwardLabel, forwardForm, forwardHint);
+
   const actions = document.createElement('div');
   actions.className = 'feature-actions';
   const toggleBtn = document.createElement('button');
@@ -361,17 +449,12 @@ const buildAiMailCard = () => {
     }
   });
 
-  const forwardBtn = document.createElement('button');
-  forwardBtn.className = 'ghost';
-  forwardBtn.textContent = '転送先を設定';
-  forwardBtn.addEventListener('click', promptForwardAddress);
-
   const refreshBtn = document.createElement('button');
   refreshBtn.className = 'ghost';
   refreshBtn.textContent = '状態更新';
   refreshBtn.addEventListener('click', refreshAiMailStatus);
 
-  actions.append(toggleBtn, forwardBtn, refreshBtn);
+  actions.append(toggleBtn, refreshBtn);
 
   const desc = document.createElement('div');
   desc.className = 'feature-desc';
@@ -379,7 +462,7 @@ const buildAiMailCard = () => {
     ? 'wx105.wadax-sv.jp のPOP3(110/STARTTLS)を監視し、新着をSMTP(587/STARTTLS)で転送します。'
     : '監視を開始すると受信メールを検知し、指定先へ自動で転送します。';
 
-  card.append(header, statusGrid, actions, desc);
+  card.append(header, statusGrid, forwardSection, actions, desc);
   return card;
 };
 
