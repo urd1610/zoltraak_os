@@ -220,23 +220,53 @@ class AiMailMonitor {
   }
 
   parseUidl(data) {
+    const entries = [];
+    const addEntry = (msgNumber, uid) => {
+      const number = Number(msgNumber);
+      const trimmed = (uid ?? '').trim();
+      if (!Number.isFinite(number) || !trimmed) return;
+      entries.push({ msgNumber: number, uid: trimmed });
+    };
+    const parseLine = (line) => {
+      if (!line) return null;
+      const parts = String(line).trim().split(/\s+/);
+      if (parts.length < 2) return null;
+      const [numberPart, ...rest] = parts;
+      const uid = rest.join(' ');
+      if (!uid) return null;
+      return { msgNumber: numberPart, uid };
+    };
+
+    if (data && typeof data === 'object') {
+      Object.entries(data).forEach(([key, value]) => {
+        if (typeof value !== 'string') return;
+        const parsed = parseLine(value);
+        if (parsed) {
+          addEntry(parsed.msgNumber, parsed.uid);
+          return;
+        }
+        addEntry(key, value);
+      });
+    }
+
+    if (entries.length > 0) {
+      return entries;
+    }
+
     const lines = Array.isArray(data)
       ? data
       : typeof data === 'string'
         ? data.split(/\r?\n/)
         : [];
 
-    return lines
-      .map((line) => line.trim())
-      .filter(Boolean)
-      .map((line) => {
-        const [numberPart, uid] = line.split(' ');
-        return {
-          msgNumber: Number(numberPart),
-          uid,
-        };
-      })
-      .filter((item) => Number.isFinite(item.msgNumber) && item.uid);
+    lines.forEach((line) => {
+      const parsed = parseLine(line);
+      if (parsed) {
+        addEntry(parsed.msgNumber, parsed.uid);
+      }
+    });
+
+    return entries;
   }
 
   async forwardMessage(message) {
