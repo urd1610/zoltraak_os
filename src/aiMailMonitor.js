@@ -10,7 +10,7 @@ class AiMailMonitor {
     };
     this.pop3 = options.pop3 ?? {
       host: 'wx105.wadax-sv.jp',
-      port: 110,
+      port: 995,
       enableTls: true,
     };
     this.smtp = options.smtp ?? {
