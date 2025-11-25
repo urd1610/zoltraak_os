@@ -9,6 +9,7 @@ const quickActions = [
   { id: 'record', label: 'クイック録音', detail: '30秒メモ', icon: '🎙️', active: false, position: { x: 0, y: 0 } },
   { id: 'focus', label: 'フォーカス 25:00', detail: '集中モード', icon: '⏱️', active: false, position: { x: 150, y: 0 } },
   { id: 'share', label: 'ステータス共有', detail: 'チームに公開', icon: '📡', active: false, position: { x: 300, y: 0 } },
+  { id: 'workspace-open', label: 'ディレクトリ', detail: '作業フォルダを開く', icon: '📁', active: false, position: { x: 450, y: 0 } },
 ];
 
 // グローバル変数を関数外に移動
@@ -59,9 +60,9 @@ const renderQuickActions = () => {
       }
     };
     
-    // ダブルクリックでトグル
+    // ダブルクリックで動作を実行
     const handleDoubleClick = () => {
-      toggleAction(action.id);
+      handleActionDoubleClick(action);
     };
     
     row.addEventListener('mousedown', handleMouseDown);
@@ -78,7 +79,11 @@ const renderQuickActions = () => {
     name.className = 'quick-name';
     name.textContent = action.label;
 
-    label.append(icon, name);
+    const detail = document.createElement('div');
+    detail.className = 'quick-detail';
+    detail.textContent = action.detail ?? '';
+
+    label.append(icon, name, detail);
 
     row.append(label);
     quickActionsContainer.appendChild(row);
@@ -312,6 +317,23 @@ const stopRecording = () => {
   finalizeRecordingStop();
 };
 
+const openWorkspaceDirectoryFromIcon = async () => {
+  if (!window.desktopBridge?.openWorkspaceDirectory) {
+    alert('作業ディレクトリを開けませんでした。設定を確認してください。');
+    return;
+  }
+  try {
+    const opened = await window.desktopBridge.openWorkspaceDirectory();
+    if (opened) {
+      workspacePath = opened;
+      updateWorkspaceChip(opened);
+    }
+  } catch (error) {
+    console.error('Failed to open workspace directory', error);
+    alert('作業ディレクトリを開けませんでした。設定を確認してください。');
+  }
+};
+
 const toggleAction = (id) => {
   const action = quickActions.find((a) => a.id === id);
   if (!action) return;
@@ -329,6 +351,15 @@ const toggleAction = (id) => {
   action.active = !action.active;
   renderQuickActions();
   renderFeatureCards();
+};
+
+const handleActionDoubleClick = (action) => {
+  if (!action) return;
+  if (action.id === 'workspace-open') {
+    void openWorkspaceDirectoryFromIcon();
+    return;
+  }
+  toggleAction(action.id);
 };
 
 const updateClock = () => {
