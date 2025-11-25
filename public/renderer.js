@@ -33,6 +33,7 @@ const aiMailStatus = {
   forwardedCount: 0,
 };
 
+let aiMailMonitorStartedOnce = false;
 let aiMailForwardDraft = '';
 let aiMailForwardDirty = false;
 let isSavingAiMailForward = false;
@@ -223,6 +224,9 @@ const syncAiMailUiFromStatus = (status) => {
   if (!status) return;
   const aiMailAction = quickActions.find((action) => action.id === 'ai-mail-monitor');
   const shouldActivate = Boolean(status.running || aiMailAction?.active);
+  if (status.running) {
+    aiMailMonitorStartedOnce = true;
+  }
   updateAiMailStatus(status);
   if (!aiMailForwardDirty || isSavingAiMailForward) {
     aiMailForwardDraft = status.forwardTo ?? '';
