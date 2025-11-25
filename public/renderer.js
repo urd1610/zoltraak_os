@@ -73,9 +73,15 @@ const isValidEmail = (value) => {
 const renderQuickActions = () => {
   quickActionsContainer.innerHTML = '';
   quickActions.forEach((action) => {
+    const isAiMailWarning = action.id === 'ai-mail-monitor'
+      && action.active
+      && aiMailMonitorStartedOnce
+      && !aiMailStatus.running;
+
     const row = document.createElement('div');
     row.className = 'quick-action';
     row.classList.toggle('active', action.active);
+    row.classList.toggle('warning', isAiMailWarning);
     row.dataset.action = action.id;
     row.style.left = `${action.position.x}px`;
     row.style.top = `${action.position.y}px`;
