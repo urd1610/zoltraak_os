@@ -285,6 +285,15 @@ const stopAiMailMonitor = async () => {
   syncAiMailUiFromStatus({ running: false });
 };
 
+const closeAiMailPanel = async () => {
+  if (aiMailStatus.running) {
+    await stopAiMailMonitor();
+  }
+  setActionActive('ai-mail-monitor', false);
+  renderQuickActions();
+  renderFeatureCards();
+};
+
 const buildAiMailCard = () => {
   const card = document.createElement('div');
   card.className = 'feature-card';
@@ -298,7 +307,16 @@ const buildAiMailCard = () => {
   chip.className = 'chip tiny';
   chip.textContent = aiMailStatus.running ? 'RUNNING' : 'STOPPED';
   chip.classList.toggle('muted', !aiMailStatus.running);
-  header.append(title, chip);
+  const headerControls = document.createElement('div');
+  headerControls.className = 'feature-header-controls';
+  const closeBtn = document.createElement('button');
+  closeBtn.type = 'button';
+  closeBtn.className = 'panel-close';
+  closeBtn.setAttribute('aria-label', 'AIメール監視パネルを閉じる');
+  closeBtn.textContent = '×';
+  closeBtn.addEventListener('click', () => { void closeAiMailPanel(); });
+  headerControls.append(chip, closeBtn);
+  header.append(title, headerControls);
 
   const statusGrid = document.createElement('div');
   statusGrid.className = 'status-grid';
