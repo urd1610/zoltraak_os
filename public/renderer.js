@@ -6,10 +6,11 @@ const quickActionsContainer = document.getElementById('quick-actions');
 const featureCardsContainer = document.getElementById('feature-cards');
 
 const quickActions = [
-  { id: 'record', label: 'クイック録音', detail: '', icon: '🎙️', active: false, position: { x: 0, y: 0 } },
-  { id: 'focus', label: 'フォーカス 25:00', detail: '', icon: '⏱️', active: false, position: { x: 150, y: 0 } },
-  { id: 'share', label: 'ステータス共有', detail: '', icon: '📡', active: false, position: { x: 300, y: 0 } },
-  { id: 'workspace-open', label: 'ディレクトリ', detail: '', icon: '📁', active: false, position: { x: 450, y: 0 } },
+  { id: 'record', label: 'クイック録音', detail: '30秒メモ', icon: '🎙️', active: false, position: { x: 0, y: 0 } },
+  { id: 'focus', label: 'フォーカス 25:00', detail: '集中モード', icon: '⏱️', active: false, position: { x: 150, y: 0 } },
+  { id: 'share', label: 'ステータス共有', detail: 'チームに公開', icon: '📡', active: false, position: { x: 300, y: 0 } },
+  { id: 'workspace-open', label: 'ディレクトリ', detail: '作業フォルダを開く', icon: '📁', active: false, position: { x: 450, y: 0 } },
+  { id: 'ai-mail-monitor', label: 'AIメール監視', detail: '受信→転送', icon: 'AI', active: false, position: { x: 600, y: 0 } },
 ];
 
 // グローバル変数を関数外に移動
@@ -23,6 +24,14 @@ let mediaRecorder = null;
 let mediaStream = null;
 let recordedChunks = [];
 let isSavingRecording = false;
+const aiMailStatus = {
+  forwardTo: '',
+  lastCheckedAt: null,
+  lastForwardedAt: null,
+  lastError: null,
+  running: false,
+  forwardedCount: 0,
+};
 
 const updateWorkspaceChip = (dir) => {
   if (!workspaceChip) return;
@@ -35,6 +44,18 @@ const formatDuration = (ms) => {
   const minutes = String(Math.floor(totalSeconds / 60)).padStart(2, '0');
   const seconds = String(totalSeconds % 60).padStart(2, '0');
   return `${minutes}:${seconds}`;
+};
+
+const formatDateTime = (value) => {
+  if (!value) return '--';
+  const date = typeof value === 'string' || typeof value === 'number' ? new Date(value) : value;
+  if (Number.isNaN(date.getTime())) return '--';
+  return date.toLocaleString('ja-JP', {
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 };
 
 const renderQuickActions = () => {
@@ -97,6 +118,10 @@ const renderFeatureCards = () => {
   activeActions.forEach((action) => {
     if (action.id === 'record') {
       featureCardsContainer.appendChild(buildRecordingCard(action));
+      return;
+    }
+    if (action.id === 'ai-mail-monitor') {
+      featureCardsContainer.appendChild(buildAiMailCard(action));
       return;
     }
 
@@ -176,6 +201,167 @@ const buildRecordingCard = (action) => {
     : '録音はカード内から停止できます。';
 
   card.append(header, row, desc);
+  return card;
+};
+
+const updateAiMailStatus = (patch) => {
+  Object.assign(aiMailStatus, patch);
+};
+
+const syncAiMailUiFromStatus = (status) => {
+  if (!status) return;
+  const aiMailAction = quickActions.find((action) => action.id === 'ai-mail-monitor');
+  const shouldActivate = Boolean(status.running || aiMailAction?.active);
+  updateAiMailStatus(status);
+  setActionActive('ai-mail-monitor', shouldActivate);
+  renderQuickActions();
+  renderFeatureCards();
+};
+
+const promptForwardAddress = async () => {
+  const next = prompt('転送先メールアドレスを入力', aiMailStatus.forwardTo ?? '');
+  if (next === null) return;
+  const trimmed = next.trim();
+
+  try {
+    const status = await window.desktopBridge?.updateAiMailForward?.(trimmed);
+    if (status) {
+      syncAiMailUiFromStatus(status);
+      return;
+    }
+  } catch (error) {
+    console.error('Failed to update ai mail forward address', error);
+  }
+
+  updateAiMailStatus({ forwardTo: trimmed, lastError: '転送先の更新が反映されませんでした' });
+  renderFeatureCards();
+};
+
+const refreshAiMailStatus = async () => {
+  try {
+    const status = await window.desktopBridge?.refreshAiMailStatus?.();
+    if (status) {
+      syncAiMailUiFromStatus(status);
+      return;
+    }
+    await hydrateAiMailStatus();
+    return;
+  } catch (error) {
+    console.error('Failed to refresh ai mail status', error);
+    updateAiMailStatus({ lastError: '状態更新に失敗しました' });
+  }
+  renderFeatureCards();
+};
+
+const startAiMailMonitor = async () => {
+  setActionActive('ai-mail-monitor', true);
+  renderQuickActions();
+  renderFeatureCards();
+  try {
+    const status = await window.desktopBridge?.startAiMailMonitor?.();
+    if (status) {
+      syncAiMailUiFromStatus(status);
+      return;
+    }
+  } catch (error) {
+    console.error('Failed to start ai mail monitor', error);
+    updateAiMailStatus({ lastError: '監視開始に失敗しました' });
+  }
+  updateAiMailStatus({ lastError: '監視開始の応答がありません' });
+  renderFeatureCards();
+};
+
+const stopAiMailMonitor = async () => {
+  try {
+    const status = await window.desktopBridge?.stopAiMailMonitor?.();
+    if (status) {
+      syncAiMailUiFromStatus(status);
+      return;
+    }
+  } catch (error) {
+    console.error('Failed to stop ai mail monitor', error);
+    updateAiMailStatus({ lastError: '監視停止に失敗しました' });
+  }
+  syncAiMailUiFromStatus({ running: false });
+};
+
+const buildAiMailCard = () => {
+  const card = document.createElement('div');
+  card.className = 'feature-card';
+
+  const header = document.createElement('div');
+  header.className = 'feature-header';
+  const title = document.createElement('div');
+  title.className = 'feature-title';
+  title.innerHTML = '<strong>AIメール監視</strong><span class="feature-desc">POP3受信を監視し自動転送</span>';
+  const chip = document.createElement('span');
+  chip.className = 'chip tiny';
+  chip.textContent = aiMailStatus.running ? 'RUNNING' : 'STOPPED';
+  chip.classList.toggle('muted', !aiMailStatus.running);
+  header.append(title, chip);
+
+  const statusGrid = document.createElement('div');
+  statusGrid.className = 'status-grid';
+
+  const makeRow = (label, value, type) => {
+    const row = document.createElement('div');
+    row.className = 'status-row';
+    if (type) {
+      row.dataset.type = type;
+    }
+    const name = document.createElement('span');
+    name.className = 'status-label';
+    name.textContent = label;
+    const val = document.createElement('span');
+    val.className = 'status-value';
+    val.textContent = value;
+    row.append(name, val);
+    return row;
+  };
+
+  statusGrid.append(
+    makeRow('転送先', aiMailStatus.forwardTo || '未設定'),
+    makeRow('最終チェック', formatDateTime(aiMailStatus.lastCheckedAt)),
+    makeRow('最終転送', formatDateTime(aiMailStatus.lastForwardedAt)),
+    makeRow('累計転送', `${aiMailStatus.forwardedCount ?? 0}件`),
+  );
+
+  if (aiMailStatus.lastError) {
+    statusGrid.append(makeRow('直近のエラー', aiMailStatus.lastError, 'error'));
+  }
+
+  const actions = document.createElement('div');
+  actions.className = 'feature-actions';
+  const toggleBtn = document.createElement('button');
+  toggleBtn.className = aiMailStatus.running ? 'ghost' : 'primary';
+  toggleBtn.textContent = aiMailStatus.running ? '監視を停止' : '監視を開始';
+  toggleBtn.addEventListener('click', () => {
+    if (aiMailStatus.running) {
+      stopAiMailMonitor();
+    } else {
+      void startAiMailMonitor();
+    }
+  });
+
+  const forwardBtn = document.createElement('button');
+  forwardBtn.className = 'ghost';
+  forwardBtn.textContent = '転送先を設定';
+  forwardBtn.addEventListener('click', promptForwardAddress);
+
+  const refreshBtn = document.createElement('button');
+  refreshBtn.className = 'ghost';
+  refreshBtn.textContent = '状態更新';
+  refreshBtn.addEventListener('click', refreshAiMailStatus);
+
+  actions.append(toggleBtn, forwardBtn, refreshBtn);
+
+  const desc = document.createElement('div');
+  desc.className = 'feature-desc';
+  desc.textContent = aiMailStatus.running
+    ? 'wx105.wadax-sv.jp のPOP3(110/STARTTLS)を監視し、新着をSMTP(587/STARTTLS)で転送します。'
+    : '監視を開始すると受信メールを検知し、指定先へ自動で転送します。';
+
+  card.append(header, statusGrid, actions, desc);
   return card;
 };
 
@@ -337,6 +523,14 @@ const openWorkspaceDirectoryFromIcon = async () => {
 const toggleAction = (id) => {
   const action = quickActions.find((a) => a.id === id);
   if (!action) return;
+  if (id === 'ai-mail-monitor') {
+    if (aiMailStatus.running) {
+      void stopAiMailMonitor();
+    } else {
+      void startAiMailMonitor();
+    }
+    return;
+  }
   if (id === 'record') {
     if (isSavingRecording) {
       return;
@@ -378,6 +572,20 @@ const hydrateWorkspaceChip = async () => {
     console.error('Failed to load workspace directory', error);
     workspaceChip.textContent = 'workspace: error';
     workspaceChip.title = '';
+  }
+};
+
+const hydrateAiMailStatus = async () => {
+  if (!window.desktopBridge?.getAiMailStatus) return;
+  try {
+    const status = await window.desktopBridge.getAiMailStatus();
+    if (status) {
+      syncAiMailUiFromStatus(status);
+    }
+  } catch (error) {
+    console.error('Failed to hydrate ai mail status', error);
+    updateAiMailStatus({ lastError: 'AIメール監視の状態取得に失敗しました' });
+    renderFeatureCards();
   }
 };
 
@@ -431,6 +639,7 @@ const boot = () => {
   renderQuickActions();
   renderFeatureCards();
   void hydrateWorkspaceChip();
+  void hydrateAiMailStatus();
   hydrateSystemInfo();
   updateClock();
   setInterval(updateClock, 30000);

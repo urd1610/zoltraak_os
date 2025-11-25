@@ -15,4 +15,9 @@ contextBridge.exposeInMainWorld('desktopBridge', {
   changeWorkspaceDirectory: () => ipcRenderer.invoke('workspace:change-directory'),
   openWorkspaceDirectory: () => ipcRenderer.invoke('workspace:open-directory'),
   saveRecording: (buffer, mimeType) => ipcRenderer.invoke('recording:save', { buffer, mimeType }),
+  getAiMailStatus: () => ipcRenderer.invoke('ai-mail:get-status'),
+  startAiMailMonitor: () => ipcRenderer.invoke('ai-mail:start'),
+  stopAiMailMonitor: () => ipcRenderer.invoke('ai-mail:stop'),
+  refreshAiMailStatus: () => ipcRenderer.invoke('ai-mail:refresh'),
+  updateAiMailForward: (forwardTo) => ipcRenderer.invoke('ai-mail:update-forward', forwardTo),
 });

@@ -1,11 +1,13 @@
 const fs = require('fs');
 const path = require('path');
 const { app, BrowserWindow, dialog, nativeTheme, ipcMain, shell } = require('electron');
+const { AiMailMonitor } = require('./aiMailMonitor');
 
 const fsp = fs.promises;
 const SETTINGS_FILE_NAME = 'settings.json';
 const RECORDING_DIR_NAME = 'Recording';
 let workspaceDirectory = null;
+let aiMailMonitor = null;
 
 const isExistingDirectory = (dir) => {
   if (!dir) {
@@ -50,6 +52,24 @@ const writeSettings = async (settings) => {
   const settingsPath = getSettingsPath();
   await fsp.mkdir(path.dirname(settingsPath), { recursive: true });
   await fsp.writeFile(settingsPath, JSON.stringify(settings, null, 2), 'utf8');
+};
+
+const getAiMailSettings = async () => {
+  const settings = await readSettings();
+  const aiMail = settings.aiMail ?? {};
+  return {
+    forwardTo: aiMail.forwardTo ?? '',
+    forwardedCount: aiMail.forwardedCount ?? 0,
+    seenUids: Array.isArray(aiMail.seenUids) ? aiMail.seenUids : [],
+  };
+};
+
+const saveAiMailSettings = async (patch) => {
+  const settings = await readSettings();
+  const nextAiMail = { ...(settings.aiMail ?? {}), ...patch };
+  const nextSettings = { ...settings, aiMail: nextAiMail };
+  await writeSettings(nextSettings);
+  return nextAiMail;
 };
 
 const pickWorkspaceDirectory = async () => {
@@ -143,6 +163,21 @@ const ensureRecordingDirectory = async () => {
   return recordingDir;
 };
 
+const buildAiMailMonitor = async () => {
+  if (aiMailMonitor) {
+    return aiMailMonitor;
+  }
+  const aiMailState = await getAiMailSettings();
+  aiMailMonitor = new AiMailMonitor({
+    forwardTo: aiMailState.forwardTo,
+    forwardedCount: aiMailState.forwardedCount,
+    seenUids: aiMailState.seenUids,
+    loadState: getAiMailSettings,
+    saveState: saveAiMailSettings,
+  });
+  return aiMailMonitor;
+};
+
 const getExtensionFromMime = (mimeType) => {
   if (typeof mimeType !== 'string') return 'webm';
   if (mimeType.includes('wav')) return 'wav';
@@ -207,6 +242,7 @@ app.whenReady().then(async () => {
     app.quit();
     return;
   }
+  const monitor = await buildAiMailMonitor();
 
   ipcMain.handle('workspace:get-directory', async () => {
     const ensured = await ensureWorkspaceDirectory();
@@ -222,6 +258,11 @@ app.whenReady().then(async () => {
     const { buffer, mimeType } = payload ?? {};
     return saveRecordingBuffer(buffer, mimeType);
   });
+  ipcMain.handle('ai-mail:get-status', async () => monitor?.getStatus());
+  ipcMain.handle('ai-mail:update-forward', async (_event, forwardTo) => monitor?.updateForwardTo(forwardTo));
+  ipcMain.handle('ai-mail:start', async () => monitor?.start());
+  ipcMain.handle('ai-mail:stop', async () => monitor?.stop());
+  ipcMain.handle('ai-mail:refresh', async () => monitor?.pollOnce());
 
   createWindow();
 
@@ -233,6 +274,9 @@ app.whenReady().then(async () => {
 });
 
 app.on('window-all-closed', () => {
+  if (aiMailMonitor) {
+    aiMailMonitor.stop();
+  }
   if (process.platform !== 'darwin') {
     app.quit();
   }
