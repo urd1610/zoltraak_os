@@ -317,6 +317,36 @@ button.chip:disabled {
   line-height: 1.5;
 }
 
+.status-grid {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(110, 231, 255, 0.08);
+}
+
+.status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+}
+
+.status-label {
+  color: var(--muted);
+}
+
+.status-value {
+  font-weight: 700;
+  color: var(--text);
+}
+
+.status-row[data-type="error"] .status-value {
+  color: #fca5a5;
+}
+
 .feature-actions {
   display: flex;
   gap: 8px;
