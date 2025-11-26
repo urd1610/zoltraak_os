@@ -431,6 +431,11 @@ button.chip:disabled {
   color: var(--muted);
 }
 
+.form-error {
+  font-size: 12px;
+  color: #fca5a5;
+}
+
 .formatting-section {
   display: grid;
   gap: 8px;
