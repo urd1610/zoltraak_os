@@ -576,6 +576,12 @@ button.chip:disabled {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+  align-items: center;
+}
+
+.feature-actions > * {
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .feature-card .feature-actions button {
