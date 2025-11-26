@@ -174,6 +174,8 @@ const buildAiMailMonitor = async () => {
     seenUids: aiMailState.seenUids,
     loadState: getAiMailSettings,
     saveState: saveAiMailSettings,
+    ensureWorkspaceDirectory,
+    formatDateForFilename,
   });
   return aiMailMonitor;
 };
