@@ -128,6 +128,30 @@ button.chip:disabled {
   font-size: 11px;
 }
 
+.chip.status-chip {
+  position: relative;
+  overflow: hidden;
+  transition: background 160ms ease, border-color 160ms ease, box-shadow 160ms ease, color 160ms ease;
+}
+
+.chip.status-chip.status-running {
+  color: #e8f8ff;
+  background: radial-gradient(circle at 20% 20%, rgba(110, 231, 255, 0.18), transparent 45%),
+    radial-gradient(circle at 80% 30%, rgba(167, 139, 250, 0.22), transparent 55%),
+    rgba(17, 27, 47, 0.95);
+  border-color: rgba(110, 231, 255, 0.5);
+  box-shadow: 0 0 0 1px rgba(110, 231, 255, 0.25), 0 10px 28px rgba(110, 231, 255, 0.22);
+}
+
+.chip.status-chip.status-running::before {
+  content: '';
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: conic-gradient(from 45deg, #6ee7ff, #a78bfa, #6ee7ff);
+  box-shadow: 0 0 10px rgba(110, 231, 255, 0.6);
+}
+
 .chip-action {
   background: rgba(255, 255, 255, 0.06);
   border-color: rgba(110, 231, 255, 0.24);
