@@ -13,6 +13,12 @@ const quickActions = [
   { id: 'ai-mail-monitor', label: 'AIメール監視', detail: '受信→転送', icon: 'AI', active: false, position: { x: 600, y: 0 } },
 ];
 
+quickActions.forEach((action, index) => {
+  action.zIndex = index + 1;
+});
+
+let highestZIndex = quickActions.length;
+
 // グローバル変数を関数外に移動
 let currentDraggingElement = null;
 let currentDraggingAction = null;
@@ -87,11 +93,14 @@ const renderQuickActions = () => {
     row.dataset.action = action.id;
     row.style.left = `${action.position.x}px`;
     row.style.top = `${action.position.y}px`;
+    row.style.zIndex = String(action.zIndex ?? 1);
     
     const handleMouseDown = (e) => {
       if (e.button === 0 && !currentDraggingElement) { // 左クリックのみ、かつ他の要素がドラッグ中でない
+        action.zIndex = ++highestZIndex;
         currentDraggingElement = row;
         currentDraggingAction = action;
+        row.style.zIndex = String(action.zIndex);
         startX = e.clientX;
         startY = e.clientY;
         initialX = action.position.x;
@@ -787,7 +796,10 @@ const hydrateSystemInfo = () => {
 
 const savePositions = () => {
   const positions = quickActions.reduce((acc, action) => {
-    acc[action.id] = action.position;
+    acc[action.id] = {
+      position: action.position,
+      zIndex: action.zIndex,
+    };
     return acc;
   }, {});
   localStorage.setItem('quickActionsPositions', JSON.stringify(positions));
@@ -795,14 +807,40 @@ const savePositions = () => {
 
 const loadPositions = () => {
   const saved = localStorage.getItem('quickActionsPositions');
-  if (saved) {
-    const positions = JSON.parse(saved);
-    quickActions.forEach(action => {
-      if (positions[action.id]) {
-        action.position = positions[action.id];
-      }
-    });
+  if (!saved) {
+    return;
   }
+
+  let positions;
+
+  try {
+    positions = JSON.parse(saved);
+  } catch (error) {
+    console.error('Failed to parse quick action positions', error);
+    return;
+  }
+
+  let maxZ = highestZIndex;
+
+  quickActions.forEach((action, index) => {
+    const state = positions[action.id];
+    if (state) {
+      if (state.position) {
+        action.position = state.position;
+      } else if (typeof state.x === 'number' && typeof state.y === 'number') {
+        action.position = { x: state.x, y: state.y };
+      }
+      if (typeof state.zIndex === 'number') {
+        action.zIndex = state.zIndex;
+      }
+    }
+    if (typeof action.zIndex !== 'number') {
+      action.zIndex = index + 1;
+    }
+    maxZ = Math.max(maxZ, action.zIndex);
+  });
+
+  highestZIndex = Math.max(highestZIndex, maxZ);
 };
 
 const boot = () => {
