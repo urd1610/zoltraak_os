@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <title>AIメール監視 Action表示 評価レポート</title>
+    <style>
+      body {
+        font-family: "Hiragino Sans", "Noto Sans JP", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+        line-height: 1.6;
+        margin: 24px;
+        background-color: #e9f0f2;
+        color: #1f2a30;
+      }
+      .monitor-wrapper {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 32px;
+        background: #ffffff;
+        border: 1px solid #c4d3d7;
+      }
+      .monitor-header {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 24px;
+      }
+      .monitor-title {
+        font-size: 26px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        color: #1f2a30;
+      }
+      .monitor-description {
+        font-size: 14px;
+        color: #3a4b53;
+      }
+      .scoreboard {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+        margin-bottom: 20px;
+      }
+      .score-card {
+        padding: 16px;
+        border: 1px solid #c4d3d7;
+        background: linear-gradient(120deg, #f7fbfc, #eef3f4);
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.05);
+      }
+      .score-value {
+        font-size: 22px;
+        font-weight: 700;
+        margin-bottom: 6px;
+      }
+      .score-label {
+        font-size: 13px;
+        color: #3a4b53;
+      }
+      table.monitor-report {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+        background: #ffffff;
+        border: 1px solid #c4d3d7;
+      }
+      col.timestamp-column {
+        width: 180px;
+      }
+      col.agent-column {
+        width: calc((100% - 180px) / 2);
+      }
+      th,
+      td {
+        border: 1px solid #c4d3d7;
+        padding: 16px;
+        vertical-align: top;
+        background-color: #ffffff;
+      }
+      th {
+        background: #d8e6e9;
+        text-align: left;
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: #2c3a40;
+      }
+      tbody tr:nth-child(even) td {
+        background-color: #eef3f4;
+      }
+      details {
+        display: block;
+        margin: 0;
+      }
+      details summary {
+        list-style: none;
+      }
+      details[open] summary {
+        margin-bottom: 12px;
+      }
+      .details-toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+        font-weight: 500;
+        font-size: 13px;
+        color: #1f2a30;
+        padding: 0;
+        background: transparent;
+        border: none;
+      }
+      .details-toggle::before {
+        content: "";
+        font-size: 10px;
+        transition: transform 160ms ease;
+        display: inline-block;
+      }
+      details[open] .details-toggle::before {
+        transform: rotate(90deg);
+      }
+      .timestamp {
+        font-weight: 600;
+        color: #2c3a40;
+        overflow-wrap: anywhere;
+      }
+      .agent-meta {
+        display: block;
+        margin-bottom: 12px;
+        line-height: 1.5;
+      }
+      .agent-meta .status-badge {
+        margin-right: 6px;
+      }
+      .agent-meta .agent-label {
+        display: inline;
+        font-size: 13px;
+        color: #3a4b53;
+      }
+      .status-badge {
+        display: inline-block;
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        padding: 1px 6px;
+        background: #d8e6e9;
+        border: 1px solid #b8c9cd;
+        color: #1f2a30;
+        white-space: nowrap;
+        line-height: 1.3;
+        vertical-align: top;
+      }
+      .status-badge--completed { background: #c3d4d8; border-color: #aabfc5; }
+      .status-badge--risk { background: #fef3cd; border-color: #f0e5a5; }
+
+      .radar {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        margin-bottom: 12px;
+      }
+      .radar svg {
+        flex: 0 0 160px;
+      }
+      .radar .metric-list {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 6px 12px;
+        font-size: 12px;
+      }
+      .metric-label { font-weight: 600; }
+      ul.notes { margin: 0 0 12px 16px; padding: 0; }
+      ul.notes li { margin-bottom: 4px; }
+      pre {
+        white-space: pre-wrap;
+        word-break: break-word;
+        margin: 0;
+        font-size: 12px;
+        line-height: 1.55;
+        color: #1f2a30;
+        background: #f2f6f7;
+        border: 1px solid #c4d3d7;
+        padding: 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="monitor-wrapper">
+      <header class="monitor-header">
+        <h1 class="monitor-title">AIメール監視 Action「RUNNING」表示 評価レポート</h1>
+        <p class="monitor-description">
+          監視対象: task-1764126547468-2217cf / task-1764126551513-c71488。AIメール監視サイドパネルの Action 表示で RUNNING 状態をワークスペースアイコン相当の強調にする変更を比較評価しました。
+        </p>
+      </header>
+
+      <div class="scoreboard">
+        <div class="score-card">
+          <div class="score-value">🥈🏆 467 / 600</div>
+          <div class="score-label">task-1764126551513-c71488（AIメール監視 RUNNING 強調クラス適用）</div>
+        </div>
+        <div class="score-card">
+          <div class="score-value">🥈 444 / 600</div>
+          <div class="score-label">task-1764126547468-2217cf（AIメール監視 RUNNING チップ強調）</div>
+        </div>
+      </div>
+
+      <table class="monitor-report">
+        <colgroup>
+          <col class="timestamp-column" />
+          <col class="agent-column" />
+          <col class="agent-column" />
+        </colgroup>
+        <thead>
+          <tr>
+            <th>Timestamp</th>
+            <th>Agent task-1764126547468-2217cf</th>
+            <th>Agent task-1764126551513-c71488</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="timestamp">2025-11-26 12:20</td>
+            <td>
+              <div class="agent-meta">
+                <span class="status-badge status-badge--completed">完了</span>
+                <span class="agent-label">branch: task/task-1764126547468-2217cf @ 4ce616d</span><br />
+                <span class="agent-label">成果物: C:/Users/SD565/workspace/zoltraak_os/.worktrees/task-1764126547468-2217cf</span>
+              </div>
+
+              <div class="radar">
+                <svg viewBox="0 0 160 160" aria-label="score chart">
+                  <polygon points="80,20 132,50 132,110 80,140 28,110 28,50" fill="none" stroke="#c4d3d7" stroke-width="1" />
+                  <polygon points="80,26.0 127.8,52.4 117.4,101.6 80,131.0 46.2,99.5 59.2,68.0" fill="rgba(110, 231, 255, 0.25)" stroke="#6ee7ff" stroke-width="2" />
+                </svg>
+                <div class="metric-list">
+                  <div><span class="metric-label">安定性</span> 90</div>
+                  <div><span class="metric-label">コスト</span> 92</div>
+                  <div><span class="metric-label">価値</span> 72</div>
+                  <div><span class="metric-label">実装妥当性</span> 85</div>
+                  <div><span class="metric-label">UI一貫性</span> 65</div>
+                  <div><span class="metric-label">検証/テスト</span> 40</div>
+                </div>
+              </div>
+
+              <ul class="notes">
+                <li>RUNNING 時に専用クラス <code>ai-mail-running</code> を付与し、緑系グローで強調。STOPPED では従来同様に muted。</li>
+                <li>ワークスペースアイコンのシアン系強調と色相が異なり、一貫性が薄い点で価値/UI得点を減点。</li>
+                <li>実装はシンプルで副作用リスクは低く、既存ロジックと整合。追加テストや動作検証の記載なし。</li>
+              </ul>
+
+              <details>
+                <summary class="details-toggle">コミットログ</summary>
+                <pre>commit 4ce616d842943ca8cf79ddd3687138069ad195a1
+Author: urd &lt;que.sera.sera1610@gmail.com&gt;
+Date:   Wed Nov 26 12:14:27 2025 +0900
+
+    AIメール監視のRUNNINGチップを強調
+
+ public/renderer.js | 6 ++++--
+ public/styles.css  | 7 +++++++
+ 2 files changed, 11 insertions(+), 2 deletions(-)
+</pre>
+              </details>
+              <details>
+                <summary class="details-toggle">差分</summary>
+                <pre>--- renderer.js
++ const isRunning = aiMailStatus.running;
+  chip.className = 'chip tiny';
+- chip.textContent = aiMailStatus.running ? 'RUNNING' : 'STOPPED';
+- chip.classList.toggle('muted', !aiMailStatus.running);
++ chip.textContent = isRunning ? 'RUNNING' : 'STOPPED';
++ chip.classList.toggle('muted', !isRunning);
++ chip.classList.toggle('ai-mail-running', isRunning);
+
+--- styles.css
++.chip.ai-mail-running {
++  color: #d1fae5;
++  background: rgba(52, 211, 153, 0.15);
++  border-color: rgba(52, 211, 153, 0.9);
++  box-shadow: 0 0 20px rgba(52, 211, 153, 0.45);
++}
+</pre>
+              </details>
+            </td>
+
+            <td>
+              <div class="agent-meta">
+                <span class="status-badge status-badge--completed">完了</span>
+                <span class="agent-label">branch: task/task-1764126551513-c71488 @ 85825b2</span><br />
+                <span class="agent-label">成果物: C:/Users/SD565/workspace/zoltraak_os/.worktrees/task-1764126551513-c71488</span>
+              </div>
+
+              <div class="radar">
+                <svg viewBox="0 0 160 160" aria-label="score chart">
+                  <polygon points="80,20 132,50 132,110 80,140 28,110 28,50" fill="none" stroke="#c4d3d7" stroke-width="1" />
+                  <polygon points="80,27.2 126.8,53.0 122.6,104.6 80,128.0 37.4,104.6 56.6,66.5" fill="rgba(110, 231, 255, 0.25)" stroke="#6ee7ff" stroke-width="2" />
+                </svg>
+                <div class="metric-list">
+                  <div><span class="metric-label">安定性</span> 88</div>
+                  <div><span class="metric-label">コスト</span> 90</div>
+                  <div><span class="metric-label">価値</span> 82</div>
+                  <div><span class="metric-label">実装妥当性</span> 80</div>
+                  <div><span class="metric-label">UI一貫性</span> 82</div>
+                  <div><span class="metric-label">検証/テスト</span> 45</div>
+                </div>
+              </div>
+
+              <ul class="notes">
+                <li>RUNNING 時に <code>status-running</code> クラスで青紫系のグラデ/グローを付与し、ワークスペースのアクセントに近い色調で強調。</li>
+                <li>疑似要素ドットに <code>display</code>・余白指定がなく、幅/高さが効かず表示が崩れる可能性がある点を減点。</li>
+                <li>クラス追加のみで実装は軽量、STOPPED では muted 維持。検証やスナップショットは未提示。</li>
+              </ul>
+
+              <details>
+                <summary class="details-toggle">コミットログ</summary>
+                <pre>commit 85825b2f327df360c79aeeee4fd2b19f3ab17eab
+Author: urd &lt;que.sera.sera1610@gmail.com&gt;
+Date:   Wed Nov 26 12:14:26 2025 +0900
+
+    AIメール監視のRUNNING表示に強調クラスを適用
+
+ public/renderer.js | 8 +++++---
+ 1 file changed, 5 insertions(+), 3 deletions(-)
+</pre>
+              </details>
+              <details>
+                <summary class="details-toggle">差分</summary>
+                <pre>--- renderer.js
++ const isRunning = aiMailStatus.running;
+- chip.className = 'chip tiny';
+- chip.textContent = aiMailStatus.running ? 'RUNNING' : 'STOPPED';
+- chip.classList.toggle('muted', !aiMailStatus.running);
++ chip.className = 'chip tiny status-chip';
++ chip.textContent = isRunning ? 'RUNNING' : 'STOPPED';
++ chip.classList.toggle('muted', !isRunning);
++ chip.classList.toggle('status-running', isRunning);
+
+--- styles.css
++.chip.status-chip {
++  position: relative;
++  overflow: hidden;
++  transition: background 160ms ease, border-color 160ms ease, box-shadow 160ms ease, color 160ms ease;
++}
++
++.chip.status-chip.status-running {
++  color: #e8f8ff;
++  background: radial-gradient(circle at 20% 20%, rgba(110, 231, 255, 0.18), transparent 45%),
++    radial-gradient(circle at 80% 30%, rgba(167, 139, 250, 0.22), transparent 55%),
++    rgba(17, 27, 47, 0.95);
++  border-color: rgba(110, 231, 255, 0.5);
++  box-shadow: 0 0 0 1px rgba(110, 231, 255, 0.25), 0 10px 28px rgba(110, 231, 255, 0.22);
++}
++
++.chip.status-chip.status-running::before {
++  content: '';
++  width: 10px;
++  height: 10px;
++  border-radius: 50%;
++  background: conic-gradient(from 45deg, #6ee7ff, #a78bfa, #6ee7ff);
++  box-shadow: 0 0 10px rgba(110, 231, 255, 0.6);
++}
+</pre>
+              </details>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </body>
+</html>
