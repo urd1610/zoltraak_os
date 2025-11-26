@@ -578,6 +578,14 @@ button.chip:disabled {
   flex-wrap: wrap;
 }
 
+.feature-card .feature-actions button {
+  padding: 2px 10px;
+  min-height: 20px;
+  font-size: 12px;
+  line-height: 1.2;
+  border-radius: 10px;
+}
+
 .recording-row {
   display: flex;
   align-items: center;
