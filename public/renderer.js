@@ -6,7 +6,7 @@ const quickActionsContainer = document.getElementById('quick-actions');
 const featureCardsContainer = document.getElementById('feature-cards');
 
 const quickActions = [
-  { id: 'record', label: 'クイック録音', detail: '30秒メモ', icon: '🎙️', active: false, position: { x: 0, y: 0 } },
+  { id: 'record', label: 'クイック録音', detail: '音声メモ', icon: '🎙️', active: false, position: { x: 0, y: 0 } },
   { id: 'focus', label: 'フォーカス 25:00', detail: '集中モード', icon: '⏱️', active: false, position: { x: 150, y: 0 } },
   { id: 'share', label: 'ステータス共有', detail: 'チームに公開', icon: '📡', active: false, position: { x: 300, y: 0 } },
   { id: 'workspace-open', label: 'ディレクトリ', detail: '作業フォルダを開く', icon: '📁', active: false, position: { x: 450, y: 0 } },
