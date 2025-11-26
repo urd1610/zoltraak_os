@@ -768,7 +768,10 @@ const hydrateSystemInfo = () => {
 
 const savePositions = () => {
   const positions = quickActions.reduce((acc, action) => {
-    acc[action.id] = action.position;
+    acc[action.id] = {
+      position: action.position,
+      zIndex: action.zIndex,
+    };
     return acc;
   }, {});
   localStorage.setItem('quickActionsPositions', JSON.stringify(positions));
@@ -776,14 +779,40 @@ const savePositions = () => {
 
 const loadPositions = () => {
   const saved = localStorage.getItem('quickActionsPositions');
-  if (saved) {
-    const positions = JSON.parse(saved);
-    quickActions.forEach(action => {
-      if (positions[action.id]) {
-        action.position = positions[action.id];
-      }
-    });
+  if (!saved) {
+    return;
   }
+
+  let positions;
+
+  try {
+    positions = JSON.parse(saved);
+  } catch (error) {
+    console.error('Failed to parse quick action positions', error);
+    return;
+  }
+
+  let maxZ = highestZIndex;
+
+  quickActions.forEach((action, index) => {
+    const state = positions[action.id];
+    if (state) {
+      if (state.position) {
+        action.position = state.position;
+      } else if (typeof state.x === 'number' && typeof state.y === 'number') {
+        action.position = { x: state.x, y: state.y };
+      }
+      if (typeof state.zIndex === 'number') {
+        action.zIndex = state.zIndex;
+      }
+    }
+    if (typeof action.zIndex !== 'number') {
+      action.zIndex = index + 1;
+    }
+    maxZ = Math.max(maxZ, action.zIndex);
+  });
+
+  highestZIndex = Math.max(highestZIndex, maxZ);
 };
 
 const boot = () => {
