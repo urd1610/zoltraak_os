@@ -753,6 +753,197 @@ const openAiMailForwardWindow = () => {
   forwardInput.focus();
 };
 
+const openAiMailFormattingWindow = () => {
+  aiMailFormattingDraft = getAiMailFormattingDraft();
+  aiMailFormattingDirty = false;
+  const { body, close } = createWindowShell('ai-mail-formatting', 'AI整形設定', () => {
+    aiMailFormattingWindow = null;
+  });
+  const closeWindow = () => {
+    aiMailFormattingWindow = null;
+    close();
+  };
+
+  const description = document.createElement('p');
+  description.textContent = '転送前にAIで件名・本文を整形する設定を編集します。';
+  body.append(description);
+
+  const formattingSection = document.createElement('div');
+  formattingSection.className = 'formatting-section';
+
+  const formattingHeader = document.createElement('div');
+  formattingHeader.className = 'formatting-header';
+  const formattingLabel = document.createElement('div');
+  formattingLabel.className = 'forward-label';
+  formattingLabel.textContent = 'AI整形設定';
+  const formattingChip = document.createElement('span');
+  formattingChip.className = 'chip tiny';
+  formattingHeader.append(formattingLabel, formattingChip);
+  formattingSection.append(formattingHeader);
+
+  const formattingForm = document.createElement('form');
+  formattingForm.className = 'formatting-form';
+  formattingForm.addEventListener('submit', (event) => {
+    event.preventDefault();
+    void submitAiMailFormattingForm({
+      onSuccess: closeWindow,
+      onFinally: updateAiMailFormattingWindowState,
+    });
+  });
+
+  const setFormattingDraft = (patch) => {
+    aiMailFormattingDraft = { ...getAiMailFormattingDraft(), ...(patch ?? {}) };
+    aiMailFormattingDirty = true;
+    updateAiMailFormattingWindowState();
+  };
+
+  const formattingDraft = getAiMailFormattingDraft();
+
+  const enableRow = document.createElement('label');
+  enableRow.className = 'formatting-toggle';
+  const enableInput = document.createElement('input');
+  enableInput.type = 'checkbox';
+  enableInput.checked = formattingDraft.enabled;
+  enableInput.addEventListener('change', (event) => {
+    setFormattingDraft({ enabled: event.target.checked });
+  });
+  const enableText = document.createElement('span');
+  enableText.textContent = 'AIで件名・本文を整形して転送';
+  enableRow.append(enableInput, enableText);
+  formattingForm.append(enableRow);
+
+  const providerRow = document.createElement('div');
+  providerRow.className = 'formatting-row';
+  const providerLabel = document.createElement('div');
+  providerLabel.className = 'formatting-label';
+  providerLabel.textContent = 'プロバイダ';
+  const providerSelect = document.createElement('select');
+  providerSelect.className = 'formatting-select';
+  providerSelect.value = formattingDraft.provider === 'lmstudio' ? 'lmstudio' : 'openrouter';
+  [
+    { value: 'openrouter', label: 'OpenRouter' },
+    { value: 'lmstudio', label: 'LM Studio' },
+  ].forEach((option) => {
+    const opt = document.createElement('option');
+    opt.value = option.value;
+    opt.textContent = option.label;
+    providerSelect.append(opt);
+  });
+  providerSelect.addEventListener('change', (event) => {
+    setFormattingDraft({ provider: event.target.value });
+  });
+  providerRow.append(providerLabel, providerSelect);
+  formattingForm.append(providerRow);
+
+  const openRouterRow = document.createElement('div');
+  openRouterRow.className = 'formatting-row provider-row';
+  const openRouterLabel = document.createElement('div');
+  openRouterLabel.className = 'formatting-label';
+  openRouterLabel.textContent = 'OpenRouter';
+  const openRouterFields = document.createElement('div');
+  openRouterFields.className = 'formatting-fields';
+  const openRouterKey = document.createElement('input');
+  openRouterKey.type = 'password';
+  openRouterKey.className = 'formatting-input';
+  openRouterKey.placeholder = 'sk-...';
+  openRouterKey.value = formattingDraft.openRouter?.apiKey ?? '';
+  openRouterKey.addEventListener('input', (event) => {
+    const base = getAiMailFormattingDraft().openRouter ?? {};
+    setFormattingDraft({ openRouter: { ...base, apiKey: event.target.value } });
+  });
+  const openRouterModel = document.createElement('input');
+  openRouterModel.type = 'text';
+  openRouterModel.className = 'formatting-input';
+  openRouterModel.placeholder = 'gpt-4o-mini';
+  openRouterModel.value = formattingDraft.openRouter?.model || 'gpt-4o-mini';
+  openRouterModel.addEventListener('input', (event) => {
+    const base = getAiMailFormattingDraft().openRouter ?? {};
+    setFormattingDraft({ openRouter: { ...base, model: event.target.value } });
+  });
+  openRouterFields.append(openRouterKey, openRouterModel);
+  openRouterRow.append(openRouterLabel, openRouterFields);
+  formattingForm.append(openRouterRow);
+
+  const lmStudioRow = document.createElement('div');
+  lmStudioRow.className = 'formatting-row provider-row';
+  const lmStudioLabel = document.createElement('div');
+  lmStudioLabel.className = 'formatting-label';
+  lmStudioLabel.textContent = 'LM Studio';
+  const lmStudioFields = document.createElement('div');
+  lmStudioFields.className = 'formatting-fields';
+  const lmStudioEndpoint = document.createElement('input');
+  lmStudioEndpoint.type = 'text';
+  lmStudioEndpoint.className = 'formatting-input';
+  lmStudioEndpoint.placeholder = 'http://localhost:1234/v1/chat/completions';
+  lmStudioEndpoint.value = formattingDraft.lmStudio?.endpoint || 'http://localhost:1234/v1/chat/completions';
+  lmStudioEndpoint.addEventListener('input', (event) => {
+    const base = getAiMailFormattingDraft().lmStudio ?? {};
+    setFormattingDraft({ lmStudio: { ...base, endpoint: event.target.value } });
+  });
+  const lmStudioModel = document.createElement('input');
+  lmStudioModel.type = 'text';
+  lmStudioModel.className = 'formatting-input';
+  lmStudioModel.placeholder = 'モデル名';
+  lmStudioModel.value = formattingDraft.lmStudio?.model || 'gpt-4o-mini';
+  lmStudioModel.addEventListener('input', (event) => {
+    const base = getAiMailFormattingDraft().lmStudio ?? {};
+    setFormattingDraft({ lmStudio: { ...base, model: event.target.value } });
+  });
+  lmStudioFields.append(lmStudioEndpoint, lmStudioModel);
+  lmStudioRow.append(lmStudioLabel, lmStudioFields);
+  formattingForm.append(lmStudioRow);
+
+  const promptLabel = document.createElement('div');
+  promptLabel.className = 'forward-label';
+  promptLabel.textContent = '整形プロンプト';
+  const promptInput = document.createElement('textarea');
+  promptInput.className = 'formatting-textarea';
+  promptInput.value = formattingDraft.prompt ?? '';
+  promptInput.rows = 6;
+  promptInput.addEventListener('input', (event) => {
+    setFormattingDraft({ prompt: event.target.value });
+  });
+  const promptHint = document.createElement('div');
+  promptHint.className = 'forward-hint';
+  promptHint.textContent = '件名と本文を含むJSON形式で返すよう指示してください。空欄の場合は既定のプロンプトを使用します。';
+
+  formattingForm.append(promptLabel, promptInput, promptHint);
+
+  const formattingActions = document.createElement('div');
+  formattingActions.className = 'formatting-actions';
+  const formattingSave = document.createElement('button');
+  formattingSave.type = 'submit';
+  formattingSave.className = 'primary forward-save';
+  formattingActions.append(formattingSave);
+  formattingForm.append(formattingActions);
+
+  formattingSection.append(formattingForm);
+
+  const formattingError = document.createElement('div');
+  formattingError.className = 'form-error';
+  formattingError.hidden = true;
+  formattingSection.append(formattingError);
+  body.append(formattingSection);
+
+  aiMailFormattingWindow = {
+    enableInput,
+    providerSelect,
+    openRouterRow,
+    openRouterKey,
+    openRouterModel,
+    lmStudioRow,
+    lmStudioEndpoint,
+    lmStudioModel,
+    promptInput,
+    saveButton: formattingSave,
+    statusChip: formattingChip,
+    errorText: formattingError,
+    close: closeWindow,
+  };
+  updateAiMailFormattingWindowState();
+  enableInput.focus();
+};
+
 const buildAiMailCard = () => {
   const card = document.createElement('div');
   card.className = 'feature-card';
@@ -815,181 +1006,19 @@ const buildAiMailCard = () => {
   forwardButton.className = 'ghost';
   forwardButton.textContent = '転送先を設定';
   forwardButton.addEventListener('click', openAiMailForwardWindow);
-  configActions.append(forwardButton);
+  const formattingButton = document.createElement('button');
+  formattingButton.className = 'ghost';
+  formattingButton.textContent = 'AI整形設定';
+  formattingButton.addEventListener('click', openAiMailFormattingWindow);
 
-  const formattingDraft = getAiMailFormattingDraft();
-  let formattingChip = null;
-  let openRouterRow = null;
-  let lmStudioRow = null;
-  let formattingSave = null;
+  const formattingState = aiMailStatus.formatting ?? buildDefaultAiFormatting();
+  const providerLabel = formattingState.provider === 'lmstudio' ? 'LM Studio' : 'OpenRouter';
+  const formattingStatusChip = document.createElement('span');
+  formattingStatusChip.className = 'chip tiny';
+  formattingStatusChip.textContent = formattingState.enabled ? `${providerLabel} ON` : 'AI整形OFF';
+  formattingStatusChip.classList.toggle('muted', !formattingState.enabled);
 
-  const updateFormattingUiState = () => {
-    const draft = getAiMailFormattingDraft();
-    const provider = draft.provider === 'lmstudio' ? 'lmstudio' : 'openrouter';
-    const providerLabel = provider === 'lmstudio' ? 'LM Studio' : 'OpenRouter';
-    if (formattingChip) {
-      formattingChip.textContent = draft.enabled ? `${providerLabel} ON` : 'OFF';
-      formattingChip.classList.toggle('muted', !draft.enabled);
-    }
-    if (openRouterRow) {
-      openRouterRow.hidden = provider !== 'openrouter';
-    }
-    if (lmStudioRow) {
-      lmStudioRow.hidden = provider !== 'lmstudio';
-    }
-    if (formattingSave) {
-      const allowSave = aiMailFormattingDirty && !isSavingAiMailFormatting;
-      formattingSave.disabled = !allowSave;
-      formattingSave.textContent = isSavingAiMailFormatting ? '保存中…' : '保存';
-    }
-  };
-
-  const setFormattingDraft = (patch) => {
-    aiMailFormattingDraft = { ...getAiMailFormattingDraft(), ...(patch ?? {}) };
-    aiMailFormattingDirty = true;
-    updateFormattingUiState();
-  };
-
-  const formattingSection = document.createElement('div');
-  formattingSection.className = 'formatting-section';
-
-  const formattingHeader = document.createElement('div');
-  formattingHeader.className = 'formatting-header';
-  const formattingLabel = document.createElement('div');
-  formattingLabel.className = 'forward-label';
-  formattingLabel.textContent = 'AI整形設定';
-  formattingChip = document.createElement('span');
-  formattingChip.className = 'chip tiny';
-  formattingHeader.append(formattingLabel, formattingChip);
-  formattingSection.append(formattingHeader);
-
-  const formattingForm = document.createElement('form');
-  formattingForm.className = 'formatting-form';
-  formattingForm.addEventListener('submit', (event) => {
-    event.preventDefault();
-    void submitAiMailFormattingForm();
-  });
-
-  const enableRow = document.createElement('label');
-  enableRow.className = 'formatting-toggle';
-  const enableInput = document.createElement('input');
-  enableInput.type = 'checkbox';
-  enableInput.checked = formattingDraft.enabled;
-  enableInput.addEventListener('change', (event) => {
-    setFormattingDraft({ enabled: event.target.checked });
-  });
-  const enableText = document.createElement('span');
-  enableText.textContent = 'AIで件名・本文を整形して転送';
-  enableRow.append(enableInput, enableText);
-  formattingForm.append(enableRow);
-
-  const providerRow = document.createElement('div');
-  providerRow.className = 'formatting-row';
-  const providerLabel = document.createElement('div');
-  providerLabel.className = 'formatting-label';
-  providerLabel.textContent = 'プロバイダ';
-  const providerSelect = document.createElement('select');
-  providerSelect.className = 'formatting-select';
-  providerSelect.value = formattingDraft.provider === 'lmstudio' ? 'lmstudio' : 'openrouter';
-  [
-    { value: 'openrouter', label: 'OpenRouter' },
-    { value: 'lmstudio', label: 'LM Studio' },
-  ].forEach((option) => {
-    const opt = document.createElement('option');
-    opt.value = option.value;
-    opt.textContent = option.label;
-    providerSelect.append(opt);
-  });
-  providerSelect.addEventListener('change', (event) => {
-    setFormattingDraft({ provider: event.target.value });
-  });
-  providerRow.append(providerLabel, providerSelect);
-  formattingForm.append(providerRow);
-
-  openRouterRow = document.createElement('div');
-  openRouterRow.className = 'formatting-row provider-row';
-  const openRouterLabel = document.createElement('div');
-  openRouterLabel.className = 'formatting-label';
-  openRouterLabel.textContent = 'OpenRouter';
-  const openRouterFields = document.createElement('div');
-  openRouterFields.className = 'formatting-fields';
-  const openRouterKey = document.createElement('input');
-  openRouterKey.type = 'password';
-  openRouterKey.className = 'formatting-input';
-  openRouterKey.placeholder = 'sk-...';
-  openRouterKey.value = formattingDraft.openRouter?.apiKey ?? '';
-  openRouterKey.addEventListener('input', (event) => {
-    const base = getAiMailFormattingDraft().openRouter ?? {};
-    setFormattingDraft({ openRouter: { ...base, apiKey: event.target.value } });
-  });
-  const openRouterModel = document.createElement('input');
-  openRouterModel.type = 'text';
-  openRouterModel.className = 'formatting-input';
-  openRouterModel.placeholder = 'gpt-4o-mini';
-  openRouterModel.value = formattingDraft.openRouter?.model || 'gpt-4o-mini';
-  openRouterModel.addEventListener('input', (event) => {
-    const base = getAiMailFormattingDraft().openRouter ?? {};
-    setFormattingDraft({ openRouter: { ...base, model: event.target.value } });
-  });
-  openRouterFields.append(openRouterKey, openRouterModel);
-  openRouterRow.append(openRouterLabel, openRouterFields);
-  formattingForm.append(openRouterRow);
-
-  lmStudioRow = document.createElement('div');
-  lmStudioRow.className = 'formatting-row provider-row';
-  const lmStudioLabel = document.createElement('div');
-  lmStudioLabel.className = 'formatting-label';
-  lmStudioLabel.textContent = 'LM Studio';
-  const lmStudioFields = document.createElement('div');
-  lmStudioFields.className = 'formatting-fields';
-  const lmStudioEndpoint = document.createElement('input');
-  lmStudioEndpoint.type = 'text';
-  lmStudioEndpoint.className = 'formatting-input';
-  lmStudioEndpoint.placeholder = 'http://localhost:1234/v1/chat/completions';
-  lmStudioEndpoint.value = formattingDraft.lmStudio?.endpoint || 'http://localhost:1234/v1/chat/completions';
-  lmStudioEndpoint.addEventListener('input', (event) => {
-    const base = getAiMailFormattingDraft().lmStudio ?? {};
-    setFormattingDraft({ lmStudio: { ...base, endpoint: event.target.value } });
-  });
-  const lmStudioModel = document.createElement('input');
-  lmStudioModel.type = 'text';
-  lmStudioModel.className = 'formatting-input';
-  lmStudioModel.placeholder = 'モデル名';
-  lmStudioModel.value = formattingDraft.lmStudio?.model || 'gpt-4o-mini';
-  lmStudioModel.addEventListener('input', (event) => {
-    const base = getAiMailFormattingDraft().lmStudio ?? {};
-    setFormattingDraft({ lmStudio: { ...base, model: event.target.value } });
-  });
-  lmStudioFields.append(lmStudioEndpoint, lmStudioModel);
-  lmStudioRow.append(lmStudioLabel, lmStudioFields);
-  formattingForm.append(lmStudioRow);
-
-  const promptLabel = document.createElement('div');
-  promptLabel.className = 'forward-label';
-  promptLabel.textContent = '整形プロンプト';
-  const promptInput = document.createElement('textarea');
-  promptInput.className = 'formatting-textarea';
-  promptInput.value = formattingDraft.prompt ?? '';
-  promptInput.rows = 6;
-  promptInput.addEventListener('input', (event) => {
-    setFormattingDraft({ prompt: event.target.value });
-  });
-  const promptHint = document.createElement('div');
-  promptHint.className = 'forward-hint';
-  promptHint.textContent = '件名と本文を含むJSON形式で返すよう指示してください。空欄の場合は既定のプロンプトを使用します。';
-
-  formattingForm.append(promptLabel, promptInput, promptHint);
-
-  const formattingActions = document.createElement('div');
-  formattingActions.className = 'formatting-actions';
-  formattingSave = document.createElement('button');
-  formattingSave.type = 'submit';
-  formattingSave.className = 'primary forward-save';
-  formattingActions.append(formattingSave);
-  formattingForm.append(formattingActions);
-
-  formattingSection.append(formattingForm);
-  updateFormattingUiState();
+  configActions.append(forwardButton, formattingButton, formattingStatusChip);
 
   const actions = document.createElement('div');
   actions.className = 'feature-actions';
@@ -1023,7 +1052,7 @@ const buildAiMailCard = () => {
     ? 'wx105.wadax-sv.jp のPOP3(110/STARTTLS)を監視し、新着をSMTP(587/STARTTLS)で転送します。'
     : '監視を開始すると受信メールを検知し、指定先へ自動で転送します。';
 
-  card.append(header, statusGrid, configActions, formattingSection, actions, desc);
+  card.append(header, statusGrid, configActions, actions, desc);
   return card;
 };
 
