@@ -378,9 +378,11 @@ const buildAiMailCard = () => {
   title.className = 'feature-title';
   title.innerHTML = '<strong>AIメール監視</strong><span class="feature-desc">POP3受信を監視し自動転送</span>';
   const chip = document.createElement('span');
-  chip.className = 'chip tiny';
-  chip.textContent = aiMailStatus.running ? 'RUNNING' : 'STOPPED';
-  chip.classList.toggle('muted', !aiMailStatus.running);
+  const isRunning = aiMailStatus.running;
+  chip.className = 'chip tiny status-chip';
+  chip.textContent = isRunning ? 'RUNNING' : 'STOPPED';
+  chip.classList.toggle('muted', !isRunning);
+  chip.classList.toggle('status-running', isRunning);
   const headerControls = document.createElement('div');
   headerControls.className = 'feature-header-controls';
   const closeBtn = document.createElement('button');
