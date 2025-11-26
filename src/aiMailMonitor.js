@@ -4,6 +4,7 @@ const { Pop3Client } = require('./pop3Client');
 const nodemailer = require('nodemailer');
 const MailComposer = require('nodemailer/lib/mail-composer');
 const { simpleParser } = require('mailparser');
+const { AiFormatter, DEFAULT_PROMPT } = require('./aiFormatter');
 
 class AiMailMonitor {
   constructor(options = {}) {
@@ -29,6 +30,7 @@ class AiMailMonitor {
     this.formatDateForFilename = typeof options.formatDateForFilename === 'function'
       ? options.formatDateForFilename
       : this.defaultFormatDateForFilename;
+    this.currentFormatting = this.normalizeFormatting(options.formatting);
 
     this.state = {
       forwardTo: options.forwardTo ?? '',
@@ -38,6 +40,7 @@ class AiMailMonitor {
       forwardedCount: options.forwardedCount ?? 0,
       running: false,
       seenUids: new Set(options.seenUids ?? []),
+      formatting: this.currentFormatting,
     };
 
     this.timer = null;
@@ -52,6 +55,55 @@ class AiMailMonitor {
         pass: this.credentials.pass,
       },
     });
+    this.aiFormatter = options.aiFormatter ?? new AiFormatter(this.currentFormatting);
+  }
+
+  getDefaultFormatting() {
+    return {
+      enabled: true,
+      provider: 'openrouter',
+      prompt: DEFAULT_PROMPT,
+      openRouter: {
+        apiKey: '',
+        model: 'gpt-4o-mini',
+      },
+      lmStudio: {
+        endpoint: 'http://localhost:1234/v1/chat/completions',
+        model: 'gpt-4o-mini',
+      },
+      timeoutMs: 20000,
+    };
+  }
+
+  normalizeFormatting(value) {
+    const defaults = this.getDefaultFormatting();
+    const candidate = value ?? {};
+    return {
+      enabled: candidate.enabled !== false,
+      provider: (candidate.provider || defaults.provider || 'openrouter').toLowerCase(),
+      prompt: candidate.prompt || defaults.prompt,
+      openRouter: {
+        apiKey: candidate.openRouter?.apiKey ?? defaults.openRouter.apiKey,
+        model: candidate.openRouter?.model || defaults.openRouter.model,
+      },
+      lmStudio: {
+        endpoint: candidate.lmStudio?.endpoint || defaults.lmStudio.endpoint,
+        model: candidate.lmStudio?.model || defaults.lmStudio.model,
+      },
+      timeoutMs: typeof candidate.timeoutMs === 'number' ? candidate.timeoutMs : defaults.timeoutMs,
+    };
+  }
+
+  applyFormatting(nextFormatting) {
+    this.currentFormatting = this.normalizeFormatting(nextFormatting);
+    this.state.formatting = this.currentFormatting;
+    this.aiFormatter = new AiFormatter(this.currentFormatting);
+  }
+
+  async updateFormatting(nextFormatting) {
+    this.applyFormatting({ ...this.state.formatting, ...(nextFormatting ?? {}) });
+    await this.persistState();
+    return this.getStatus();
   }
 
   getStatus() {
@@ -62,6 +114,7 @@ class AiMailMonitor {
       lastError: this.state.lastError,
       forwardedCount: this.state.forwardedCount,
       running: this.state.running,
+      formatting: this.state.formatting,
     };
   }
 
@@ -84,6 +137,9 @@ class AiMailMonitor {
       }
       if (typeof saved.forwardedCount === 'number') {
         this.state.forwardedCount = saved.forwardedCount;
+      }
+      if (saved.formatting) {
+        this.applyFormatting(saved.formatting);
       }
     }
     this.initialized = true;
@@ -283,20 +339,30 @@ class AiMailMonitor {
       return this.getStatus();
     }
 
-    let hadError = false;
+    let hadSaveError = false;
+    let hadAiError = false;
 
     try {
       const newMessages = await this.fetchNewMessages();
       for (const message of newMessages) {
         const result = await this.forwardMessage(message);
         if (result?.saveFailed) {
-          hadError = true;
+          hadSaveError = true;
+        }
+        if (result?.aiFailed) {
+          hadAiError = true;
         }
       }
       if (newMessages.length > 0) {
         this.state.lastForwardedAt = new Date().toISOString();
       }
-      this.state.lastError = hadError ? 'メールの保存に失敗しました' : null;
+      if (hadSaveError) {
+        this.state.lastError = 'メールの保存に失敗しました';
+      } else if (hadAiError) {
+        this.state.lastError = 'AI整形に失敗したため原文を転送しました';
+      } else {
+        this.state.lastError = null;
+      }
     } catch (error) {
       const message = error?.message ?? String(error);
       this.state.lastError = message;
@@ -390,6 +456,7 @@ class AiMailMonitor {
   async forwardMessage(message) {
     const rawBuffer = this.stripPop3Envelope(this.normalizeRawEmail(message.raw));
     let saveFailed = false;
+    let aiFailed = false;
     try {
       await this.saveRawEmail(rawBuffer);
     } catch (error) {
@@ -400,12 +467,30 @@ class AiMailMonitor {
     const parsed = await simpleParser(rawBuffer);
     const restoredText = this.restoreStrippedUtf8(parsed.text);
     const restoredHtml = this.restoreStrippedUtf8(parsed.html);
+
+    let aiResult = null;
+    if (this.state.formatting?.enabled && this.aiFormatter?.formatEmail) {
+      try {
+        aiResult = await this.aiFormatter.formatEmail({
+          subject: parsed.subject,
+          text: restoredText,
+          html: restoredHtml,
+        });
+      } catch (error) {
+        aiFailed = true;
+        console.error('Failed to format email with AI', error);
+      }
+    }
+
+    const formattedSubject = aiResult?.subject || parsed.subject;
+    const formattedText = aiResult?.body || aiResult?.text || restoredText;
+    const formattedHtml = aiResult?.html ?? restoredHtml;
     const mailOptions = {
       from: this.credentials.user,
       to: this.state.forwardTo,
-      subject: parsed.subject ? `[FW] ${parsed.subject}` : '転送メール',
-      text: restoredText ?? '(本文なし)',
-      html: restoredHtml ?? undefined,
+      subject: formattedSubject ? `[FW] ${formattedSubject}` : '転送メール',
+      text: formattedText ?? '(本文なし)',
+      html: formattedHtml ?? undefined,
       attachments: (parsed.attachments ?? []).map((file) => ({
         filename: file.filename,
         content: file.content,
@@ -436,7 +521,7 @@ class AiMailMonitor {
     this.state.forwardedCount += 1;
     this.state.seenUids.add(message.uid);
     this.trimSeenUids();
-    return { saveFailed };
+    return { saveFailed, aiFailed };
   }
 
   trimSeenUids() {
@@ -486,6 +571,7 @@ class AiMailMonitor {
         forwardTo: this.state.forwardTo,
         forwardedCount: this.state.forwardedCount,
         seenUids: Array.from(this.state.seenUids),
+        formatting: this.state.formatting,
       });
     }
     return status;

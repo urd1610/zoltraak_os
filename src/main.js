@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { app, BrowserWindow, dialog, nativeTheme, ipcMain, shell } = require('electron');
 const { AiMailMonitor } = require('./aiMailMonitor');
+const { AiFormatter } = require('./aiFormatter');
 
 const fsp = fs.promises;
 const SETTINGS_FILE_NAME = 'settings.json';
@@ -54,6 +55,16 @@ const writeSettings = async (settings) => {
   await fsp.writeFile(settingsPath, JSON.stringify(settings, null, 2), 'utf8');
 };
 
+const buildDefaultFormattingSettings = () => {
+  const formatter = new AiFormatter();
+  return formatter.getOptions();
+};
+
+const normalizeFormattingSettings = (value) => {
+  const formatter = new AiFormatter(value);
+  return formatter.getOptions();
+};
+
 const getAiMailSettings = async () => {
   const settings = await readSettings();
   const aiMail = settings.aiMail ?? {};
@@ -61,12 +72,21 @@ const getAiMailSettings = async () => {
     forwardTo: aiMail.forwardTo ?? '',
     forwardedCount: aiMail.forwardedCount ?? 0,
     seenUids: Array.isArray(aiMail.seenUids) ? aiMail.seenUids : [],
+    formatting: normalizeFormattingSettings(aiMail.formatting ?? buildDefaultFormattingSettings()),
   };
 };
 
 const saveAiMailSettings = async (patch) => {
   const settings = await readSettings();
-  const nextAiMail = { ...(settings.aiMail ?? {}), ...patch };
+  const nextFormatting = normalizeFormattingSettings({
+    ...(settings.aiMail?.formatting ?? {}),
+    ...(patch?.formatting ?? {}),
+  });
+  const nextAiMail = {
+    ...(settings.aiMail ?? {}),
+    ...patch,
+    formatting: nextFormatting,
+  };
   const nextSettings = { ...settings, aiMail: nextAiMail };
   await writeSettings(nextSettings);
   return nextAiMail;
@@ -172,6 +192,7 @@ const buildAiMailMonitor = async () => {
     forwardTo: aiMailState.forwardTo,
     forwardedCount: aiMailState.forwardedCount,
     seenUids: aiMailState.seenUids,
+    formatting: aiMailState.formatting,
     loadState: getAiMailSettings,
     saveState: saveAiMailSettings,
     ensureWorkspaceDirectory,
@@ -262,6 +283,7 @@ app.whenReady().then(async () => {
   });
   ipcMain.handle('ai-mail:get-status', async () => monitor?.getStatus());
   ipcMain.handle('ai-mail:update-forward', async (_event, forwardTo) => monitor?.updateForwardTo(forwardTo));
+  ipcMain.handle('ai-mail:update-formatting', async (_event, formatting) => monitor?.updateFormatting(formatting));
   ipcMain.handle('ai-mail:start', async () => monitor?.start());
   ipcMain.handle('ai-mail:stop', async () => monitor?.stop());
   ipcMain.handle('ai-mail:refresh', async () => monitor?.pollOnce());

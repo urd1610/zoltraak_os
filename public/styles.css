@@ -431,6 +431,94 @@ button.chip:disabled {
   color: var(--muted);
 }
 
+.formatting-section {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  margin-top: 10px;
+  border-radius: 12px;
+  background: linear-gradient(160deg, rgba(17, 27, 47, 0.7), rgba(17, 27, 47, 0.55));
+  border: 1px solid rgba(110, 231, 255, 0.08);
+}
+
+.formatting-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.formatting-form {
+  display: grid;
+  gap: 10px;
+}
+
+.formatting-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.formatting-toggle input {
+  width: 16px;
+  height: 16px;
+}
+
+.formatting-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.formatting-label {
+  width: 120px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.formatting-select,
+.formatting-input {
+  flex: 1;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(110, 231, 255, 0.18);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
+  font-size: 14px;
+}
+
+.formatting-select:focus,
+.formatting-input:focus,
+.formatting-textarea:focus {
+  outline: none;
+  border-color: rgba(110, 231, 255, 0.45);
+  box-shadow: 0 0 0 2px rgba(110, 231, 255, 0.15);
+}
+
+.provider-row .formatting-fields {
+  flex: 1;
+  display: grid;
+  gap: 6px;
+}
+
+.formatting-textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(110, 231, 255, 0.18);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
+  font-size: 13px;
+  resize: vertical;
+  min-height: 120px;
+}
+
+.formatting-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
 .status-row {
   display: flex;
   align-items: center;
