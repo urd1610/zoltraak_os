@@ -38,6 +38,8 @@ let aiMailForwardDraft = '';
 let aiMailForwardDirty = false;
 let isSavingAiMailForward = false;
 let isFetchingAiMailOnce = false;
+const AI_MAIL_REFRESH_INTERVAL_MS = 30000;
+let aiMailAutoRefreshTimerId = null;
 
 const updateWorkspaceChip = (dir) => {
   if (!workspaceChip) return;
@@ -241,6 +243,7 @@ const syncAiMailUiFromStatus = (status) => {
   setActionActive('ai-mail-monitor', shouldActivate);
   renderQuickActions();
   renderFeatureCards();
+  ensureAiMailAutoRefresh();
 };
 
 const submitAiMailForwardForm = async () => {
@@ -305,6 +308,29 @@ const refreshAiMailStatus = async () => {
   renderFeatureCards();
 };
 
+const stopAiMailAutoRefresh = () => {
+  if (!aiMailAutoRefreshTimerId) {
+    return;
+  }
+  clearInterval(aiMailAutoRefreshTimerId);
+  aiMailAutoRefreshTimerId = null;
+};
+
+const ensureAiMailAutoRefresh = () => {
+  const aiMailAction = quickActions.find((action) => action.id === 'ai-mail-monitor');
+  const shouldRefresh = Boolean(aiMailAction?.active);
+  if (!shouldRefresh) {
+    stopAiMailAutoRefresh();
+    return;
+  }
+  if (aiMailAutoRefreshTimerId) {
+    return;
+  }
+  aiMailAutoRefreshTimerId = setInterval(() => {
+    void refreshAiMailStatus();
+  }, AI_MAIL_REFRESH_INTERVAL_MS);
+};
+
 const fetchAiMailOnce = async () => {
   if (isFetchingAiMailOnce) {
     return;
@@ -331,6 +357,7 @@ const startAiMailMonitor = async () => {
   setActionActive('ai-mail-monitor', true);
   renderQuickActions();
   renderFeatureCards();
+  ensureAiMailAutoRefresh();
   try {
     const status = await window.desktopBridge?.startAiMailMonitor?.();
     if (status) {
@@ -366,6 +393,7 @@ const closeAiMailPanel = async () => {
   setActionActive('ai-mail-monitor', false);
   renderQuickActions();
   renderFeatureCards();
+  stopAiMailAutoRefresh();
 };
 
 const buildAiMailCard = () => {
