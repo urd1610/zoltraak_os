@@ -30,6 +30,30 @@ let mediaRecorder = null;
 let mediaStream = null;
 let recordedChunks = [];
 let isSavingRecording = false;
+const DEFAULT_AI_MAIL_PROMPT = [
+  'あなたは日本語のメール文面を整形するアシスタントです。',
+  '以下のJSON形式だけで出力してください:',
+  '{"subject":"短く要点を示す件名","body":"本文（敬体・箇条書き主体）"}',
+  '条件:',
+  '- 件名は50文字以内で、要約キーワードを含める',
+  '- 本文は敬体で、重要項目は箇条書きにまとめる',
+  '- 元メールの署名や引用は必要な場合だけ簡潔に反映する',
+  '- 出力は必ずUTF-8のJSON文字列のみ。余分なテキストやコードブロックは付けない',
+].join('\n');
+const buildDefaultAiFormatting = () => ({
+  enabled: true,
+  provider: 'openrouter',
+  prompt: DEFAULT_AI_MAIL_PROMPT,
+  openRouter: {
+    apiKey: '',
+    model: 'gpt-4o-mini',
+  },
+  lmStudio: {
+    endpoint: 'http://localhost:1234/v1/chat/completions',
+    model: 'gpt-4o-mini',
+  },
+  timeoutMs: 20000,
+});
 const aiMailStatus = {
   forwardTo: '',
   lastCheckedAt: null,
@@ -37,6 +61,7 @@ const aiMailStatus = {
   lastError: null,
   running: false,
   forwardedCount: 0,
+  formatting: buildDefaultAiFormatting(),
 };
 
 let aiMailMonitorStartedOnce = false;
@@ -44,6 +69,9 @@ let aiMailForwardDraft = '';
 let aiMailForwardDirty = false;
 let isSavingAiMailForward = false;
 let isFetchingAiMailOnce = false;
+let aiMailFormattingDraft = null;
+let aiMailFormattingDirty = false;
+let isSavingAiMailFormatting = false;
 const AI_MAIL_REFRESH_INTERVAL_MS = 30000;
 let aiMailAutoRefreshTimerId = null;
 
@@ -237,6 +265,30 @@ const updateAiMailStatus = (patch) => {
   Object.assign(aiMailStatus, patch);
 };
 
+const getAiMailFormattingDraft = () => ({
+  ...buildDefaultAiFormatting(),
+  ...(aiMailStatus.formatting ?? {}),
+  ...(aiMailFormattingDraft ?? {}),
+});
+
+const normalizeAiMailFormattingPayload = () => {
+  const draft = getAiMailFormattingDraft();
+  return {
+    enabled: draft.enabled !== false,
+    provider: draft.provider === 'lmstudio' ? 'lmstudio' : 'openrouter',
+    prompt: draft.prompt?.trim() || DEFAULT_AI_MAIL_PROMPT,
+    openRouter: {
+      apiKey: draft.openRouter?.apiKey ?? '',
+      model: draft.openRouter?.model || 'gpt-4o-mini',
+    },
+    lmStudio: {
+      endpoint: draft.lmStudio?.endpoint || 'http://localhost:1234/v1/chat/completions',
+      model: draft.lmStudio?.model || 'gpt-4o-mini',
+    },
+    timeoutMs: typeof draft.timeoutMs === 'number' ? draft.timeoutMs : 20000,
+  };
+};
+
 const syncAiMailUiFromStatus = (status) => {
   if (!status) return;
   const aiMailAction = quickActions.find((action) => action.id === 'ai-mail-monitor');
@@ -248,6 +300,10 @@ const syncAiMailUiFromStatus = (status) => {
   if (!aiMailForwardDirty || isSavingAiMailForward) {
     aiMailForwardDraft = status.forwardTo ?? '';
     aiMailForwardDirty = false;
+  }
+  if (status.formatting && (!aiMailFormattingDirty || isSavingAiMailFormatting)) {
+    aiMailFormattingDraft = status.formatting;
+    aiMailFormattingDirty = false;
   }
   setActionActive('ai-mail-monitor', shouldActivate);
   renderQuickActions();
@@ -297,6 +353,39 @@ const submitAiMailForwardForm = async () => {
     updateAiMailStatus({ lastError: '転送先の更新に失敗しました' });
   } finally {
     isSavingAiMailForward = false;
+    renderFeatureCards();
+  }
+};
+
+const submitAiMailFormattingForm = async () => {
+  if (!window.desktopBridge?.updateAiMailFormatting) {
+    updateAiMailStatus({ lastError: 'AI整形設定のブリッジが見つかりません' });
+    renderFeatureCards();
+    return;
+  }
+
+  if (isSavingAiMailFormatting) {
+    return;
+  }
+
+  isSavingAiMailFormatting = true;
+  renderFeatureCards();
+
+  try {
+    const payload = normalizeAiMailFormattingPayload();
+    const status = await window.desktopBridge.updateAiMailFormatting(payload);
+    if (status) {
+      aiMailFormattingDirty = false;
+      aiMailFormattingDraft = status.formatting ?? payload;
+      syncAiMailUiFromStatus(status);
+      return;
+    }
+    updateAiMailStatus({ lastError: 'AI整形設定の更新が反映されませんでした' });
+  } catch (error) {
+    console.error('Failed to update ai mail formatting', error);
+    updateAiMailStatus({ lastError: 'AI整形設定の更新に失敗しました' });
+  } finally {
+    isSavingAiMailFormatting = false;
     renderFeatureCards();
   }
 };
@@ -492,6 +581,8 @@ const buildAiMailCard = () => {
   forwardInput.addEventListener('input', (event) => {
     aiMailForwardDraft = event.target.value;
     aiMailForwardDirty = true;
+    const nextValue = (event.target.value ?? '').trim();
+    forwardSave.disabled = isSavingAiMailForward || !nextValue || nextValue === savedForward;
   });
 
   const forwardSave = document.createElement('button');
@@ -508,6 +599,180 @@ const buildAiMailCard = () => {
   forwardHint.textContent = '監視を開始するには転送先を設定してください。';
 
   forwardSection.append(forwardLabel, forwardForm, forwardHint);
+
+  const formattingDraft = getAiMailFormattingDraft();
+  let formattingChip = null;
+  let openRouterRow = null;
+  let lmStudioRow = null;
+  let formattingSave = null;
+
+  const updateFormattingUiState = () => {
+    const draft = getAiMailFormattingDraft();
+    const provider = draft.provider === 'lmstudio' ? 'lmstudio' : 'openrouter';
+    const providerLabel = provider === 'lmstudio' ? 'LM Studio' : 'OpenRouter';
+    if (formattingChip) {
+      formattingChip.textContent = draft.enabled ? `${providerLabel} ON` : 'OFF';
+      formattingChip.classList.toggle('muted', !draft.enabled);
+    }
+    if (openRouterRow) {
+      openRouterRow.hidden = provider !== 'openrouter';
+    }
+    if (lmStudioRow) {
+      lmStudioRow.hidden = provider !== 'lmstudio';
+    }
+    if (formattingSave) {
+      const allowSave = aiMailFormattingDirty && !isSavingAiMailFormatting;
+      formattingSave.disabled = !allowSave;
+      formattingSave.textContent = isSavingAiMailFormatting ? '保存中…' : '保存';
+    }
+  };
+
+  const setFormattingDraft = (patch) => {
+    aiMailFormattingDraft = { ...getAiMailFormattingDraft(), ...(patch ?? {}) };
+    aiMailFormattingDirty = true;
+    updateFormattingUiState();
+  };
+
+  const formattingSection = document.createElement('div');
+  formattingSection.className = 'formatting-section';
+
+  const formattingHeader = document.createElement('div');
+  formattingHeader.className = 'formatting-header';
+  const formattingLabel = document.createElement('div');
+  formattingLabel.className = 'forward-label';
+  formattingLabel.textContent = 'AI整形設定';
+  formattingChip = document.createElement('span');
+  formattingChip.className = 'chip tiny';
+  formattingHeader.append(formattingLabel, formattingChip);
+  formattingSection.append(formattingHeader);
+
+  const formattingForm = document.createElement('form');
+  formattingForm.className = 'formatting-form';
+  formattingForm.addEventListener('submit', (event) => {
+    event.preventDefault();
+    void submitAiMailFormattingForm();
+  });
+
+  const enableRow = document.createElement('label');
+  enableRow.className = 'formatting-toggle';
+  const enableInput = document.createElement('input');
+  enableInput.type = 'checkbox';
+  enableInput.checked = formattingDraft.enabled;
+  enableInput.addEventListener('change', (event) => {
+    setFormattingDraft({ enabled: event.target.checked });
+  });
+  const enableText = document.createElement('span');
+  enableText.textContent = 'AIで件名・本文を整形して転送';
+  enableRow.append(enableInput, enableText);
+  formattingForm.append(enableRow);
+
+  const providerRow = document.createElement('div');
+  providerRow.className = 'formatting-row';
+  const providerLabel = document.createElement('div');
+  providerLabel.className = 'formatting-label';
+  providerLabel.textContent = 'プロバイダ';
+  const providerSelect = document.createElement('select');
+  providerSelect.className = 'formatting-select';
+  providerSelect.value = formattingDraft.provider === 'lmstudio' ? 'lmstudio' : 'openrouter';
+  [
+    { value: 'openrouter', label: 'OpenRouter' },
+    { value: 'lmstudio', label: 'LM Studio' },
+  ].forEach((option) => {
+    const opt = document.createElement('option');
+    opt.value = option.value;
+    opt.textContent = option.label;
+    providerSelect.append(opt);
+  });
+  providerSelect.addEventListener('change', (event) => {
+    setFormattingDraft({ provider: event.target.value });
+  });
+  providerRow.append(providerLabel, providerSelect);
+  formattingForm.append(providerRow);
+
+  openRouterRow = document.createElement('div');
+  openRouterRow.className = 'formatting-row provider-row';
+  const openRouterLabel = document.createElement('div');
+  openRouterLabel.className = 'formatting-label';
+  openRouterLabel.textContent = 'OpenRouter';
+  const openRouterFields = document.createElement('div');
+  openRouterFields.className = 'formatting-fields';
+  const openRouterKey = document.createElement('input');
+  openRouterKey.type = 'password';
+  openRouterKey.className = 'formatting-input';
+  openRouterKey.placeholder = 'sk-...';
+  openRouterKey.value = formattingDraft.openRouter?.apiKey ?? '';
+  openRouterKey.addEventListener('input', (event) => {
+    const base = getAiMailFormattingDraft().openRouter ?? {};
+    setFormattingDraft({ openRouter: { ...base, apiKey: event.target.value } });
+  });
+  const openRouterModel = document.createElement('input');
+  openRouterModel.type = 'text';
+  openRouterModel.className = 'formatting-input';
+  openRouterModel.placeholder = 'gpt-4o-mini';
+  openRouterModel.value = formattingDraft.openRouter?.model || 'gpt-4o-mini';
+  openRouterModel.addEventListener('input', (event) => {
+    const base = getAiMailFormattingDraft().openRouter ?? {};
+    setFormattingDraft({ openRouter: { ...base, model: event.target.value } });
+  });
+  openRouterFields.append(openRouterKey, openRouterModel);
+  openRouterRow.append(openRouterLabel, openRouterFields);
+  formattingForm.append(openRouterRow);
+
+  lmStudioRow = document.createElement('div');
+  lmStudioRow.className = 'formatting-row provider-row';
+  const lmStudioLabel = document.createElement('div');
+  lmStudioLabel.className = 'formatting-label';
+  lmStudioLabel.textContent = 'LM Studio';
+  const lmStudioFields = document.createElement('div');
+  lmStudioFields.className = 'formatting-fields';
+  const lmStudioEndpoint = document.createElement('input');
+  lmStudioEndpoint.type = 'text';
+  lmStudioEndpoint.className = 'formatting-input';
+  lmStudioEndpoint.placeholder = 'http://localhost:1234/v1/chat/completions';
+  lmStudioEndpoint.value = formattingDraft.lmStudio?.endpoint || 'http://localhost:1234/v1/chat/completions';
+  lmStudioEndpoint.addEventListener('input', (event) => {
+    const base = getAiMailFormattingDraft().lmStudio ?? {};
+    setFormattingDraft({ lmStudio: { ...base, endpoint: event.target.value } });
+  });
+  const lmStudioModel = document.createElement('input');
+  lmStudioModel.type = 'text';
+  lmStudioModel.className = 'formatting-input';
+  lmStudioModel.placeholder = 'モデル名';
+  lmStudioModel.value = formattingDraft.lmStudio?.model || 'gpt-4o-mini';
+  lmStudioModel.addEventListener('input', (event) => {
+    const base = getAiMailFormattingDraft().lmStudio ?? {};
+    setFormattingDraft({ lmStudio: { ...base, model: event.target.value } });
+  });
+  lmStudioFields.append(lmStudioEndpoint, lmStudioModel);
+  lmStudioRow.append(lmStudioLabel, lmStudioFields);
+  formattingForm.append(lmStudioRow);
+
+  const promptLabel = document.createElement('div');
+  promptLabel.className = 'forward-label';
+  promptLabel.textContent = '整形プロンプト';
+  const promptInput = document.createElement('textarea');
+  promptInput.className = 'formatting-textarea';
+  promptInput.value = formattingDraft.prompt ?? '';
+  promptInput.rows = 6;
+  promptInput.addEventListener('input', (event) => {
+    setFormattingDraft({ prompt: event.target.value });
+  });
+  const promptHint = document.createElement('div');
+  promptHint.className = 'forward-hint';
+  promptHint.textContent = '件名と本文を含むJSON形式で返すよう指示してください。空欄の場合は既定のプロンプトを使用します。';
+
+  formattingForm.append(promptLabel, promptInput, promptHint);
+
+  const formattingActions = document.createElement('div');
+  formattingActions.className = 'formatting-actions';
+  formattingSave = document.createElement('button');
+  formattingSave.type = 'submit';
+  formattingSave.className = 'primary forward-save';
+  formattingActions.append(formattingSave);
+  formattingForm.append(formattingActions);
+
+  formattingSection.append(formattingForm);
+  updateFormattingUiState();
 
   const actions = document.createElement('div');
   actions.className = 'feature-actions';
@@ -541,7 +806,7 @@ const buildAiMailCard = () => {
     ? 'wx105.wadax-sv.jp のPOP3(110/STARTTLS)を監視し、新着をSMTP(587/STARTTLS)で転送します。'
     : '監視を開始すると受信メールを検知し、指定先へ自動で転送します。';
 
-  card.append(header, statusGrid, forwardSection, actions, desc);
+  card.append(header, statusGrid, forwardSection, formattingSection, actions, desc);
   return card;
 };
 
