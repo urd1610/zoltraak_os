@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { Pop3Client } = require('./pop3Client');
 const nodemailer = require('nodemailer');
+const MailComposer = require('nodemailer/lib/mail-composer');
 const { simpleParser } = require('mailparser');
 
 class AiMailMonitor {
@@ -202,7 +203,7 @@ class AiMailMonitor {
     }
   }
 
-  async ensureReceivedDirectory() {
+  async ensureMailDirectory(kind) {
     if (!this.ensureWorkspaceDirectory) {
       throw new Error('作業ディレクトリが設定されていません');
     }
@@ -210,20 +211,28 @@ class AiMailMonitor {
     if (!workspaceDir) {
       throw new Error('作業ディレクトリが設定されていません');
     }
-    const receivedDir = path.join(workspaceDir, 'Mail', 'Received');
-    await fs.promises.mkdir(receivedDir, { recursive: true });
-    return receivedDir;
+    const targetDir = path.join(workspaceDir, 'Mail', kind);
+    await fs.promises.mkdir(targetDir, { recursive: true });
+    return targetDir;
   }
 
-  async buildReceivedFilePath(receivedDir) {
+  async buildMailFilePath(targetDir) {
     const baseName = this.formatDateForFilename(new Date());
-    let candidate = path.join(receivedDir, `${baseName}.eml`);
+    let candidate = path.join(targetDir, `${baseName}.eml`);
     let counter = 1;
     while (fs.existsSync(candidate)) {
-      candidate = path.join(receivedDir, `${baseName}-${counter}.eml`);
+      candidate = path.join(targetDir, `${baseName}-${counter}.eml`);
       counter += 1;
     }
     return candidate;
+  }
+
+  async ensureReceivedDirectory() {
+    return this.ensureMailDirectory('Received');
+  }
+
+  async buildReceivedFilePath(receivedDir) {
+    return this.buildMailFilePath(receivedDir);
   }
 
   async saveRawEmail(raw) {
@@ -236,6 +245,28 @@ class AiMailMonitor {
     }
     const receivedDir = await this.ensureReceivedDirectory();
     const filePath = await this.buildReceivedFilePath(receivedDir);
+    await fs.promises.writeFile(filePath, buffer);
+    return { saved: true, filePath };
+  }
+
+  async ensureSentDirectory() {
+    return this.ensureMailDirectory('Send');
+  }
+
+  async buildSentFilePath(sentDir) {
+    return this.buildMailFilePath(sentDir);
+  }
+
+  async saveSentEmail(raw) {
+    if (!raw) {
+      return { saved: false };
+    }
+    const buffer = this.normalizeRawEmail(raw);
+    if (!buffer || buffer.length === 0) {
+      return { saved: false };
+    }
+    const sentDir = await this.ensureSentDirectory();
+    const filePath = await this.buildSentFilePath(sentDir);
     await fs.promises.writeFile(filePath, buffer);
     return { saved: true, filePath };
   }
@@ -265,7 +296,7 @@ class AiMailMonitor {
       if (newMessages.length > 0) {
         this.state.lastForwardedAt = new Date().toISOString();
       }
-      this.state.lastError = hadError ? '受信メールの保存に失敗しました' : null;
+      this.state.lastError = hadError ? 'メールの保存に失敗しました' : null;
     } catch (error) {
       const message = error?.message ?? String(error);
       this.state.lastError = message;
@@ -369,7 +400,7 @@ class AiMailMonitor {
     const parsed = await simpleParser(rawBuffer);
     const restoredText = this.restoreStrippedUtf8(parsed.text);
     const restoredHtml = this.restoreStrippedUtf8(parsed.html);
-    await this.transporter.sendMail({
+    const mailOptions = {
       from: this.credentials.user,
       to: this.state.forwardTo,
       subject: parsed.subject ? `[FW] ${parsed.subject}` : '転送メール',
@@ -381,7 +412,27 @@ class AiMailMonitor {
         contentType: file.contentType,
         cid: file.cid,
       })),
-    });
+    };
+
+    let forwardedRaw = null;
+    try {
+      forwardedRaw = await this.buildForwardedRaw(mailOptions);
+    } catch (error) {
+      console.error('Failed to build forwarded email', error);
+      saveFailed = true;
+    }
+
+    await this.transporter.sendMail(mailOptions);
+
+    if (forwardedRaw) {
+      try {
+        await this.saveSentEmail(forwardedRaw);
+      } catch (error) {
+        console.error('Failed to save forwarded email', error);
+        saveFailed = true;
+      }
+    }
+
     this.state.forwardedCount += 1;
     this.state.seenUids.add(message.uid);
     this.trimSeenUids();
@@ -413,6 +464,19 @@ class AiMailMonitor {
       return this.stripPop3Envelope(Buffer.concat(withBreaks));
     }
     return this.stripPop3Envelope(Buffer.from(String(data ?? ''), 'binary'));
+  }
+
+  async buildForwardedRaw(mailOptions) {
+    return new Promise((resolve, reject) => {
+      const composer = new MailComposer(mailOptions);
+      composer.compile().build((error, message) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+        resolve(this.normalizeRawEmail(message));
+      });
+    });
   }
 
   async persistState() {
