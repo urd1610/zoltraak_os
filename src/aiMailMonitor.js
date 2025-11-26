@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const POP3Client = require('poplib');
+const { Pop3Client } = require('./pop3Client');
 const nodemailer = require('nodemailer');
 const { simpleParser } = require('mailparser');
 
@@ -132,6 +132,30 @@ class AiMailMonitor {
     return Buffer.from(String(raw ?? ''), 'binary');
   }
 
+  stripPop3Envelope(buffer) {
+    if (!Buffer.isBuffer(buffer) || buffer.length === 0) {
+      return buffer;
+    }
+
+    let start = 0;
+    let end = buffer.length;
+
+    const okPrefix = Buffer.from('+OK ');
+    if (buffer.slice(0, okPrefix.length).equals(okPrefix)) {
+      const lfIndex = buffer.indexOf(0x0a);
+      if (lfIndex !== -1) {
+        start = lfIndex + 1;
+      }
+    }
+
+    const terminator = Buffer.from('\r\n.\r\n');
+    if (end - start >= terminator.length && buffer.slice(end - terminator.length, end).equals(terminator)) {
+      end -= terminator.length;
+    }
+
+    return buffer.slice(start, end);
+  }
+
   restoreStrippedUtf8(text) {
     if (!text) {
       return text;
@@ -206,8 +230,8 @@ class AiMailMonitor {
     if (!raw) {
       return { saved: false };
     }
-    const buffer = this.normalizeRawEmail(raw);
-    if (buffer.length === 0) {
+    const buffer = this.stripPop3Envelope(this.normalizeRawEmail(raw));
+    if (!buffer || buffer.length === 0) {
       return { saved: false };
     }
     const receivedDir = await this.ensureReceivedDirectory();
@@ -254,83 +278,30 @@ class AiMailMonitor {
   }
 
   async fetchNewMessages() {
-    const client = new POP3Client(this.pop3.port, this.pop3.host, {
-      tlserrs: false,
-      enabletls: Boolean(this.pop3.enableTls),
-      debug: false,
+    const client = new Pop3Client({
+      host: this.pop3.host,
+      port: this.pop3.port,
+      enableTls: Boolean(this.pop3.enableTls),
+      ignoreTlsErrors: Boolean(this.pop3.ignoreTlsErrors),
+      timeoutMs: this.pop3.timeoutMs ?? 15000,
     });
-
-    const awaitEvent = (event, trigger) => new Promise((resolve, reject) => {
-      const onError = (err) => {
-        cleanup();
-        reject(err instanceof Error ? err : new Error(String(err)));
-      };
-      const onEvent = (...args) => {
-        cleanup();
-        resolve(args);
-      };
-      const cleanup = () => {
-        client.removeListener('error', onError);
-        client.removeListener(event, onEvent);
-      };
-      client.once('error', onError);
-      client.once(event, onEvent);
-      trigger();
-    });
-
-    const waitForConnect = () => new Promise((resolve, reject) => {
-      const onError = (err) => {
-        cleanup();
-        reject(err instanceof Error ? err : new Error(String(err)));
-      };
-      const onConnect = () => {
-        cleanup();
-        resolve();
-      };
-      const cleanup = () => {
-        client.removeListener('error', onError);
-        client.removeListener('connect', onConnect);
-      };
-      client.once('error', onError);
-      client.once('connect', onConnect);
-    });
-
-    const cleanupClient = () => {
-      try {
-        client.quit();
-      } catch (error) {
-        // noop
-      }
-    };
 
     try {
-      await waitForConnect();
-      const [loginStatus] = await awaitEvent('login', () => client.login(this.credentials.user, this.credentials.pass));
-      if (!loginStatus) {
-        throw new Error('POP3ログインに失敗しました');
-      }
-      const [uidlStatus, , uidlData] = await awaitEvent('uidl', () => client.uidl());
-      if (!uidlStatus) {
-        throw new Error('UIDLの取得に失敗しました');
-      }
-
-      const uidEntries = this.parseUidl(uidlData);
+      await client.login(this.credentials.user, this.credentials.pass);
+      const uidLines = await client.uidl();
+      const uidEntries = this.parseUidl(uidLines);
       const newEntries = uidEntries.filter((entry) => entry.uid && !this.state.seenUids.has(entry.uid));
       const messages = [];
 
       for (const entry of newEntries) {
-        const [retrStatus, , data, rawData] = await awaitEvent('retr', () => client.retr(entry.msgNumber));
-        if (!retrStatus) {
-          continue;
-        }
-        const raw = this.buildRawEmail(data, rawData);
+        const raw = await client.retr(entry.msgNumber);
         messages.push({ ...entry, raw });
       }
 
-      cleanupClient();
+      await client.quit();
       return messages;
     } catch (error) {
-      cleanupClient();
+      client.destroy();
       throw error;
     }
   }
@@ -386,7 +357,7 @@ class AiMailMonitor {
   }
 
   async forwardMessage(message) {
-    const rawBuffer = this.normalizeRawEmail(message.raw);
+    const rawBuffer = this.stripPop3Envelope(this.normalizeRawEmail(message.raw));
     let saveFailed = false;
     try {
       await this.saveRawEmail(rawBuffer);
@@ -429,19 +400,19 @@ class AiMailMonitor {
   buildRawEmail(data, rawData) {
     if (rawData) {
       if (Buffer.isBuffer(rawData)) {
-        return Buffer.from(rawData);
+        return this.stripPop3Envelope(Buffer.from(rawData));
       }
-      return Buffer.from(String(rawData), 'binary');
+      return this.stripPop3Envelope(Buffer.from(String(rawData), 'binary'));
     }
     if (Buffer.isBuffer(data)) {
-      return Buffer.from(data);
+      return this.stripPop3Envelope(Buffer.from(data));
     }
     if (Array.isArray(data)) {
       const parts = data.map((line) => (Buffer.isBuffer(line) ? line : Buffer.from(String(line), 'binary')));
       const withBreaks = parts.flatMap((part, index) => (index === parts.length - 1 ? [part] : [part, Buffer.from('\r\n', 'binary')]));
-      return Buffer.concat(withBreaks);
+      return this.stripPop3Envelope(Buffer.concat(withBreaks));
     }
-    return Buffer.from(String(data ?? ''), 'binary');
+    return this.stripPop3Envelope(Buffer.from(String(data ?? ''), 'binary'));
   }
 
   async persistState() {
