@@ -60,6 +60,58 @@ const setWindowInitialPosition = (windowEl) => {
   windowEl.style.top = `${top}px`;
 };
 
+let activeWindowDrag = null;
+
+const stopWindowDrag = () => {
+  if (!activeWindowDrag) return;
+  activeWindowDrag.windowEl.classList.remove('dragging');
+  activeWindowDrag = null;
+  document.removeEventListener('mousemove', handleWindowDrag);
+  document.removeEventListener('mouseup', stopWindowDrag);
+};
+
+const handleWindowDrag = (event) => {
+  if (!activeWindowDrag) return;
+  const {
+    startX,
+    startY,
+    startLeft,
+    startTop,
+    width,
+    height,
+    layerRect,
+    windowEl,
+  } = activeWindowDrag;
+  const deltaX = event.clientX - startX;
+  const deltaY = event.clientY - startY;
+  const { left, top } = clampWindowPosition(startLeft + deltaX, startTop + deltaY, width, height, layerRect);
+  windowEl.style.left = `${left}px`;
+  windowEl.style.top = `${top}px`;
+};
+
+const startWindowDrag = (windowEl, event) => {
+  if (event.button !== 0) return;
+  if (activeWindowDrag) {
+    stopWindowDrag();
+  }
+  const layerRect = getLayerRect();
+  const rect = windowEl.getBoundingClientRect();
+  activeWindowDrag = {
+    windowEl,
+    startX: event.clientX,
+    startY: event.clientY,
+    startLeft: rect.left - layerRect.left,
+    startTop: rect.top - layerRect.top,
+    width: rect.width,
+    height: rect.height,
+    layerRect,
+  };
+  bringWindowToFront(windowEl);
+  windowEl.classList.add('dragging');
+  document.addEventListener('mousemove', handleWindowDrag);
+  document.addEventListener('mouseup', stopWindowDrag);
+};
+
 const createWindowShell = (id, titleText, onClose) => {
   removeWindowById(id);
   const handleClose = () => {
@@ -83,6 +135,13 @@ const createWindowShell = (id, titleText, onClose) => {
   closeBtn.textContent = '×';
   closeBtn.addEventListener('click', handleClose);
   header.append(title, closeBtn);
+  header.addEventListener('mousedown', (event) => {
+    if (event.target.closest('button')) {
+      return;
+    }
+    startWindowDrag(windowEl, event);
+    event.preventDefault();
+  });
   const body = document.createElement('div');
   body.className = 'window-body';
   windowEl.append(header, body);
