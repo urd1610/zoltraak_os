@@ -95,8 +95,10 @@ const renderQuickActions = () => {
     
     const handleMouseDown = (e) => {
       if (e.button === 0 && !currentDraggingElement) { // 左クリックのみ、かつ他の要素がドラッグ中でない
+        action.zIndex = ++highestZIndex;
         currentDraggingElement = row;
         currentDraggingAction = action;
+        row.style.zIndex = String(action.zIndex);
         startX = e.clientX;
         startY = e.clientY;
         initialX = action.position.x;
