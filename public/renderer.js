@@ -243,6 +243,7 @@ const syncAiMailUiFromStatus = (status) => {
   setActionActive('ai-mail-monitor', shouldActivate);
   renderQuickActions();
   renderFeatureCards();
+  ensureAiMailAutoRefresh();
 };
 
 const submitAiMailForwardForm = async () => {
@@ -356,6 +357,7 @@ const startAiMailMonitor = async () => {
   setActionActive('ai-mail-monitor', true);
   renderQuickActions();
   renderFeatureCards();
+  ensureAiMailAutoRefresh();
   try {
     const status = await window.desktopBridge?.startAiMailMonitor?.();
     if (status) {
@@ -391,6 +393,7 @@ const closeAiMailPanel = async () => {
   setActionActive('ai-mail-monitor', false);
   renderQuickActions();
   renderFeatureCards();
+  stopAiMailAutoRefresh();
 };
 
 const buildAiMailCard = () => {
