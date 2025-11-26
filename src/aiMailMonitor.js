@@ -202,7 +202,7 @@ class AiMailMonitor {
     }
   }
 
-  async ensureReceivedDirectory() {
+  async ensureMailDirectory(kind) {
     if (!this.ensureWorkspaceDirectory) {
       throw new Error('作業ディレクトリが設定されていません');
     }
@@ -210,20 +210,28 @@ class AiMailMonitor {
     if (!workspaceDir) {
       throw new Error('作業ディレクトリが設定されていません');
     }
-    const receivedDir = path.join(workspaceDir, 'Mail', 'Received');
-    await fs.promises.mkdir(receivedDir, { recursive: true });
-    return receivedDir;
+    const targetDir = path.join(workspaceDir, 'Mail', kind);
+    await fs.promises.mkdir(targetDir, { recursive: true });
+    return targetDir;
   }
 
-  async buildReceivedFilePath(receivedDir) {
+  async buildMailFilePath(targetDir) {
     const baseName = this.formatDateForFilename(new Date());
-    let candidate = path.join(receivedDir, `${baseName}.eml`);
+    let candidate = path.join(targetDir, `${baseName}.eml`);
     let counter = 1;
     while (fs.existsSync(candidate)) {
-      candidate = path.join(receivedDir, `${baseName}-${counter}.eml`);
+      candidate = path.join(targetDir, `${baseName}-${counter}.eml`);
       counter += 1;
     }
     return candidate;
+  }
+
+  async ensureReceivedDirectory() {
+    return this.ensureMailDirectory('Received');
+  }
+
+  async buildReceivedFilePath(receivedDir) {
+    return this.buildMailFilePath(receivedDir);
   }
 
   async saveRawEmail(raw) {
@@ -236,6 +244,28 @@ class AiMailMonitor {
     }
     const receivedDir = await this.ensureReceivedDirectory();
     const filePath = await this.buildReceivedFilePath(receivedDir);
+    await fs.promises.writeFile(filePath, buffer);
+    return { saved: true, filePath };
+  }
+
+  async ensureSentDirectory() {
+    return this.ensureMailDirectory('Send');
+  }
+
+  async buildSentFilePath(sentDir) {
+    return this.buildMailFilePath(sentDir);
+  }
+
+  async saveSentEmail(raw) {
+    if (!raw) {
+      return { saved: false };
+    }
+    const buffer = this.normalizeRawEmail(raw);
+    if (!buffer || buffer.length === 0) {
+      return { saved: false };
+    }
+    const sentDir = await this.ensureSentDirectory();
+    const filePath = await this.buildSentFilePath(sentDir);
     await fs.promises.writeFile(filePath, buffer);
     return { saved: true, filePath };
   }
