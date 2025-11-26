@@ -396,12 +396,14 @@ class AiMailMonitor {
       saveFailed = true;
     }
     const parsed = await simpleParser(rawBuffer);
+    const restoredText = this.restoreStrippedUtf8(parsed.text);
+    const restoredHtml = this.restoreStrippedUtf8(parsed.html);
     await this.transporter.sendMail({
       from: this.credentials.user,
       to: this.state.forwardTo,
       subject: parsed.subject ? `[FW] ${parsed.subject}` : '転送メール',
-      text: parsed.text ?? '(本文なし)',
-      html: parsed.html ?? undefined,
+      text: restoredText ?? '(本文なし)',
+      html: restoredHtml ?? undefined,
       attachments: (parsed.attachments ?? []).map((file) => ({
         filename: file.filename,
         content: file.content,
