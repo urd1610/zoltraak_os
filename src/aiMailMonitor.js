@@ -132,6 +132,52 @@ class AiMailMonitor {
     return Buffer.from(String(raw ?? ''), 'binary');
   }
 
+  restoreStrippedUtf8(text) {
+    if (!text) {
+      return text;
+    }
+    const buffer = Buffer.from(String(text), 'binary');
+    if (buffer.some((byte) => byte >= 0x80)) {
+      return text;
+    }
+    const isJapaneseChar = (codePoint) => (
+      (codePoint >= 0x3040 && codePoint <= 0x30ff) // Hiragana / Katakana
+      || (codePoint >= 0x4e00 && codePoint <= 0x9fff) // CJK Unified Ideographs
+      || (codePoint >= 0xff01 && codePoint <= 0xffe6) // Fullwidth variants
+    );
+
+    const restored = [];
+    let changed = false;
+    for (let i = 0; i < buffer.length; i += 1) {
+      const byte = buffer[i];
+      if (byte >= 0x60 && byte <= 0x6f && i + 2 < buffer.length && buffer[i + 1] <= 0x3f && buffer[i + 2] <= 0x3f) {
+        const candidate = Buffer.from([byte | 0x80, buffer[i + 1] | 0x80, buffer[i + 2] | 0x80]);
+        try {
+          const decoded = candidate.toString('utf-8');
+          if (decoded.length === 1 && isJapaneseChar(decoded.codePointAt(0))) {
+            restored.push(...candidate);
+            changed = true;
+            i += 2;
+            continue;
+          }
+        } catch (error) {
+          // keep original bytes
+        }
+      }
+      restored.push(byte);
+    }
+
+    if (!changed) {
+      return text;
+    }
+
+    try {
+      return Buffer.from(restored).toString('utf-8');
+    } catch (error) {
+      return text;
+    }
+  }
+
   async ensureReceivedDirectory() {
     if (!this.ensureWorkspaceDirectory) {
       throw new Error('作業ディレクトリが設定されていません');
@@ -350,12 +396,14 @@ class AiMailMonitor {
       saveFailed = true;
     }
     const parsed = await simpleParser(rawBuffer);
+    const restoredText = this.restoreStrippedUtf8(parsed.text);
+    const restoredHtml = this.restoreStrippedUtf8(parsed.html);
     await this.transporter.sendMail({
       from: this.credentials.user,
       to: this.state.forwardTo,
       subject: parsed.subject ? `[FW] ${parsed.subject}` : '転送メール',
-      text: parsed.text ?? '(本文なし)',
-      html: parsed.html ?? undefined,
+      text: restoredText ?? '(本文なし)',
+      html: restoredHtml ?? undefined,
       attachments: (parsed.attachments ?? []).map((file) => ({
         filename: file.filename,
         content: file.content,
