@@ -13,6 +13,12 @@ const quickActions = [
   { id: 'ai-mail-monitor', label: 'AIメール監視', detail: '受信→転送', icon: 'AI', active: false, position: { x: 600, y: 0 } },
 ];
 
+quickActions.forEach((action, index) => {
+  action.zIndex = index + 1;
+});
+
+let highestZIndex = quickActions.length;
+
 // グローバル変数を関数外に移動
 let currentDraggingElement = null;
 let currentDraggingAction = null;
@@ -85,6 +91,7 @@ const renderQuickActions = () => {
     row.dataset.action = action.id;
     row.style.left = `${action.position.x}px`;
     row.style.top = `${action.position.y}px`;
+    row.style.zIndex = String(action.zIndex ?? 1);
     
     const handleMouseDown = (e) => {
       if (e.button === 0 && !currentDraggingElement) { // 左クリックのみ、かつ他の要素がドラッグ中でない
