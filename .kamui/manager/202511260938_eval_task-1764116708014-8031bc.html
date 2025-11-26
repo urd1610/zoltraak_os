@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <title>評価レポート</title>
+    <style>
+      body {
+        font-family: "Hiragino Sans", "Noto Sans JP", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+        line-height: 1.6;
+        margin: 24px;
+        background-color: #e9f0f2;
+        color: #1f2a30;
+      }
+      .monitor-wrapper {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 32px;
+        background: #ffffff;
+        border: 1px solid #c4d3d7;
+      }
+      .monitor-header {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 24px;
+      }
+      .monitor-title {
+        font-size: 26px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        color: #1f2a30;
+      }
+      .monitor-description {
+        font-size: 14px;
+        color: #3a4b53;
+      }
+      .score-banner {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 12px;
+        margin: 12px 0 18px;
+      }
+      .score-pill {
+        padding: 14px 16px;
+        background: linear-gradient(90deg, #d8e6e9, #eef4f6);
+        border: 1px solid #c4d3d7;
+        border-radius: 10px;
+        font-weight: 700;
+        font-size: 20px;
+        letter-spacing: 0.02em;
+        color: #142027;
+      }
+      .score-pill small {
+        display: block;
+        font-weight: 500;
+        font-size: 13px;
+        color: #3a4b53;
+      }
+      .legend {
+        font-size: 12px;
+        color: #3a4b53;
+        margin-bottom: 18px;
+      }
+      .chart-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 16px;
+        margin-bottom: 24px;
+      }
+      .agent-card {
+        border: 1px solid #c4d3d7;
+        border-radius: 10px;
+        padding: 16px;
+        background: #f7fafb;
+      }
+      .agent-card h2 {
+        margin: 0 0 4px;
+        font-size: 18px;
+      }
+      .agent-card .total {
+        font-weight: 700;
+        margin-bottom: 10px;
+        color: #1f2a30;
+      }
+      .radar-wrapper {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+      }
+      .radar-svg {
+        width: 180px;
+        height: 180px;
+      }
+      .radar-svg polygon.grid {
+        fill: none;
+        stroke: #d0dde1;
+        stroke-width: 1;
+      }
+      .radar-svg polygon.data {
+        fill: rgba(55, 133, 181, 0.18);
+        stroke: #2c6f99;
+        stroke-width: 2;
+      }
+      .metric-list {
+        margin: 0;
+        padding-left: 16px;
+        font-size: 13px;
+        color: #23313a;
+      }
+      .metric-list li {
+        margin-bottom: 6px;
+      }
+      .metric-list strong {
+        color: #1f2a30;
+      }
+      table.monitor-report {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+        background: #ffffff;
+        border: 1px solid #c4d3d7;
+      }
+      col.timestamp-column {
+        width: 160px;
+      }
+      col.agent-column {
+        width: calc((100% - 160px) / 3);
+      }
+      th,
+      td {
+        border: 1px solid #c4d3d7;
+        padding: 16px;
+        vertical-align: top;
+        background-color: #ffffff;
+      }
+      th {
+        background: #d8e6e9;
+        text-align: left;
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: #2c3a40;
+      }
+      tbody tr:nth-child(even) td {
+        background-color: #eef3f4;
+      }
+      details {
+        display: block;
+        margin: 0;
+      }
+      details summary {
+        list-style: none;
+      }
+      details[open] summary {
+        margin-bottom: 12px;
+      }
+      .details-toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+        font-weight: 500;
+        font-size: 13px;
+        color: #1f2a30;
+        padding: 0;
+        background: transparent;
+        border: none;
+      }
+      .details-toggle::before {
+        content: "";
+        font-size: 10px;
+        transition: transform 160ms ease;
+        display: inline-block;
+      }
+      details[open] .details-toggle::before {
+        transform: rotate(90deg);
+      }
+      .timestamp {
+        font-weight: 600;
+        color: #2c3a40;
+        overflow-wrap: anywhere;
+      }
+      .snapshot-summary {
+        margin-bottom: 12px;
+        font-weight: 500;
+        color: #2c3a40;
+      }
+      pre {
+        white-space: pre-wrap;
+        word-break: break-word;
+        margin: 0;
+        font-size: 12px;
+        line-height: 1.55;
+        color: #1f2a30;
+        background: #f2f6f7;
+        border: 1px solid #c4d3d7;
+        padding: 16px;
+      }
+      .status-badge {
+        display: inline-block;
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        padding: 1px 6px;
+        background: #d8e6e9;
+        border: 1px solid #b8c9cd;
+        color: #1f2a30;
+        white-space: nowrap;
+        line-height: 1.3;
+        vertical-align: top;
+      }
+      .status-badge--completed {
+        background: #c3d4d8;
+        border-color: #aabfc5;
+      }
+      .status-badge--warning {
+        background: #fef3cd;
+        border-color: #f0e5a5;
+      }
+      .agent-meta {
+        display: block;
+        margin-bottom: 8px;
+        line-height: 1.5;
+      }
+      .agent-meta .agent-label {
+        display: inline;
+        font-size: 13px;
+        color: #3a4b53;
+      }
+      .links {
+        margin-top: 12px;
+        font-size: 13px;
+        color: #1f2a30;
+      }
+      .links a {
+        color: #1d6fa5;
+        text-decoration: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="monitor-wrapper">
+      <header class="monitor-header">
+        <h1 class="monitor-title">評価レポート (AIメール監視: Mail/Received への eml 保存)</h1>
+        <p class="monitor-description">AIメール監視で受信したメールをワークスペース直下の Mail/Received に日付・時間ファイル名で保存しつつ転送する実装を評価。安定性 / コスト / 価値 / 実装妥当性に加え、コード品質と運用・テストの6指標を100点満点で採点 (合計600点)。</p>
+      </header>
+
+      <div class="score-banner">
+        <div class="score-pill">&#x1F947; 511 / 600 <small>task-1764116704703-c50efd</small></div>
+        <div class="score-pill">&#x1F948; 430 / 600 <small>task-1764116700994-5f30d3</small></div>
+        <div class="score-pill">&#x1F949; 428 / 600 <small>task-1764116708014-8031bc</small></div>
+      </div>
+      <div class="legend">&#x1F3C6;>=540 / &#x1F947;>=480 / &#x1F948;>=420 / それ以外&#x1F949;。失格はなし。</div>
+
+      <div class="chart-grid">
+        <div class="agent-card">
+          <h2>task-1764116704703-c50efd (AIメール監視)</h2>
+          <div class="total">&#x1F3C6; 総合 511 / 600</div>
+          <div class="radar-wrapper">
+            <svg class="radar-svg" viewBox="0 0 200 200" data-values="88,90,89,92,82,70" data-labels="コード品質,安定性,実装妥当性,価値,コスト効率,運用・テスト">
+              <polygon class="grid" points="100,20 180,60 180,140 100,180 20,140 20,60"></polygon>
+              <polygon class="data" points=""></polygon>
+            </svg>
+            <ul class="metric-list">
+              <li><strong>コード品質 88:</strong> 生メール保存をヘルパー関数群に分離し、型揺れも normalize。</li>
+              <li><strong>安定性 90:</strong> 保存失敗を検知しつつ転送は継続、状態にエラーを残す設計。</li>
+              <li><strong>実装妥当性 89:</strong> ensureWorkspaceDirectory 経由で Mail/Received を作成し、重複名を回避。</li>
+              <li><strong>価値 92:</strong> 受信ごとに eml を保存し、ユーザーが後追い確認できる運用価値が高い。</li>
+              <li><strong>コスト効率 82:</strong> 同期 exists チェックのみでオーバーヘッドは小さい。</li>
+              <li><strong>運用・テスト 70:</strong> ロギング最小・自動テストなし。監視カバレッジは限定的。</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="agent-card">
+          <h2>task-1764116700994-5f30d3 (AIメール監視)</h2>
+          <div class="total">&#x1F948; 総合 430 / 600</div>
+          <div class="radar-wrapper">
+            <svg class="radar-svg" viewBox="0 0 200 200" data-values="75,60,78,85,82,50" data-labels="コード品質,安定性,実装妥当性,価値,コスト効率,運用・テスト">
+              <polygon class="grid" points="100,20 180,60 180,140 100,180 20,140 20,60"></polygon>
+              <polygon class="data" points=""></polygon>
+            </svg>
+            <ul class="metric-list">
+              <li><strong>コード品質 75:</strong> シンプルだが責務分離や型正規化が不足。</li>
+              <li><strong>安定性 60:</strong> 保存失敗や未設定ワークスペースがそのまま例外となりポーリングを止める。</li>
+              <li><strong>実装妥当性 78:</strong> Mail/Received を作成し日付ファイル名 + 連番で保存。</li>
+              <li><strong>価値 85:</strong> 転送前に eml を残し要件を満たす。</li>
+              <li><strong>コスト効率 82:</strong> 同期 exists のみで追加コストは軽い。</li>
+              <li><strong>運用・テスト 50:</strong> テスト・監視は未整備、障害検知も限定的。</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="agent-card">
+          <h2>task-1764116708014-8031bc (AIメール監視)</h2>
+          <div class="total">&#x1F949; 総合 428 / 600</div>
+          <div class="radar-wrapper">
+            <svg class="radar-svg" viewBox="0 0 200 200" data-values="74,55,82,85,82,50" data-labels="コード品質,安定性,実装妥当性,価値,コスト効率,運用・テスト">
+              <polygon class="grid" points="100,20 180,60 180,140 100,180 20,140 20,60"></polygon>
+              <polygon class="data" points=""></polygon>
+            </svg>
+            <ul class="metric-list">
+              <li><strong>コード品質 74:</strong> 保存処理は整理されているが型正規化や分岐の網羅性が不足。</li>
+              <li><strong>安定性 55:</strong> 保存失敗が forward を巻き込みリトライ不能、ワークスペース未設定も例外で停止。</li>
+              <li><strong>実装妥当性 82:</strong> Mail/Received 作成と連番付与を実装し要求仕様は充足。</li>
+              <li><strong>価値 85:</strong> 受信メールを転送前に保存するため追跡性は確保。</li>
+              <li><strong>コスト効率 82:</strong> fsp.access での重複確認のみで追加コストは軽微。</li>
+              <li><strong>運用・テスト 50:</strong> テスト・監視なし、障害検知は lastError に依存。</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <table class="monitor-report">
+        <colgroup>
+          <col class="timestamp-column" />
+          <col class="agent-column" />
+          <col class="agent-column" />
+          <col class="agent-column" />
+        </colgroup>
+        <thead>
+          <tr>
+            <th>Timestamp</th>
+            <th>Agent task-1764116704703-c50efd</th>
+            <th>Agent task-1764116700994-5f30d3</th>
+            <th>Agent task-1764116708014-8031bc</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="timestamp">2025-11-26 09:38</td>
+            <td>
+              <div class="agent-meta">
+                <span class="status-badge status-badge--completed">完了</span>
+                <span class="agent-label">保存失敗を検知しつつ転送継続。Mail/Received への重複回避保存を実装。</span>
+              </div>
+              <details class="snapshot-details">
+                <summary class="details-toggle">ログ/差分</summary>
+                <div class="snapshot-summary">commit log</div>
+                <pre>dc7ab11 AIメール監視に作業ディレクトリ情報を提供
+f98cf39 AIメール受信の保存処理を実装
+d3d95cb feat: 2ブランチのAIメール監視アイコン強調対応を評価したレポートを追加</pre>
+                <div class="snapshot-summary">diff stat</div>
+                <pre>src/aiMailMonitor.js | 86 additions, 3 deletions
+src/main.js          |  2 additions</pre>
+                <div class="snapshot-summary">主な変更ポイント</div>
+                <pre>- saveRawEmail/ensureReceivedDirectory で Mail/Received 作成と連番命名
+- forwardMessage 内で保存失敗を握りつつ転送継続、エラーを state に残す
+- formatDateForFilename を外部から差し替え可能に</pre>
+              </details>
+            </td>
+            <td>
+              <div class="agent-meta">
+                <span class="status-badge status-badge--warning">完了 (保存失敗で停止のリスク)</span>
+                <span class="agent-label">Mail/Received に保存後に転送。未設定ワークスペース時は例外。</span>
+              </div>
+              <details class="snapshot-details">
+                <summary class="details-toggle">ログ/差分</summary>
+                <div class="snapshot-summary">commit log</div>
+                <pre>f7ce5d6 受信メールをMail/Receivedへeml保存してから転送
+88ecdd1 受信メール保存の下準備を追加
+9394f80 AIメール監視に作業ディレクトリ取得関数を渡す</pre>
+                <div class="snapshot-summary">diff stat</div>
+                <pre>src/aiMailMonitor.js | 46 additions
+src/main.js          |  8 additions</pre>
+                <div class="snapshot-summary">主な変更ポイント</div>
+                <pre>- pollOnce で保存→転送の順に処理
+- getWorkspaceDirectory 経由で Mail/Received を作成 (未設定は例外)
+- 重複ファイルは _連番 で回避 (fs.existsSync)</pre>
+              </details>
+            </td>
+            <td>
+              <div class="agent-meta">
+                <span class="status-badge status-badge--warning">完了 (保存失敗で停止のリスク)</span>
+                <span class="agent-label">forwardMessage 内で保存し転送。例外時にポーリング停止しうる。</span>
+              </div>
+              <details class="snapshot-details">
+                <summary class="details-toggle">ログ/差分</summary>
+                <div class="snapshot-summary">commit log</div>
+                <pre>b5e6c90 受信メールをMail/Receivedにeml保存する
+504dc63 AIメール監視に作業ディレクトリ取得を渡す
+d3d95cb feat: 2ブランチのAIメール監視アイコン強調対応を評価したレポートを追加</pre>
+                <div class="snapshot-summary">diff stat</div>
+                <pre>src/aiMailMonitor.js | 54 additions
+src/main.js          |  1 addition</pre>
+                <div class="snapshot-summary">主な変更ポイント</div>
+                <pre>- forwardMessage で保存後に simpleParser
+- ensureMailReceivedDirectory でディレクトリ作成、_連番で重複回避
+- 例外処理なしのため保存失敗が転送失敗に波及</pre>
+              </details>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="links">
+        <div>成果物パス (各 worktree):</div>
+        <div>- task-1764116704703-c50efd: C:/Users/SD565/workspace/zoltraak_os/.worktrees/task-1764116704703-c50efd</div>
+        <div>- task-1764116700994-5f30d3: C:/Users/SD565/workspace/zoltraak_os/.worktrees/task-1764116700994-5f30d3</div>
+        <div>- task-1764116708014-8031bc: C:/Users/SD565/workspace/zoltraak_os/.worktrees/task-1764116708014-8031bc</div>
+        <div>※ 本レポートはリポジトリルート配下 (.kamui/manager) に保存し、.worktrees 内では生成していません。</div>
+      </div>
+    </div>
+    <script>
+      const maxScore = 100;
+      document.querySelectorAll('.radar-svg').forEach((svg) => {
+        const values = (svg.getAttribute('data-values') || '').split(',').map((v) => Number(v.trim()));
+        const size = 200;
+        const center = size / 2;
+        const radius = 80;
+        const angleStep = (Math.PI * 2) / values.length;
+        const points = values.map((value, index) => {
+          const ratio = Math.max(0, Math.min(value / maxScore, 1));
+          const angle = -Math.PI / 2 + index * angleStep;
+          const x = center + Math.cos(angle) * radius * ratio;
+          const y = center + Math.sin(angle) * radius * ratio;
+          return `${x},${y}`;
+        });
+        const polygon = svg.querySelector('polygon.data');
+        polygon.setAttribute('points', points.join(' '));
+      });
+    </script>
+  </body>
+</html>
