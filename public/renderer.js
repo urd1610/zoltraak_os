@@ -18,6 +18,44 @@ quickActions.forEach((action, index) => {
 });
 
 let highestZIndex = quickActions.length;
+const windowLayer = (() => {
+  const layer = document.createElement('div');
+  layer.className = 'window-layer';
+  document.body.append(layer);
+  return layer;
+})();
+
+const removeWindowById = (id) => {
+  if (!id) return;
+  const existing = windowLayer.querySelector(`[data-window-id="${id}"]`);
+  if (existing) {
+    existing.remove();
+  }
+};
+
+const createWindowShell = (id, titleText) => {
+  removeWindowById(id);
+  const windowEl = document.createElement('div');
+  windowEl.className = 'window pop';
+  windowEl.dataset.windowId = id;
+  const header = document.createElement('div');
+  header.className = 'window-header';
+  const title = document.createElement('div');
+  title.className = 'window-title';
+  title.textContent = titleText;
+  const closeBtn = document.createElement('button');
+  closeBtn.type = 'button';
+  closeBtn.className = 'panel-close';
+  closeBtn.setAttribute('aria-label', `${titleText}を閉じる`);
+  closeBtn.textContent = '×';
+  closeBtn.addEventListener('click', () => removeWindowById(id));
+  header.append(title, closeBtn);
+  const body = document.createElement('div');
+  body.className = 'window-body';
+  windowEl.append(header, body);
+  windowLayer.append(windowEl);
+  return { windowEl, body };
+};
 
 // グローバル変数を関数外に移動
 let currentDraggingElement = null;
