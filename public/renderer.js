@@ -18,6 +18,7 @@ quickActions.forEach((action, index) => {
 });
 
 let highestZIndex = quickActions.length;
+let highestWindowZIndex = 0;
 const windowLayer = (() => {
   const layer = document.createElement('div');
   layer.className = 'window-layer';
@@ -25,12 +26,38 @@ const windowLayer = (() => {
   return layer;
 })();
 
+const getLayerRect = () => windowLayer.getBoundingClientRect();
+
 const removeWindowById = (id) => {
   if (!id) return;
   const existing = windowLayer.querySelector(`[data-window-id="${id}"]`);
   if (existing) {
     existing.remove();
   }
+};
+
+const clampWindowPosition = (left, top, width, height, layerRect = getLayerRect()) => {
+  const maxLeft = Math.max(0, layerRect.width - width);
+  const maxTop = Math.max(0, layerRect.height - height);
+  return {
+    left: Math.min(Math.max(0, left), maxLeft),
+    top: Math.min(Math.max(0, top), maxTop),
+  };
+};
+
+const bringWindowToFront = (windowEl) => {
+  highestWindowZIndex += 1;
+  windowEl.style.zIndex = String(highestWindowZIndex);
+};
+
+const setWindowInitialPosition = (windowEl) => {
+  const layerRect = getLayerRect();
+  const rect = windowEl.getBoundingClientRect();
+  const windowCount = windowLayer.querySelectorAll('.window').length;
+  const offset = Math.max(0, (windowCount - 1) * 24);
+  const { left, top } = clampWindowPosition(offset, offset, rect.width, rect.height, layerRect);
+  windowEl.style.left = `${left}px`;
+  windowEl.style.top = `${top}px`;
 };
 
 const createWindowShell = (id, titleText, onClose) => {
@@ -60,6 +87,9 @@ const createWindowShell = (id, titleText, onClose) => {
   body.className = 'window-body';
   windowEl.append(header, body);
   windowLayer.append(windowEl);
+  bringWindowToFront(windowEl);
+  setWindowInitialPosition(windowEl);
+  windowEl.addEventListener('mousedown', () => bringWindowToFront(windowEl));
   return { windowEl, body, close: handleClose };
 };
 

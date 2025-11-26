@@ -728,15 +728,14 @@ button.chip:disabled {
 .window-layer {
   position: fixed;
   inset: 72px 16px 100px 16px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  align-content: flex-start;
   pointer-events: none;
   z-index: 2;
 }
 
 .window {
+  position: absolute;
+  left: 0;
+  top: 0;
   pointer-events: auto;
   width: 380px;
   min-height: 240px;
@@ -747,6 +746,10 @@ button.chip:disabled {
   display: grid;
   grid-template-rows: auto 1fr;
   overflow: hidden;
+}
+
+.window.dragging {
+  user-select: none;
 }
 
 .window.pop {
@@ -760,6 +763,7 @@ button.chip:disabled {
   padding: 12px 14px;
   background: rgba(255, 255, 255, 0.02);
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  cursor: move;
 }
 
 .window-title {
