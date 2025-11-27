@@ -158,6 +158,17 @@ button.chip:disabled {
   transition: box-shadow 140ms ease, transform 140ms ease, border-color 140ms ease;
 }
 
+.chip-action#side-panel-toggle {
+  transition: box-shadow 140ms ease, transform 140ms ease, border-color 140ms ease, background 140ms ease;
+}
+
+.panel-collapsed .chip-action#side-panel-toggle {
+  background: radial-gradient(circle at 20% 30%, rgba(110, 231, 255, 0.2), transparent 50%),
+    rgba(255, 255, 255, 0.08);
+  border-color: rgba(110, 231, 255, 0.5);
+  box-shadow: 0 12px 30px rgba(110, 231, 255, 0.25);
+}
+
 .chip-action:hover:not(:disabled) {
   border-color: rgba(110, 231, 255, 0.42);
   box-shadow: 0 10px 20px rgba(110, 231, 255, 0.14);
@@ -172,6 +183,7 @@ button.chip:disabled {
   align-items: flex-start;
   padding: 20px 24px 100px;
   height: calc(100vh - 72px);
+  transition: gap 180ms ease;
 }
 
 .desktop-surface {
@@ -285,6 +297,9 @@ button.chip:disabled {
   align-self: stretch;
   height: 100%;
   min-height: 0;
+  min-width: 0;
+  transition: opacity 180ms ease, transform 180ms ease, max-width 200ms ease, width 200ms ease;
+  overflow: hidden;
 }
 
 .panel-card {
@@ -317,6 +332,22 @@ button.chip:disabled {
   overflow-y: auto;
   padding-right: 6px;
   scrollbar-gutter: stable;
+}
+
+.panel-collapsed .canvas {
+  gap: 0;
+}
+
+.panel-collapsed .side-panel {
+  max-width: 0;
+  width: 0;
+  opacity: 0;
+  transform: translateX(24px);
+  pointer-events: none;
+}
+
+.panel-collapsed .panel-stack {
+  padding-right: 0;
 }
 
 .feature-card {
