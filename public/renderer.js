@@ -1518,6 +1518,10 @@ const applySidePanelState = () => {
     sidePanelToggleButton.setAttribute('aria-expanded', isSidePanelOpen ? 'true' : 'false');
     sidePanelToggleButton.title = isSidePanelOpen ? 'サイドパネルを閉じる' : 'サイドパネルを開く';
   }
+  requestAnimationFrame(() => ensureQuickActionsVisible());
+  if (!quickActionsResizeObserver) {
+    setTimeout(() => ensureQuickActionsVisible(), 220);
+  }
 };
 
 const persistSidePanelState = () => {
