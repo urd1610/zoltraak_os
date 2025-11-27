@@ -637,6 +637,61 @@ button.chip:disabled {
   user-select: none;
 }
 
+.quick-action .quick-detail {
+  max-width: 100%;
+}
+
+.quick-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  font-size: 20px;
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+@media (max-width: 1200px) {
+  .quick-action {
+    width: 108px;
+    height: 92px;
+    padding: 8px;
+    gap: 5px;
+  }
+
+  .quick-icon {
+    width: 36px;
+    height: 36px;
+    font-size: 18px;
+  }
+}
+
+@media (max-width: 960px) {
+  .quick-action {
+    width: 100px;
+    height: 86px;
+    padding: 8px;
+    gap: 4px;
+    border-radius: 14px;
+  }
+
+  .quick-name {
+    font-size: 12px;
+  }
+
+  .quick-detail {
+    font-size: 10px;
+  }
+
+  .quick-icon {
+    width: 32px;
+    height: 32px;
+    font-size: 16px;
+    border-radius: 10px;
+  }
+}
+
 .quick-action.active {
   border-color: rgba(52, 211, 153, 0.7);
   box-shadow: 0 18px 40px rgba(16, 185, 129, 0.35);
@@ -672,17 +727,6 @@ button.chip:disabled {
   align-items: center;
   gap: 4px;
   color: #dfe7ff;
-}
-
-.quick-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
-  display: grid;
-  place-items: center;
-  font-size: 20px;
-  background: rgba(255, 255, 255, 0.08);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 .quick-action.active .quick-icon {
