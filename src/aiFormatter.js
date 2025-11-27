@@ -9,15 +9,26 @@ const DEFAULT_PROMPT = [
   '- 出力は必ずUTF-8のJSON文字列のみ。余分なテキストやコードブロックは付けない',
 ].join('\n');
 
+const normalizeTimeoutMs = (value, fallback = 60000, provider = 'openrouter') => {
+  const fallbackMs = Number.isFinite(fallback) ? fallback : 60000;
+  const parsed = Number(value);
+  const base = Number.isFinite(parsed) ? parsed : fallbackMs;
+  const minByProvider = provider === 'lmstudio' ? 60000 : 30000;
+  const min = Math.max(5000, minByProvider);
+  const max = 180000;
+  return Math.min(Math.max(base, min), max);
+};
+
 class AiFormatter {
   constructor(options = {}) {
     this.setOptions(options);
   }
 
   setOptions(options = {}) {
+    const provider = (options.provider ?? 'openrouter').toLowerCase();
     this.options = {
       enabled: options.enabled !== false,
-      provider: options.provider ?? 'openrouter',
+      provider,
       prompt: options.prompt ?? DEFAULT_PROMPT,
       openRouter: {
         apiKey: options.openRouter?.apiKey ?? '',
@@ -27,7 +38,7 @@ class AiFormatter {
         endpoint: options.lmStudio?.endpoint ?? 'http://localhost:1234/v1/chat/completions',
         model: options.lmStudio?.model ?? 'gpt-4o-mini',
       },
-      timeoutMs: options.timeoutMs ?? 60000,
+      timeoutMs: normalizeTimeoutMs(options.timeoutMs, 60000, provider),
       maxRetries: options.maxRetries ?? 2,
     };
   }

@@ -4,7 +4,7 @@ const { Pop3Client } = require('./pop3Client');
 const nodemailer = require('nodemailer');
 const MailComposer = require('nodemailer/lib/mail-composer');
 const { simpleParser } = require('mailparser');
-const { AiFormatter, DEFAULT_PROMPT } = require('./aiFormatter');
+const { AiFormatter } = require('./aiFormatter');
 
 class AiMailMonitor {
   constructor(options = {}) {
@@ -59,41 +59,13 @@ class AiMailMonitor {
   }
 
   getDefaultFormatting() {
-    return {
-      enabled: true,
-      provider: 'openrouter',
-      prompt: DEFAULT_PROMPT,
-      openRouter: {
-        apiKey: '',
-        model: 'gpt-4o-mini',
-      },
-      lmStudio: {
-        endpoint: 'http://localhost:1234/v1/chat/completions',
-        model: 'gpt-4o-mini',
-      },
-      timeoutMs: 60000,
-      maxRetries: 2,
-    };
+    return new AiFormatter().getOptions();
   }
 
   normalizeFormatting(value) {
-    const defaults = this.getDefaultFormatting();
-    const candidate = value ?? {};
-    return {
-      enabled: candidate.enabled !== false,
-      provider: (candidate.provider || defaults.provider || 'openrouter').toLowerCase(),
-      prompt: candidate.prompt || defaults.prompt,
-      openRouter: {
-        apiKey: candidate.openRouter?.apiKey ?? defaults.openRouter.apiKey,
-        model: candidate.openRouter?.model || defaults.openRouter.model,
-      },
-      lmStudio: {
-        endpoint: candidate.lmStudio?.endpoint || defaults.lmStudio.endpoint,
-        model: candidate.lmStudio?.model || defaults.lmStudio.model,
-      },
-      timeoutMs: typeof candidate.timeoutMs === 'number' ? candidate.timeoutMs : defaults.timeoutMs,
-      maxRetries: typeof candidate.maxRetries === 'number' ? candidate.maxRetries : defaults.maxRetries,
-    };
+    const provider = (value?.provider ?? 'openrouter').toLowerCase();
+    const formatter = new AiFormatter({ ...value, provider });
+    return formatter.getOptions();
   }
 
   applyFormatting(nextFormatting) {
