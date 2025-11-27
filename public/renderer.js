@@ -4,8 +4,11 @@ const systemChip = document.getElementById('system-chip');
 const clockChip = document.getElementById('clock-chip');
 const quickActionsContainer = document.getElementById('quick-actions');
 const featureCardsContainer = document.getElementById('feature-cards');
+const sidePanel = document.getElementById('side-panel');
+const sidePanelToggleButton = document.getElementById('side-panel-toggle');
 const QUICK_ACTION_PADDING = 12;
 const QUICK_ACTION_GAP = 12;
+const SIDE_PANEL_STATE_KEY = 'sidePanelOpen';
 
 const quickActions = [
   { id: 'record', label: 'クイック録音', detail: '音声メモ', icon: '🎙️', active: false, position: { x: 0, y: 0 } },
@@ -20,6 +23,7 @@ quickActions.forEach((action, index) => {
 });
 
 let highestZIndex = quickActions.length;
+let isSidePanelOpen = true;
 let highestWindowZIndex = 0;
 const windowLayer = (() => {
   const layer = document.createElement('div');
@@ -1496,6 +1500,55 @@ const hydrateSystemInfo = () => {
   systemChip.textContent = `${info.user} · ${info.platform} ${info.release}`;
 };
 
+const applySidePanelState = () => {
+  document.body.classList.toggle('panel-collapsed', !isSidePanelOpen);
+  if (sidePanel) {
+    sidePanel.setAttribute('aria-hidden', String(!isSidePanelOpen));
+  }
+  if (sidePanelToggleButton) {
+    sidePanelToggleButton.textContent = isSidePanelOpen ? 'パネルを閉じる' : 'パネルを開く';
+    sidePanelToggleButton.setAttribute('aria-expanded', isSidePanelOpen ? 'true' : 'false');
+    sidePanelToggleButton.title = isSidePanelOpen ? 'サイドパネルを閉じる' : 'サイドパネルを開く';
+  }
+};
+
+const persistSidePanelState = () => {
+  try {
+    localStorage.setItem(SIDE_PANEL_STATE_KEY, isSidePanelOpen ? 'open' : 'closed');
+  } catch (error) {
+    console.warn('サイドパネル状態の保存に失敗しました', error);
+  }
+};
+
+const setSidePanelOpen = (open) => {
+  const next = Boolean(open);
+  const prev = isSidePanelOpen;
+  isSidePanelOpen = next;
+  applySidePanelState();
+  if (prev !== next) {
+    persistSidePanelState();
+  }
+};
+
+const toggleSidePanel = () => {
+  setSidePanelOpen(!isSidePanelOpen);
+};
+
+const hydrateSidePanelState = () => {
+  let savedState = isSidePanelOpen;
+  try {
+    const stored = localStorage.getItem(SIDE_PANEL_STATE_KEY);
+    if (stored === 'open') {
+      savedState = true;
+    } else if (stored === 'closed') {
+      savedState = false;
+    }
+  } catch (error) {
+    console.warn('サイドパネル状態の読み込みに失敗しました', error);
+  }
+  setSidePanelOpen(savedState);
+};
+
 const savePositions = () => {
   const positions = quickActions.reduce((acc, action) => {
     acc[action.id] = {
@@ -1546,6 +1599,7 @@ const loadPositions = () => {
 };
 
 const boot = () => {
+  hydrateSidePanelState();
   loadPositions();
   renderQuickActions();
   renderFeatureCards();
@@ -1555,6 +1609,7 @@ const boot = () => {
   updateClock();
   setInterval(updateClock, 30000);
   workspaceChangeButton?.addEventListener('click', () => void handleWorkspaceChange());
+  sidePanelToggleButton?.addEventListener('click', toggleSidePanel);
   
   // グローバルイベントリスナーは一度だけ登録
   document.addEventListener('mousemove', handleGlobalMouseMove);
