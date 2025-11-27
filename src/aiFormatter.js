@@ -27,7 +27,8 @@ class AiFormatter {
         endpoint: options.lmStudio?.endpoint ?? 'http://localhost:1234/v1/chat/completions',
         model: options.lmStudio?.model ?? 'gpt-4o-mini',
       },
-      timeoutMs: options.timeoutMs ?? 20000,
+      timeoutMs: options.timeoutMs ?? 60000,
+      maxRetries: options.maxRetries ?? 2,
     };
   }
 
@@ -79,11 +80,31 @@ class AiFormatter {
     const messages = this.buildMessages(payload ?? {});
     const provider = (this.options.provider ?? 'openrouter').toLowerCase();
 
-    if (provider === 'lmstudio') {
-      return this.callLmStudio(messages);
+    let lastError = null;
+    for (let attempt = 0; attempt <= this.options.maxRetries; attempt++) {
+      try {
+        if (provider === 'lmstudio') {
+          return await this.callLmStudio(messages);
+        }
+        return await this.callOpenRouter(messages);
+      } catch (error) {
+        lastError = error;
+        const isTimeout = error.message?.includes('タイムアウト');
+
+        if (attempt < this.options.maxRetries && isTimeout) {
+          console.warn(`AI整形がタイムアウトしました。リトライします (${attempt + 1}/${this.options.maxRetries})`);
+          await this.sleep(1000 * (attempt + 1));
+          continue;
+        }
+        throw error;
+      }
     }
 
-    return this.callOpenRouter(messages);
+    throw lastError;
+  }
+
+  async sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   async callOpenRouter(messages) {
@@ -114,6 +135,11 @@ class AiFormatter {
       const data = await response.json();
       const content = data?.choices?.[0]?.message?.content;
       return this.parseCompletion(content);
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        throw new Error(`OpenRouter APIがタイムアウトしました (${this.options.timeoutMs}ms)`);
+      }
+      throw error;
     } finally {
       clearTimeout(timer);
     }
@@ -143,7 +169,7 @@ class AiFormatter {
       return this.parseCompletion(content);
     } catch (error) {
       if (error.name === 'AbortError') {
-        throw new Error(`LM Studioリクエストがタイムアウトしました (${this.options.timeoutMs}ms)`);
+        throw new Error(`LM Studio APIがタイムアウトしました (${this.options.timeoutMs}ms)`);
       }
       throw error;
     } finally {
