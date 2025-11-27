@@ -71,7 +71,7 @@ class AiMailMonitor {
         endpoint: 'http://localhost:1234/v1/chat/completions',
         model: 'gpt-4o-mini',
       },
-      timeoutMs: 20000,
+      timeoutMs: 60000,
     };
   }
 

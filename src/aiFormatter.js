@@ -27,7 +27,7 @@ class AiFormatter {
         endpoint: options.lmStudio?.endpoint ?? 'http://localhost:1234/v1/chat/completions',
         model: options.lmStudio?.model ?? 'gpt-4o-mini',
       },
-      timeoutMs: options.timeoutMs ?? 20000,
+      timeoutMs: options.timeoutMs ?? 60000,
     };
   }
 
