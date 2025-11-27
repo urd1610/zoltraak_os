@@ -383,8 +383,10 @@ class AiMailMonitor {
       timeoutMs: this.pop3.timeoutMs ?? 15000,
     });
 
+    let shouldQuit = false;
     try {
       await client.login(this.credentials.user, this.credentials.pass);
+      shouldQuit = true;
       const uidLines = await client.uidl();
       const uidEntries = this.parseUidl(uidLines);
       const newEntries = uidEntries.filter((entry) => entry.uid && !this.state.seenUids.has(entry.uid));
@@ -393,13 +395,22 @@ class AiMailMonitor {
       for (const entry of newEntries) {
         const raw = await client.retr(entry.msgNumber);
         messages.push({ ...entry, raw });
+        await client.dele(entry.msgNumber);
       }
 
-      await client.quit();
       return messages;
     } catch (error) {
-      client.destroy();
       throw error;
+    } finally {
+      if (shouldQuit && !client.closed) {
+        try {
+          await client.quit();
+        } catch (quitError) {
+          client.destroy();
+        }
+      } else {
+        client.destroy();
+      }
     }
   }
 
