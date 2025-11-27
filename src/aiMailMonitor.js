@@ -259,6 +259,27 @@ class AiMailMonitor {
     }
   }
 
+  escapeHtml(value) {
+    if (value === null || value === undefined) {
+      return '';
+    }
+    return String(value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  buildHtmlFromText(text) {
+    if (!text) {
+      return null;
+    }
+    const escaped = this.escapeHtml(text);
+    const withBreaks = escaped.replace(/\r?\n/g, '<br>');
+    return `<div style="white-space:pre-wrap;font-family:inherit;">${withBreaks}</div>`;
+  }
+
   async ensureMailDirectory(kind) {
     if (!this.ensureWorkspaceDirectory) {
       throw new Error('作業ディレクトリが設定されていません');
@@ -493,9 +514,14 @@ class AiMailMonitor {
       }
     }
 
+    const aiText = (() => {
+      if (aiResult?.body && aiResult.body.trim()) return aiResult.body;
+      if (aiResult?.text && aiResult.text.trim()) return aiResult.text;
+      return null;
+    })();
     const formattedSubject = aiResult?.subject || parsed.subject;
-    const formattedText = aiResult?.body || aiResult?.text || restoredText;
-    const formattedHtml = aiResult?.html ?? restoredHtml;
+    const formattedText = aiText || restoredText;
+    const formattedHtml = aiResult?.html ?? (aiText ? this.buildHtmlFromText(aiText) : restoredHtml);
     const mailOptions = {
       from: this.credentials.user,
       to: this.state.forwardTo,
