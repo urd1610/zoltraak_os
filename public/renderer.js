@@ -175,6 +175,13 @@ const DEFAULT_AI_MAIL_PROMPT = [
   '- 元メールの署名や引用は必要な場合だけ簡潔に反映する',
   '- 出力は必ずUTF-8のJSON文字列のみ。余分なテキストやコードブロックは付けない',
 ].join('\n');
+const normalizeAiMailTimeout = (value, provider = 'openrouter') => {
+  const parsed = Number(value);
+  const base = Number.isFinite(parsed) ? parsed : 60000;
+  const min = provider === 'lmstudio' ? 60000 : 30000;
+  const max = 180000;
+  return Math.min(Math.max(base, min), max);
+};
 const buildDefaultAiFormatting = () => ({
   enabled: true,
   provider: 'openrouter',
@@ -187,7 +194,7 @@ const buildDefaultAiFormatting = () => ({
     endpoint: 'http://localhost:1234/v1/chat/completions',
     model: 'gpt-4o-mini',
   },
-  timeoutMs: 20000,
+  timeoutMs: 60000,
 });
 const aiMailStatus = {
   forwardTo: '',
@@ -453,9 +460,10 @@ const getAiMailFormattingDraft = () => ({
 
 const normalizeAiMailFormattingPayload = () => {
   const draft = getAiMailFormattingDraft();
+  const provider = draft.provider === 'lmstudio' ? 'lmstudio' : 'openrouter';
   return {
     enabled: draft.enabled !== false,
-    provider: draft.provider === 'lmstudio' ? 'lmstudio' : 'openrouter',
+    provider,
     prompt: draft.prompt?.trim() || DEFAULT_AI_MAIL_PROMPT,
     openRouter: {
       apiKey: draft.openRouter?.apiKey ?? '',
@@ -465,7 +473,7 @@ const normalizeAiMailFormattingPayload = () => {
       endpoint: draft.lmStudio?.endpoint || 'http://localhost:1234/v1/chat/completions',
       model: draft.lmStudio?.model || 'gpt-4o-mini',
     },
-    timeoutMs: typeof draft.timeoutMs === 'number' ? draft.timeoutMs : 20000,
+    timeoutMs: normalizeAiMailTimeout(draft.timeoutMs, provider),
   };
 };
 
@@ -507,6 +515,7 @@ const updateAiMailFormattingWindowState = () => {
     lmStudioRow,
     lmStudioEndpoint,
     lmStudioModel,
+    timeoutInput,
     promptInput,
     saveButton,
     statusChip,
@@ -520,6 +529,13 @@ const updateAiMailFormattingWindowState = () => {
   if (providerSelect) {
     providerSelect.value = provider;
     providerSelect.disabled = isSavingAiMailFormatting;
+  }
+  if (timeoutInput) {
+    const normalizedTimeout = normalizeAiMailTimeout(draft.timeoutMs, provider);
+    const minTimeout = provider === 'lmstudio' ? 60000 : 30000;
+    timeoutInput.value = String(normalizedTimeout);
+    timeoutInput.min = String(minTimeout);
+    timeoutInput.disabled = isSavingAiMailFormatting;
   }
   if (openRouterRow) {
     openRouterRow.hidden = provider !== 'openrouter';
@@ -969,6 +985,33 @@ const openAiMailFormattingWindow = () => {
   providerRow.append(providerLabel, providerSelect);
   formattingForm.append(providerRow);
 
+  const timeoutRow = document.createElement('div');
+  timeoutRow.className = 'formatting-row';
+  const timeoutLabel = document.createElement('div');
+  timeoutLabel.className = 'formatting-label';
+  timeoutLabel.textContent = 'タイムアウト(ms)';
+  const timeoutFields = document.createElement('div');
+  timeoutFields.className = 'formatting-fields';
+  const timeoutInput = document.createElement('input');
+  timeoutInput.type = 'number';
+  timeoutInput.className = 'formatting-input';
+  timeoutInput.inputMode = 'numeric';
+  timeoutInput.min = '30000';
+  timeoutInput.max = '180000';
+  timeoutInput.step = '1000';
+  timeoutInput.value = String(formattingDraft.timeoutMs ?? 60000);
+  timeoutInput.addEventListener('input', (event) => {
+    setFormattingDraft({ timeoutMs: Number(event.target.value) });
+  });
+  timeoutFields.append(timeoutInput);
+  timeoutRow.append(timeoutLabel, timeoutFields);
+  formattingForm.append(timeoutRow);
+
+  const timeoutHint = document.createElement('div');
+  timeoutHint.className = 'forward-hint';
+  timeoutHint.textContent = 'LM Studio利用時はモデル読み込みに時間がかかるため60,000ms以上を推奨します。';
+  formattingForm.append(timeoutHint);
+
   const openRouterRow = document.createElement('div');
   openRouterRow.className = 'formatting-row provider-row';
   const openRouterLabel = document.createElement('div');
@@ -1068,6 +1111,7 @@ const openAiMailFormattingWindow = () => {
     lmStudioRow,
     lmStudioEndpoint,
     lmStudioModel,
+    timeoutInput,
     promptInput,
     saveButton: formattingSave,
     statusChip: formattingChip,
