@@ -223,6 +223,7 @@ let aiMailAutoRefreshTimerId = null;
 let aiMailForwardWindow = null;
 let aiMailFormattingWindow = null;
 let resizeTimerId = null;
+let quickActionsResizeObserver = null;
 
 const updateWorkspaceChip = (dir) => {
   if (!workspaceChip) return;
@@ -357,6 +358,13 @@ const ensureQuickActionsVisible = () => {
   if (touched) {
     savePositions();
   }
+};
+
+const setupQuickActionsResizeObserver = () => {
+  if (!quickActionsContainer || typeof ResizeObserver === 'undefined') return;
+  if (quickActionsResizeObserver) return;
+  quickActionsResizeObserver = new ResizeObserver(() => ensureQuickActionsVisible());
+  quickActionsResizeObserver.observe(quickActionsContainer);
 };
 
 const renderFeatureCards = () => {
@@ -1517,6 +1525,10 @@ const applySidePanelState = () => {
     sidePanel.setAttribute('aria-hidden', String(!isSidePanelOpen));
   }
   applySidePanelToggleMetadata();
+  requestAnimationFrame(() => ensureQuickActionsVisible());
+  if (!quickActionsResizeObserver) {
+    setTimeout(() => ensureQuickActionsVisible(), 220);
+  }
 };
 
 const persistSidePanelState = () => {
@@ -1610,6 +1622,7 @@ const boot = () => {
   loadPositions();
   renderQuickActions();
   renderFeatureCards();
+  setupQuickActionsResizeObserver();
   void hydrateWorkspaceChip();
   void hydrateAiMailStatus();
   hydrateSystemInfo();
