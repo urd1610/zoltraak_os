@@ -211,6 +211,7 @@ const AI_MAIL_REFRESH_INTERVAL_MS = 30000;
 let aiMailAutoRefreshTimerId = null;
 let aiMailForwardWindow = null;
 let aiMailFormattingWindow = null;
+let resizeTimerId = null;
 
 const updateWorkspaceChip = (dir) => {
   if (!workspaceChip) return;
@@ -1256,6 +1257,16 @@ const handleGlobalMouseUp = () => {
   }
 };
 
+const handleViewportResize = () => {
+  if (resizeTimerId) {
+    clearTimeout(resizeTimerId);
+  }
+  resizeTimerId = setTimeout(() => {
+    ensureQuickActionsVisible();
+    resizeTimerId = null;
+  }, 120);
+};
+
 const updateRecordingTimer = () => {
   if (!recordingStartedAt) return;
   const timerEl = document.getElementById('recording-timer');
@@ -1536,6 +1547,7 @@ const boot = () => {
   // グローバルイベントリスナーは一度だけ登録
   document.addEventListener('mousemove', handleGlobalMouseMove);
   document.addEventListener('mouseup', handleGlobalMouseUp);
+  window.addEventListener('resize', handleViewportResize);
 };
 
 boot();
