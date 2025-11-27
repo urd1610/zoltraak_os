@@ -114,6 +114,11 @@ class AiFormatter {
       const data = await response.json();
       const content = data?.choices?.[0]?.message?.content;
       return this.parseCompletion(content);
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        throw new Error(`OpenRouter APIがタイムアウトしました (${this.options.timeoutMs}ms)`);
+      }
+      throw error;
     } finally {
       clearTimeout(timer);
     }
@@ -141,6 +146,11 @@ class AiFormatter {
       const data = await response.json();
       const content = data?.choices?.[0]?.message?.content;
       return this.parseCompletion(content);
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        throw new Error(`LM Studio APIがタイムアウトしました (${this.options.timeoutMs}ms)`);
+      }
+      throw error;
     } finally {
       clearTimeout(timer);
     }
