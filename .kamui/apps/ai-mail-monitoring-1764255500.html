@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AIメール監視の仕様</title>
+    <link rel="stylesheet" href="./ai-mail-monitoring-1764255500.css">
+</head>
+<body>
+    <div class="app">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-title">スライド一覧</div>
+                <button id="toggleSidebar" aria-label="サイドバーを折りたたむ" aria-expanded="true">
+                    <span class="chevron">◀</span>
+                </button>
+            </div>
+            <p class="sidebar-caption">クリックでスライドへ移動</p>
+            <ul class="slide-list" id="slideList" aria-label="スライド一覧"></ul>
+        </aside>
+
+        <main class="slides-area">
+            <div class="progress">
+                <span id="slideNumber">1 / 6</span>
+            </div>
+
+            <div class="slide-container">
+                <!-- Slide 1: タイトル -->
+                <div class="slide active">
+                    <img src="https://placehold.co/1920x1080/1E88E5/ffffff?text=AI%E3%83%A1%E3%83%BC%E3%83%AB%E7%9B%A3%E8%A6%96%E3%81%AE%E4%BB%95%E6%A7%98" alt="AIメール監視の仕様 - タイトル">
+                </div>
+
+                <!-- Slide 2: システム概要 -->
+                <div class="slide">
+                    <img src="https://placehold.co/1920x1080/7E57C2/ffffff?text=%E3%82%B7%E3%82%B9%E3%83%86%E3%83%A0%E6%A6%82%E8%A6%81" alt="システム概要">
+                </div>
+
+                <!-- Slide 3: 監視フロー -->
+                <div class="slide">
+                    <img src="https://placehold.co/1920x1080/4CAF50/ffffff?text=%E7%9B%A3%E8%A6%96%E3%83%95%E3%83%AD%E3%83%BC" alt="監視フロー">
+                </div>
+
+                <!-- Slide 4: AI分析機能 -->
+                <div class="slide">
+                    <img src="https://placehold.co/1920x1080/2196F3/ffffff?text=AI%E5%88%86%E6%9E%90%E6%A9%9F%E8%83%BD" alt="AI分析機能">
+                </div>
+
+                <!-- Slide 5: アラート機能 -->
+                <div class="slide">
+                    <img src="https://placehold.co/1920x1080/FF9800/ffffff?text=%E3%82%A2%E3%83%A9%E3%83%BC%E3%83%88%E6%A9%9F%E8%83%BD" alt="アラート機能">
+                </div>
+
+                <!-- Slide 6: 運用と管理 -->
+                <div class="slide">
+                    <img src="https://placehold.co/1920x1080/9C27B0/ffffff?text=%E9%81%8B%E7%94%A8%E3%81%A8%E7%AE%A1%E7%90%86" alt="運用と管理">
+                </div>
+            </div>
+
+            <div class="navigation">
+                <button class="nav-btn" id="prevBtn">◀</button>
+                <button class="nav-btn" id="nextBtn">▶</button>
+            </div>
+        </main>
+    </div>
+
+    <script src="./ai-mail-monitoring-1764255500.js"></script>
+</body>
+</html>
