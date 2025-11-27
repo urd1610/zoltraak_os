@@ -493,9 +493,14 @@ class AiMailMonitor {
       }
     }
 
+    const aiText = (() => {
+      if (aiResult?.body && aiResult.body.trim()) return aiResult.body;
+      if (aiResult?.text && aiResult.text.trim()) return aiResult.text;
+      return null;
+    })();
     const formattedSubject = aiResult?.subject || parsed.subject;
-    const formattedText = aiResult?.body || aiResult?.text || restoredText;
-    const formattedHtml = aiResult?.html ?? restoredHtml;
+    const formattedText = aiText || restoredText;
+    const formattedHtml = aiResult?.html ?? (aiText ? aiText.replace(/\r?\n/g, '<br>') : restoredHtml);
     const mailOptions = {
       from: this.credentials.user,
       to: this.state.forwardTo,
