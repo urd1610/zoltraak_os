@@ -355,17 +355,23 @@ const ensureQuickActionsVisible = (options = {}) => {
   let touched = false;
 
   items.forEach(({ action, row }) => {
+    const currentX = typeof action.position?.x === 'number' ? action.position.x : QUICK_ACTION_PADDING;
+    const currentY = typeof action.position?.y === 'number' ? action.position.y : QUICK_ACTION_PADDING;
     const rect = row.getBoundingClientRect();
     const maxX = Math.max(QUICK_ACTION_PADDING, containerRect.width - rect.width - QUICK_ACTION_PADDING);
     const maxY = Math.max(QUICK_ACTION_PADDING, containerRect.height - rect.height - QUICK_ACTION_PADDING);
-    const clampedX = Math.min(Math.max(action.position?.x ?? 0, QUICK_ACTION_PADDING), maxX);
-    const clampedY = Math.min(Math.max(action.position?.y ?? 0, QUICK_ACTION_PADDING), maxY);
+    const clampedX = Math.min(Math.max(currentX, QUICK_ACTION_PADDING), maxX);
+    const clampedY = Math.min(Math.max(currentY, QUICK_ACTION_PADDING), maxY);
     const overflowX = clampedX + rect.width + QUICK_ACTION_PADDING > containerRect.width;
     const overflowY = clampedY + rect.height + QUICK_ACTION_PADDING > containerRect.height;
+    const clampedToEdge = clampedX === maxX || clampedY === maxY;
     if (!needsGridLayout && (overflowX || overflowY)) {
       needsGridLayout = true;
     }
-    if (clampedX !== action.position.x || clampedY !== action.position.y) {
+    if (!needsGridLayout && clampedToEdge && (currentX !== clampedX || currentY !== clampedY)) {
+      needsGridLayout = true;
+    }
+    if (clampedX !== action.position?.x || clampedY !== action.position?.y) {
       action.position = { x: clampedX, y: clampedY };
       row.style.left = `${clampedX}px`;
       row.style.top = `${clampedY}px`;
