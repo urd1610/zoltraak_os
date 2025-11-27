@@ -320,32 +320,6 @@ const getQuickActionNodes = () => {
     .filter(Boolean);
 };
 
-const layoutQuickActionsInGrid = (items, containerRect) => {
-  if (!items.length || !containerRect) return;
-  const sampleRect = items[0].row.getBoundingClientRect();
-  const itemWidth = sampleRect.width;
-  const itemHeight = sampleRect.height;
-  const columns = Math.max(
-    1,
-    Math.floor((containerRect.width - QUICK_ACTION_PADDING * 2 + QUICK_ACTION_GAP) / (itemWidth + QUICK_ACTION_GAP)),
-  );
-
-  const sorted = [...items].sort((a, b) => (a.action.position.y - b.action.position.y)
-    || (a.action.position.x - b.action.position.x));
-
-  sorted.forEach((item, index) => {
-    const col = index % columns;
-    const row = Math.floor(index / columns);
-    const x = QUICK_ACTION_PADDING + col * (itemWidth + QUICK_ACTION_GAP);
-    const y = QUICK_ACTION_PADDING + row * (itemHeight + QUICK_ACTION_GAP);
-    item.action.position = { x, y };
-    item.row.style.left = `${x}px`;
-    item.row.style.top = `${y}px`;
-  });
-
-  savePositions();
-};
-
 const ensureQuickActionsVisible = () => {
   if (!quickActionsContainer) return;
   const items = getQuickActionNodes();
