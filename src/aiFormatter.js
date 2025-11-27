@@ -103,7 +103,7 @@ class AiFormatter {
         const isTimeout = error.message?.includes('タイムアウト');
 
         if (attempt < this.options.maxRetries && isTimeout) {
-          console.warn(`AI整形がタイムアウトしました。リトライします (${attempt + 1}/${this.options.maxRetries})`);
+          this.logTimeoutRetry(attempt);
           await this.sleep(1000 * (attempt + 1));
           continue;
         }
@@ -116,6 +116,20 @@ class AiFormatter {
 
   async sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  logTimeoutRetry(attempt) {
+    const retryInfo = `${attempt + 1}/${this.options.maxRetries}`;
+    const ja = `AI整形がタイムアウトしました。リトライします (${retryInfo})`;
+    const en = `AI formatting timed out. Retrying (${retryInfo})`;
+
+    if (process.stderr && process.stderr.isTTY) {
+      console.warn(ja);
+      return;
+    }
+
+    // パイプ経由でShift-JISコンソールに流れる場合はASCIIにフォールバックして文字化けを防ぐ
+    process.stderr.write(`${en}\n`);
   }
 
   async callOpenRouter(messages) {
