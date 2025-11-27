@@ -1500,16 +1500,23 @@ const hydrateSystemInfo = () => {
   systemChip.textContent = `${info.user} · ${info.platform} ${info.release}`;
 };
 
+const getSidePanelToggleLabel = (open) => (open ? 'サイドパネルを閉じる' : 'サイドパネルを開く');
+
+const applySidePanelToggleMetadata = () => {
+  if (!sidePanelToggleButton) return;
+  const label = getSidePanelToggleLabel(isSidePanelOpen);
+  sidePanelToggleButton.setAttribute('aria-expanded', isSidePanelOpen ? 'true' : 'false');
+  sidePanelToggleButton.setAttribute('aria-label', label);
+  sidePanelToggleButton.title = label;
+  sidePanelToggleButton.dataset.state = isSidePanelOpen ? 'open' : 'closed';
+};
+
 const applySidePanelState = () => {
   document.body.classList.toggle('panel-collapsed', !isSidePanelOpen);
   if (sidePanel) {
     sidePanel.setAttribute('aria-hidden', String(!isSidePanelOpen));
   }
-  if (sidePanelToggleButton) {
-    sidePanelToggleButton.textContent = isSidePanelOpen ? 'パネルを閉じる' : 'パネルを開く';
-    sidePanelToggleButton.setAttribute('aria-expanded', isSidePanelOpen ? 'true' : 'false');
-    sidePanelToggleButton.title = isSidePanelOpen ? 'サイドパネルを閉じる' : 'サイドパネルを開く';
-  }
+  applySidePanelToggleMetadata();
 };
 
 const persistSidePanelState = () => {

@@ -158,17 +158,6 @@ button.chip:disabled {
   transition: box-shadow 140ms ease, transform 140ms ease, border-color 140ms ease;
 }
 
-.chip-action#side-panel-toggle {
-  transition: box-shadow 140ms ease, transform 140ms ease, border-color 140ms ease, background 140ms ease;
-}
-
-.panel-collapsed .chip-action#side-panel-toggle {
-  background: radial-gradient(circle at 20% 30%, rgba(110, 231, 255, 0.2), transparent 50%),
-    rgba(255, 255, 255, 0.08);
-  border-color: rgba(110, 231, 255, 0.5);
-  box-shadow: 0 12px 30px rgba(110, 231, 255, 0.25);
-}
-
 .chip-action:hover:not(:disabled) {
   border-color: rgba(110, 231, 255, 0.42);
   box-shadow: 0 10px 20px rgba(110, 231, 255, 0.14);
@@ -178,12 +167,62 @@ button.chip:disabled {
 
 .canvas {
   display: flex;
-  gap: 32px;
+  gap: 24px;
   justify-content: center;
-  align-items: flex-start;
+  align-items: stretch;
   padding: 20px 24px 100px;
   height: calc(100vh - 72px);
   transition: gap 180ms ease;
+}
+
+.side-panel-toggle {
+  align-self: center;
+  width: 44px;
+  min-width: 44px;
+  height: 88px;
+  border-radius: 16px;
+  border: 1px solid rgba(110, 231, 255, 0.24);
+  background: radial-gradient(circle at 30% 30%, rgba(110, 231, 255, 0.16), transparent 45%),
+    radial-gradient(circle at 70% 70%, rgba(167, 139, 250, 0.12), transparent 50%),
+    rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(12px);
+  transition: transform 140ms ease, border-color 140ms ease, box-shadow 140ms ease, background 140ms ease;
+}
+
+.side-panel-toggle:hover {
+  transform: translateY(-2px);
+  border-color: rgba(110, 231, 255, 0.4);
+  box-shadow: 0 20px 40px rgba(110, 231, 255, 0.12);
+  background: radial-gradient(circle at 30% 30%, rgba(110, 231, 255, 0.22), transparent 48%),
+    radial-gradient(circle at 70% 70%, rgba(167, 139, 250, 0.16), transparent 55%),
+    rgba(255, 255, 255, 0.07);
+}
+
+.side-panel-toggle:focus-visible {
+  outline: 2px solid rgba(110, 231, 255, 0.55);
+  outline-offset: 3px;
+}
+
+.side-panel-toggle-icon {
+  font-size: 18px;
+  font-weight: 700;
+  transition: transform 160ms ease;
+}
+
+.panel-collapsed .side-panel-toggle {
+  background: radial-gradient(circle at 70% 30%, rgba(110, 231, 255, 0.2), transparent 48%),
+    rgba(255, 255, 255, 0.08);
+  border-color: rgba(110, 231, 255, 0.45);
+  box-shadow: 0 18px 42px rgba(110, 231, 255, 0.18);
+}
+
+.panel-collapsed .side-panel-toggle-icon {
+  transform: rotate(180deg);
 }
 
 .desktop-surface {
@@ -335,7 +374,7 @@ button.chip:disabled {
 }
 
 .panel-collapsed .canvas {
-  gap: 0;
+  gap: 16px;
 }
 
 .panel-collapsed .side-panel {
