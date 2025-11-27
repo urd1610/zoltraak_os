@@ -320,38 +320,11 @@ const getQuickActionNodes = () => {
     .filter(Boolean);
 };
 
-const layoutQuickActionsInGrid = (items, containerRect) => {
-  if (!items.length || !containerRect) return;
-  const sampleRect = items[0].row.getBoundingClientRect();
-  const itemWidth = sampleRect.width;
-  const itemHeight = sampleRect.height;
-  const columns = Math.max(
-    1,
-    Math.floor((containerRect.width - QUICK_ACTION_PADDING * 2 + QUICK_ACTION_GAP) / (itemWidth + QUICK_ACTION_GAP)),
-  );
-
-  const sorted = [...items].sort((a, b) => (a.action.position.y - b.action.position.y)
-    || (a.action.position.x - b.action.position.x));
-
-  sorted.forEach((item, index) => {
-    const col = index % columns;
-    const row = Math.floor(index / columns);
-    const x = QUICK_ACTION_PADDING + col * (itemWidth + QUICK_ACTION_GAP);
-    const y = QUICK_ACTION_PADDING + row * (itemHeight + QUICK_ACTION_GAP);
-    item.action.position = { x, y };
-    item.row.style.left = `${x}px`;
-    item.row.style.top = `${y}px`;
-  });
-
-  savePositions();
-};
-
-const ensureQuickActionsVisible = (options = {}) => {
+const ensureQuickActionsVisible = () => {
   if (!quickActionsContainer) return;
   const items = getQuickActionNodes();
   if (!items.length) return;
   const containerRect = quickActionsContainer.getBoundingClientRect();
-  let needsGridLayout = options.forceGrid === true;
   let touched = false;
 
   items.forEach(({ action, row }) => {
@@ -362,15 +335,6 @@ const ensureQuickActionsVisible = (options = {}) => {
     const maxY = Math.max(QUICK_ACTION_PADDING, containerRect.height - rect.height - QUICK_ACTION_PADDING);
     const clampedX = Math.min(Math.max(currentX, QUICK_ACTION_PADDING), maxX);
     const clampedY = Math.min(Math.max(currentY, QUICK_ACTION_PADDING), maxY);
-    const overflowX = clampedX + rect.width + QUICK_ACTION_PADDING > containerRect.width;
-    const overflowY = clampedY + rect.height + QUICK_ACTION_PADDING > containerRect.height;
-    const clampedToEdge = clampedX === maxX || clampedY === maxY;
-    if (!needsGridLayout && (overflowX || overflowY)) {
-      needsGridLayout = true;
-    }
-    if (!needsGridLayout && clampedToEdge && (currentX !== clampedX || currentY !== clampedY)) {
-      needsGridLayout = true;
-    }
     if (clampedX !== action.position?.x || clampedY !== action.position?.y) {
       action.position = { x: clampedX, y: clampedY };
       row.style.left = `${clampedX}px`;
@@ -378,11 +342,6 @@ const ensureQuickActionsVisible = (options = {}) => {
       touched = true;
     }
   });
-
-  if (needsGridLayout) {
-    layoutQuickActionsInGrid(items, containerRect);
-    return;
-  }
 
   if (touched) {
     savePositions();
@@ -1233,6 +1192,7 @@ const buildAiMailCard = () => {
 
 // グローバルイベントリスナーは一度だけ設定
 const handleGlobalMouseMove = (e) => {
+  if (!quickActionsContainer) return;
   if (!currentDraggingElement || !currentDraggingAction) return;
   
   const deltaX = e.clientX - startX;
@@ -1243,10 +1203,12 @@ const handleGlobalMouseMove = (e) => {
   
   const containerRect = quickActionsContainer.getBoundingClientRect();
   const rowRect = currentDraggingElement.getBoundingClientRect();
-  const maxX = Math.max(0, containerRect.width - rowRect.width);
-  const maxY = Math.max(0, containerRect.height - rowRect.height);
-  const clampedX = Math.max(0, Math.min(newX, maxX));
-  const clampedY = Math.max(0, Math.min(newY, maxY));
+  const minX = QUICK_ACTION_PADDING;
+  const minY = QUICK_ACTION_PADDING;
+  const maxX = Math.max(minX, containerRect.width - rowRect.width - QUICK_ACTION_PADDING);
+  const maxY = Math.max(minY, containerRect.height - rowRect.height - QUICK_ACTION_PADDING);
+  const clampedX = Math.max(minX, Math.min(newX, maxX));
+  const clampedY = Math.max(minY, Math.min(newY, maxY));
 
   currentDraggingAction.position.x = clampedX;
   currentDraggingAction.position.y = clampedY;
