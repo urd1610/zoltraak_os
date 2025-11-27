@@ -9,7 +9,7 @@
       "description": "タイトルスライド。AIメール監視システムの名称とキービジュアル",
       "prompt": "Professional presentation title slide with modern design. Large text 'AI Mail Monitoring System Specification' in Japanese. Blue to purple gradient background. Email icon with AI eye symbol. Clean, corporate style. 16:9 aspect ratio.",
       "keywords": ["タイトル", "AIメール監視", "仕様書", "プレゼンテーション"],
-      "current_url": "https://placehold.co/1920x1080/1E88E5/ffffff?text=AI%E3%83%A1%E3%83%BC%E3%83%AB%E7%9B%A3%E8%A6%96%E3%81%AE%E4%BB%95%E6%A7%98"
+      "current_url": "https://v3b.fal.media/files/b/monkey/38c9KL1FOK62o2r1xX0EZ.png"
     },
     {
       "id": 2,
@@ -17,7 +17,7 @@
       "description": "AIメール監視システムの全体像と目的を説明",
       "prompt": "Professional diagram showing AI email monitoring system overview. Central AI brain connected to email servers, analysis modules, and alert systems. Japanese labels. Blue and purple color scheme. Clean infographic style. 16:9 aspect ratio.",
       "keywords": ["システム概要", "全体像", "AI", "メール監視", "アーキテクチャ"],
-      "current_url": "https://placehold.co/1920x1080/7E57C2/ffffff?text=%E3%82%B7%E3%82%B9%E3%83%86%E3%83%A0%E6%A6%82%E8%A6%81"
+      "current_url": "https://v3b.fal.media/files/b/monkey/tnmJfFNc7e0PaksY_DNf1.png"
     },
     {
       "id": 3,
@@ -25,7 +25,7 @@
       "description": "メール受信から分析、アラートまでの処理フロー",
       "prompt": "Flowchart diagram showing email monitoring process flow. Steps: Email Reception → AI Analysis → Threat Detection → Alert Notification. Arrows connecting each step. Japanese text labels. Green accent color for active monitoring. Professional infographic style. 16:9 aspect ratio.",
       "keywords": ["監視フロー", "処理フロー", "メール受信", "AI分析", "フローチャート"],
-      "current_url": "https://placehold.co/1920x1080/4CAF50/ffffff?text=%E7%9B%A3%E8%A6%96%E3%83%95%E3%83%AD%E3%83%BC"
+      "current_url": "https://v3b.fal.media/files/b/lion/9UUAqKwDrTZo3K8xTU9Wt.png"
     },
     {
       "id": 4,
@@ -33,7 +33,7 @@
       "description": "AI分析の詳細機能（スパム検知、フィッシング検知、異常検知）",
       "prompt": "Professional infographic showing AI analysis features. Three main modules: Spam Detection, Phishing Detection, Anomaly Detection. Each with icons and brief descriptions in Japanese. Neural network visualization in background. Blue color scheme. Modern tech style. 16:9 aspect ratio.",
       "keywords": ["AI分析", "スパム検知", "フィッシング検知", "異常検知", "機能説明"],
-      "current_url": "https://placehold.co/1920x1080/2196F3/ffffff?text=AI%E5%88%86%E6%9E%90%E6%A9%9F%E8%83%BD"
+      "current_url": "https://v3b.fal.media/files/b/tiger/_5yA2EAEVmRcKyS2dQ5gM.png"
     },
     {
       "id": 5,
@@ -41,7 +41,7 @@
       "description": "異常検知時の通知方法（メール、Slack、ダッシュボード）",
       "prompt": "Professional diagram showing alert notification system. Multiple notification channels: Email alerts, Slack integration, Dashboard notifications, SMS alerts. Icons for each channel. Orange accent color for urgency. Japanese labels. Clean corporate design. 16:9 aspect ratio.",
       "keywords": ["アラート", "通知", "Slack", "ダッシュボード", "異常検知"],
-      "current_url": "https://placehold.co/1920x1080/FF9800/ffffff?text=%E3%82%A2%E3%83%A9%E3%83%BC%E3%83%88%E6%A9%9F%E8%83%BD"
+      "current_url": "https://v3b.fal.media/files/b/panda/tMbclU8SajP1fzb2o8AG6.png"
     },
     {
       "id": 6,
@@ -49,7 +49,7 @@
       "description": "管理ダッシュボード、設定画面、レポート機能",
       "prompt": "Professional dashboard interface mockup for email monitoring system. Multiple panels showing: Real-time monitoring graph, Settings panel, Report generation section, User management area. Japanese UI labels. Purple and blue color scheme. Modern web dashboard design. 16:9 aspect ratio.",
       "keywords": ["運用", "管理", "ダッシュボード", "設定", "レポート"],
-      "current_url": "https://placehold.co/1920x1080/9C27B0/ffffff?text=%E9%81%8B%E7%94%A8%E3%81%A8%E7%AE%A1%E7%90%86"
+      "current_url": "https://v3b.fal.media/files/b/koala/L3LH873tdvUT9O2rRjO8_.png"
     }
   ],
   "mcp_config": {
