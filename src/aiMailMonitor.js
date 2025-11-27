@@ -72,6 +72,7 @@ class AiMailMonitor {
         model: 'gpt-4o-mini',
       },
       timeoutMs: 60000,
+      maxRetries: 2,
     };
   }
 
@@ -91,6 +92,7 @@ class AiMailMonitor {
         model: candidate.lmStudio?.model || defaults.lmStudio.model,
       },
       timeoutMs: typeof candidate.timeoutMs === 'number' ? candidate.timeoutMs : defaults.timeoutMs,
+      maxRetries: typeof candidate.maxRetries === 'number' ? candidate.maxRetries : defaults.maxRetries,
     };
   }
 

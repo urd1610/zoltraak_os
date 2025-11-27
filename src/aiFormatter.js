@@ -28,6 +28,7 @@ class AiFormatter {
         model: options.lmStudio?.model ?? 'gpt-4o-mini',
       },
       timeoutMs: options.timeoutMs ?? 60000,
+      maxRetries: options.maxRetries ?? 2,
     };
   }
 
@@ -79,11 +80,31 @@ class AiFormatter {
     const messages = this.buildMessages(payload ?? {});
     const provider = (this.options.provider ?? 'openrouter').toLowerCase();
 
-    if (provider === 'lmstudio') {
-      return this.callLmStudio(messages);
+    let lastError = null;
+    for (let attempt = 0; attempt <= this.options.maxRetries; attempt++) {
+      try {
+        if (provider === 'lmstudio') {
+          return await this.callLmStudio(messages);
+        }
+        return await this.callOpenRouter(messages);
+      } catch (error) {
+        lastError = error;
+        const isTimeout = error.message?.includes('タイムアウト');
+
+        if (attempt < this.options.maxRetries && isTimeout) {
+          console.warn(`AI整形がタイムアウトしました。リトライします (${attempt + 1}/${this.options.maxRetries})`);
+          await this.sleep(1000 * (attempt + 1));
+          continue;
+        }
+        throw error;
+      }
     }
 
-    return this.callOpenRouter(messages);
+    throw lastError;
+  }
+
+  async sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   async callOpenRouter(messages) {
