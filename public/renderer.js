@@ -1233,6 +1233,7 @@ const buildAiMailCard = () => {
 
 // グローバルイベントリスナーは一度だけ設定
 const handleGlobalMouseMove = (e) => {
+  if (!quickActionsContainer) return;
   if (!currentDraggingElement || !currentDraggingAction) return;
   
   const deltaX = e.clientX - startX;
@@ -1243,10 +1244,12 @@ const handleGlobalMouseMove = (e) => {
   
   const containerRect = quickActionsContainer.getBoundingClientRect();
   const rowRect = currentDraggingElement.getBoundingClientRect();
-  const maxX = Math.max(0, containerRect.width - rowRect.width);
-  const maxY = Math.max(0, containerRect.height - rowRect.height);
-  const clampedX = Math.max(0, Math.min(newX, maxX));
-  const clampedY = Math.max(0, Math.min(newY, maxY));
+  const minX = QUICK_ACTION_PADDING;
+  const minY = QUICK_ACTION_PADDING;
+  const maxX = Math.max(minX, containerRect.width - rowRect.width - QUICK_ACTION_PADDING);
+  const maxY = Math.max(minY, containerRect.height - rowRect.height - QUICK_ACTION_PADDING);
+  const clampedX = Math.max(minX, Math.min(newX, maxX));
+  const clampedY = Math.max(minY, Math.min(newY, maxY));
 
   currentDraggingAction.position.x = clampedX;
   currentDraggingAction.position.y = clampedY;
