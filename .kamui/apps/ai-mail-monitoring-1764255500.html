@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AIメール監視の仕様</title>
+    <link rel="stylesheet" href="./ai-mail-monitoring-1764255500.css">
+</head>
+<body>
+    <div class="app">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-title">スライド一覧</div>
+                <button id="toggleSidebar" aria-label="サイドバーを折りたたむ" aria-expanded="true">
+                    <span class="chevron">◀</span>
+                </button>
+            </div>
+            <p class="sidebar-caption">クリックでスライドへ移動</p>
+            <ul class="slide-list" id="slideList" aria-label="スライド一覧"></ul>
+        </aside>
+
+        <main class="slides-area">
+            <div class="progress">
+                <span id="slideNumber">1 / 6</span>
+            </div>
+
+            <div class="slide-container">
+                <!-- Slide 1: タイトル -->
+                <div class="slide active">
+                    <img src="https://v3b.fal.media/files/b/monkey/38c9KL1FOK62o2r1xX0EZ.png" alt="AIメール監視の仕様 - タイトル">
+                </div>
+
+                <!-- Slide 2: システム概要 -->
+                <div class="slide">
+                    <img src="https://v3b.fal.media/files/b/monkey/tnmJfFNc7e0PaksY_DNf1.png" alt="システム概要">
+                </div>
+
+                <!-- Slide 3: 監視フロー -->
+                <div class="slide">
+                    <img src="https://v3b.fal.media/files/b/lion/9UUAqKwDrTZo3K8xTU9Wt.png" alt="監視フロー">
+                </div>
+
+                <!-- Slide 4: AI分析機能 -->
+                <div class="slide">
+                    <img src="https://v3b.fal.media/files/b/tiger/_5yA2EAEVmRcKyS2dQ5gM.png" alt="AI分析機能">
+                </div>
+
+                <!-- Slide 5: アラート機能 -->
+                <div class="slide">
+                    <img src="https://v3b.fal.media/files/b/panda/tMbclU8SajP1fzb2o8AG6.png" alt="アラート機能">
+                </div>
+
+                <!-- Slide 6: 運用と管理 -->
+                <div class="slide">
+                    <img src="https://v3b.fal.media/files/b/koala/L3LH873tdvUT9O2rRjO8_.png" alt="運用と管理">
+                </div>
+            </div>
+
+            <div class="navigation">
+                <button class="nav-btn" id="prevBtn">◀</button>
+                <button class="nav-btn" id="nextBtn">▶</button>
+            </div>
+        </main>
+    </div>
+
+    <script src="./ai-mail-monitoring-1764255500.js"></script>
+</body>
+</html>
