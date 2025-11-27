@@ -87,6 +87,10 @@ class Pop3Client {
     return this.joinLines(lines);
   }
 
+  async dele(msgNumber) {
+    await this.command(`DELE ${msgNumber}`);
+  }
+
   async quit() {
     try {
       await this.command('QUIT');
