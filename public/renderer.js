@@ -4,6 +4,8 @@ const systemChip = document.getElementById('system-chip');
 const clockChip = document.getElementById('clock-chip');
 const quickActionsContainer = document.getElementById('quick-actions');
 const featureCardsContainer = document.getElementById('feature-cards');
+const QUICK_ACTION_PADDING = 12;
+const QUICK_ACTION_GAP = 12;
 
 const quickActions = [
   { id: 'record', label: 'クイック録音', detail: '音声メモ', icon: '🎙️', active: false, position: { x: 0, y: 0 } },
@@ -301,6 +303,83 @@ const renderQuickActions = () => {
     row.append(label);
     quickActionsContainer.appendChild(row);
   });
+
+  requestAnimationFrame(() => ensureQuickActionsVisible());
+};
+
+const getQuickActionNodes = () => {
+  if (!quickActionsContainer) return [];
+  return Array.from(quickActionsContainer.querySelectorAll('.quick-action'))
+    .map((row) => {
+      const id = row.dataset.action;
+      const action = quickActions.find((item) => item.id === id);
+      if (!action) return null;
+      return { action, row };
+    })
+    .filter(Boolean);
+};
+
+const layoutQuickActionsInGrid = (items, containerRect) => {
+  if (!items.length || !containerRect) return;
+  const sampleRect = items[0].row.getBoundingClientRect();
+  const itemWidth = sampleRect.width;
+  const itemHeight = sampleRect.height;
+  const columns = Math.max(
+    1,
+    Math.floor((containerRect.width - QUICK_ACTION_PADDING * 2 + QUICK_ACTION_GAP) / (itemWidth + QUICK_ACTION_GAP)),
+  );
+
+  const sorted = [...items].sort((a, b) => (a.action.position.y - b.action.position.y)
+    || (a.action.position.x - b.action.position.x));
+
+  sorted.forEach((item, index) => {
+    const col = index % columns;
+    const row = Math.floor(index / columns);
+    const x = QUICK_ACTION_PADDING + col * (itemWidth + QUICK_ACTION_GAP);
+    const y = QUICK_ACTION_PADDING + row * (itemHeight + QUICK_ACTION_GAP);
+    item.action.position = { x, y };
+    item.row.style.left = `${x}px`;
+    item.row.style.top = `${y}px`;
+  });
+
+  savePositions();
+};
+
+const ensureQuickActionsVisible = (options = {}) => {
+  if (!quickActionsContainer) return;
+  const items = getQuickActionNodes();
+  if (!items.length) return;
+  const containerRect = quickActionsContainer.getBoundingClientRect();
+  let needsGridLayout = options.forceGrid === true;
+  let touched = false;
+
+  items.forEach(({ action, row }) => {
+    const rect = row.getBoundingClientRect();
+    const maxX = Math.max(QUICK_ACTION_PADDING, containerRect.width - rect.width - QUICK_ACTION_PADDING);
+    const maxY = Math.max(QUICK_ACTION_PADDING, containerRect.height - rect.height - QUICK_ACTION_PADDING);
+    const clampedX = Math.min(Math.max(action.position?.x ?? 0, QUICK_ACTION_PADDING), maxX);
+    const clampedY = Math.min(Math.max(action.position?.y ?? 0, QUICK_ACTION_PADDING), maxY);
+    const overflowX = clampedX + rect.width + QUICK_ACTION_PADDING > containerRect.width;
+    const overflowY = clampedY + rect.height + QUICK_ACTION_PADDING > containerRect.height;
+    if (!needsGridLayout && (overflowX || overflowY)) {
+      needsGridLayout = true;
+    }
+    if (clampedX !== action.position.x || clampedY !== action.position.y) {
+      action.position = { x: clampedX, y: clampedY };
+      row.style.left = `${clampedX}px`;
+      row.style.top = `${clampedY}px`;
+      touched = true;
+    }
+  });
+
+  if (needsGridLayout) {
+    layoutQuickActionsInGrid(items, containerRect);
+    return;
+  }
+
+  if (touched) {
+    savePositions();
+  }
 };
 
 const renderFeatureCards = () => {
