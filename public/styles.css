@@ -180,7 +180,7 @@ button.chip:disabled {
   gap: 24px;
   justify-content: center;
   align-items: stretch;
-  padding: 20px 24px 100px;
+  padding: 20px 24px 24px;
   height: calc(100vh - var(--top-bar-height));
   transition: gap 180ms ease;
 }
@@ -868,7 +868,7 @@ button.chip:disabled {
 
 .window-layer {
   position: fixed;
-  inset: var(--top-bar-height) 16px 100px 16px;
+  inset: var(--top-bar-height) 16px 16px 16px;
   pointer-events: none;
   z-index: 2;
 }
@@ -998,6 +998,6 @@ button.ghost:hover {
 
 @media (max-width: 1100px) {
   .canvas {
-    padding: 16px 14px 120px;
+    padding: 16px 14px 24px;
   }
 }
