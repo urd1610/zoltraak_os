@@ -179,6 +179,8 @@ const DEFAULT_AI_MAIL_PROMPT = [
   '- 元メールの署名や引用は必要な場合だけ簡潔に反映する',
   '- 出力は必ずUTF-8のJSON文字列のみ。余分なテキストやコードブロックは付けない',
 ].join('\n');
+let aiMailDefaultPrompt = DEFAULT_AI_MAIL_PROMPT;
+let isSyncingAiMailDefaultPrompt = false;
 const normalizeAiMailTimeout = (value, provider = 'openrouter') => {
   const parsed = Number(value);
   const base = Number.isFinite(parsed) ? parsed : 60000;
@@ -189,7 +191,7 @@ const normalizeAiMailTimeout = (value, provider = 'openrouter') => {
 const buildDefaultAiFormatting = () => ({
   enabled: true,
   provider: 'openrouter',
-  prompt: DEFAULT_AI_MAIL_PROMPT,
+  prompt: aiMailDefaultPrompt,
   openRouter: {
     apiKey: '',
     model: 'gpt-4o-mini',
@@ -476,7 +478,7 @@ const normalizeAiMailFormattingPayload = () => {
   return {
     enabled: draft.enabled !== false,
     provider,
-    prompt: draft.prompt?.trim() || DEFAULT_AI_MAIL_PROMPT,
+    prompt: draft.prompt?.trim() || aiMailDefaultPrompt,
     openRouter: {
       apiKey: draft.openRouter?.apiKey ?? '',
       model: draft.openRouter?.model || 'gpt-4o-mini',
@@ -487,6 +489,19 @@ const normalizeAiMailFormattingPayload = () => {
     },
     timeoutMs: normalizeAiMailTimeout(draft.timeoutMs, provider),
   };
+};
+
+const hydrateAiMailDefaultPrompt = async () => {
+  if (!window.desktopBridge?.getAiMailDefaultPrompt) return aiMailDefaultPrompt;
+  try {
+    const prompt = await window.desktopBridge.getAiMailDefaultPrompt();
+    if (prompt && typeof prompt === 'string') {
+      aiMailDefaultPrompt = prompt;
+    }
+  } catch (error) {
+    console.error('Failed to hydrate default ai mail prompt', error);
+  }
+  return aiMailDefaultPrompt;
 };
 
 const updateAiMailForwardWindowState = () => {
@@ -529,6 +544,8 @@ const updateAiMailFormattingWindowState = () => {
     lmStudioModel,
     timeoutInput,
     promptInput,
+    promptResetButton,
+    promptRegisterButton,
     saveButton,
     statusChip,
     errorText,
@@ -575,8 +592,16 @@ const updateAiMailFormattingWindowState = () => {
     promptInput.value = draft.prompt ?? '';
     promptInput.disabled = isSavingAiMailFormatting;
   }
+  if (promptResetButton) {
+    promptResetButton.disabled = isSavingAiMailFormatting || isSyncingAiMailDefaultPrompt;
+    promptResetButton.textContent = isSyncingAiMailDefaultPrompt ? '読込中…' : 'デフォルトに戻す';
+  }
+  if (promptRegisterButton) {
+    promptRegisterButton.disabled = isSavingAiMailFormatting || isSyncingAiMailDefaultPrompt;
+    promptRegisterButton.textContent = isSyncingAiMailDefaultPrompt ? '保存中…' : 'デフォルト登録';
+  }
   if (saveButton) {
-    const allowSave = aiMailFormattingDirty && !isSavingAiMailFormatting;
+    const allowSave = aiMailFormattingDirty && !isSavingAiMailFormatting && !isSyncingAiMailDefaultPrompt;
     saveButton.disabled = !allowSave;
     saveButton.textContent = isSavingAiMailFormatting ? '保存中…' : '保存';
   }
@@ -1094,9 +1119,65 @@ const openAiMailFormattingWindow = () => {
   });
   const promptHint = document.createElement('div');
   promptHint.className = 'forward-hint';
-  promptHint.textContent = '件名と本文を含むJSON形式で返すよう指示してください。空欄の場合は既定のプロンプトを使用します。';
+  promptHint.textContent = '件名と本文を含むJSON形式で返すよう指示してください。空欄の場合は作業ディレクトリ/Mail/Prompt/default.txtの既定プロンプトを使用します。';
+  const promptActions = document.createElement('div');
+  promptActions.className = 'formatting-actions';
+  const promptResetButton = document.createElement('button');
+  promptResetButton.type = 'button';
+  promptResetButton.className = 'ghost';
+  promptResetButton.textContent = 'デフォルトに戻す';
+  promptResetButton.addEventListener('click', async () => {
+    if (isSyncingAiMailDefaultPrompt) {
+      return;
+    }
+    isSyncingAiMailDefaultPrompt = true;
+    refreshAiMailWindows();
+    try {
+      const prompt = await hydrateAiMailDefaultPrompt();
+      setFormattingDraft({ prompt });
+    } catch (error) {
+      console.error('Failed to load default ai mail prompt', error);
+      updateAiMailStatus({ lastError: 'デフォルトプロンプトの読込に失敗しました' });
+      renderFeatureCards();
+    } finally {
+      isSyncingAiMailDefaultPrompt = false;
+      refreshAiMailWindows();
+    }
+  });
+  const promptRegisterButton = document.createElement('button');
+  promptRegisterButton.type = 'button';
+  promptRegisterButton.className = 'ghost';
+  promptRegisterButton.textContent = 'デフォルト登録';
+  promptRegisterButton.addEventListener('click', async () => {
+    if (isSyncingAiMailDefaultPrompt) {
+      return;
+    }
+    if (!window.desktopBridge?.saveAiMailDefaultPrompt) {
+      updateAiMailStatus({ lastError: 'デフォルトプロンプト保存のブリッジが見つかりません' });
+      renderFeatureCards();
+      refreshAiMailWindows();
+      return;
+    }
+    isSyncingAiMailDefaultPrompt = true;
+    refreshAiMailWindows();
+    try {
+      const draftPrompt = (getAiMailFormattingDraft().prompt ?? '').trim() || aiMailDefaultPrompt;
+      const saved = await window.desktopBridge.saveAiMailDefaultPrompt(draftPrompt);
+      if (saved && typeof saved === 'string') {
+        aiMailDefaultPrompt = saved;
+      }
+    } catch (error) {
+      console.error('Failed to save default ai mail prompt', error);
+      updateAiMailStatus({ lastError: 'デフォルトプロンプトの保存に失敗しました' });
+      renderFeatureCards();
+    } finally {
+      isSyncingAiMailDefaultPrompt = false;
+      refreshAiMailWindows();
+    }
+  });
+  promptActions.append(promptResetButton, promptRegisterButton);
 
-  formattingForm.append(promptLabel, promptInput, promptHint);
+  formattingForm.append(promptLabel, promptInput, promptHint, promptActions);
 
   const formattingActions = document.createElement('div');
   formattingActions.className = 'formatting-actions';
@@ -1125,6 +1206,8 @@ const openAiMailFormattingWindow = () => {
     lmStudioModel,
     timeoutInput,
     promptInput,
+    promptResetButton,
+    promptRegisterButton,
     saveButton: formattingSave,
     statusChip: formattingChip,
     errorText: formattingError,
@@ -1624,7 +1707,7 @@ const boot = () => {
   renderFeatureCards();
   setupQuickActionsResizeObserver();
   void hydrateWorkspaceChip();
-  void hydrateAiMailStatus();
+  void hydrateAiMailDefaultPrompt().finally(() => { void hydrateAiMailStatus(); });
   hydrateSystemInfo();
   updateClock();
   setInterval(updateClock, 30000);

@@ -22,4 +22,6 @@ contextBridge.exposeInMainWorld('desktopBridge', {
   fetchAiMailOnce: () => ipcRenderer.invoke('ai-mail:fetch-once'),
   updateAiMailForward: (forwardTo) => ipcRenderer.invoke('ai-mail:update-forward', forwardTo),
   updateAiMailFormatting: (formatting) => ipcRenderer.invoke('ai-mail:update-formatting', formatting),
+  getAiMailDefaultPrompt: () => ipcRenderer.invoke('ai-mail:get-default-prompt'),
+  saveAiMailDefaultPrompt: (prompt) => ipcRenderer.invoke('ai-mail:save-default-prompt', prompt),
 });
