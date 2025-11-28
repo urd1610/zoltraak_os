@@ -2,10 +2,13 @@ const fs = require('fs');
 const path = require('path');
 const { app, BrowserWindow, dialog, nativeTheme, ipcMain, shell } = require('electron');
 const { AiMailMonitor } = require('./aiMailMonitor');
-const { AiFormatter } = require('./aiFormatter');
+const { AiFormatter, DEFAULT_PROMPT: DEFAULT_FORMATTING_PROMPT } = require('./aiFormatter');
 
 const fsp = fs.promises;
 const SETTINGS_FILE_NAME = 'settings.json';
+const MAIL_DIR_NAME = 'Mail';
+const PROMPT_DIR_NAME = 'Prompt';
+const DEFAULT_PROMPT_FILE_NAME = 'default.txt';
 const RECORDING_DIR_NAME = 'Recording';
 let workspaceDirectory = null;
 let aiMailMonitor = null;
@@ -55,33 +58,39 @@ const writeSettings = async (settings) => {
   await fsp.writeFile(settingsPath, JSON.stringify(settings, null, 2), 'utf8');
 };
 
-const buildDefaultFormattingSettings = () => {
-  const formatter = new AiFormatter();
+const buildDefaultFormattingSettings = (defaultPrompt = DEFAULT_FORMATTING_PROMPT) => {
+  const formatter = new AiFormatter({ prompt: defaultPrompt });
   return formatter.getOptions();
 };
 
-const normalizeFormattingSettings = (value) => {
-  const formatter = new AiFormatter(value);
+const normalizeFormattingSettings = (value, defaultPrompt = DEFAULT_FORMATTING_PROMPT) => {
+  const formatter = new AiFormatter({
+    prompt: defaultPrompt,
+    ...(value ?? {}),
+  });
   return formatter.getOptions();
 };
 
 const getAiMailSettings = async () => {
   const settings = await readSettings();
   const aiMail = settings.aiMail ?? {};
+  const defaultPrompt = await readDefaultFormattingPrompt();
+  const defaultFormatting = buildDefaultFormattingSettings(defaultPrompt);
   return {
     forwardTo: aiMail.forwardTo ?? '',
     forwardedCount: aiMail.forwardedCount ?? 0,
     seenUids: Array.isArray(aiMail.seenUids) ? aiMail.seenUids : [],
-    formatting: normalizeFormattingSettings(aiMail.formatting ?? buildDefaultFormattingSettings()),
+    formatting: normalizeFormattingSettings(aiMail.formatting ?? defaultFormatting, defaultPrompt),
   };
 };
 
 const saveAiMailSettings = async (patch) => {
   const settings = await readSettings();
+  const defaultPrompt = await readDefaultFormattingPrompt();
   const nextFormatting = normalizeFormattingSettings({
     ...(settings.aiMail?.formatting ?? {}),
     ...(patch?.formatting ?? {}),
-  });
+  }, defaultPrompt);
   const nextAiMail = {
     ...(settings.aiMail ?? {}),
     ...patch,
@@ -90,6 +99,50 @@ const saveAiMailSettings = async (patch) => {
   const nextSettings = { ...settings, aiMail: nextAiMail };
   await writeSettings(nextSettings);
   return nextAiMail;
+};
+
+const ensurePromptDirectory = async () => {
+  const dir = await ensureWorkspaceDirectory();
+  if (!dir) {
+    throw new Error('作業ディレクトリが設定されていません');
+  }
+  const promptDir = path.join(dir, MAIL_DIR_NAME, PROMPT_DIR_NAME);
+  await fsp.mkdir(promptDir, { recursive: true });
+  return promptDir;
+};
+
+const getDefaultPromptPath = async () => {
+  const promptDir = await ensurePromptDirectory();
+  return path.join(promptDir, DEFAULT_PROMPT_FILE_NAME);
+};
+
+const ensureDefaultPromptFile = async () => {
+  const promptPath = await getDefaultPromptPath();
+  try {
+    await fsp.access(promptPath, fs.constants.F_OK);
+    return promptPath;
+  } catch (error) {
+    await fsp.writeFile(promptPath, DEFAULT_FORMATTING_PROMPT, 'utf8');
+    return promptPath;
+  }
+};
+
+const readDefaultFormattingPrompt = async () => {
+  const promptPath = await ensureDefaultPromptFile();
+  try {
+    const content = await fsp.readFile(promptPath, 'utf8');
+    const trimmed = content.trim();
+    return trimmed || DEFAULT_FORMATTING_PROMPT;
+  } catch (error) {
+    return DEFAULT_FORMATTING_PROMPT;
+  }
+};
+
+const registerDefaultFormattingPrompt = async (prompt) => {
+  const normalized = (prompt ?? '').trim() || DEFAULT_FORMATTING_PROMPT;
+  const promptPath = await ensureDefaultPromptFile();
+  await fsp.writeFile(promptPath, normalized, 'utf8');
+  return { prompt: normalized, path: promptPath };
 };
 
 const pickWorkspaceDirectory = async () => {
@@ -288,6 +341,11 @@ app.whenReady().then(async () => {
   ipcMain.handle('ai-mail:stop', async () => monitor?.stop());
   ipcMain.handle('ai-mail:refresh', async () => monitor?.pollOnce());
   ipcMain.handle('ai-mail:fetch-once', async () => monitor?.pollOnce({ force: true }));
+  ipcMain.handle('ai-mail:get-default-prompt', async () => readDefaultFormattingPrompt());
+  ipcMain.handle('ai-mail:save-default-prompt', async (_event, prompt) => {
+    const { prompt: saved } = await registerDefaultFormattingPrompt(prompt);
+    return saved;
+  });
 
   createWindow();
 
