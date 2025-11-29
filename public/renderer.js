@@ -1170,6 +1170,10 @@ const openAiMailFormattingWindow = () => {
       refreshAiMailWindows();
       return;
     }
+    const shouldRegister = window.confirm('現在の整形プロンプトをデフォルトとして保存します。上書きしてよろしいですか？');
+    if (!shouldRegister) {
+      return;
+    }
     isSyncingAiMailDefaultPrompt = true;
     refreshAiMailWindows();
     try {
