@@ -1,5 +1,4 @@
 const workspaceChip = document.getElementById('workspace-chip');
-const workspaceChangeButton = document.getElementById('workspace-change');
 const systemChip = document.getElementById('system-chip');
 const clockChip = document.getElementById('clock-chip');
 const quickActionsContainer = document.getElementById('quick-actions');
@@ -227,10 +226,19 @@ let aiMailFormattingWindow = null;
 let resizeTimerId = null;
 let quickActionsResizeObserver = null;
 
+const buildWorkspaceChipTitle = (dir) => {
+  if (dir) {
+    return `${dir}（クリックで変更）`;
+  }
+  return '作業ディレクトリをクリックして選択';
+};
+
 const updateWorkspaceChip = (dir) => {
   if (!workspaceChip) return;
   workspaceChip.textContent = dir ? `workspace: ${dir}` : 'workspace: --';
-  workspaceChip.title = dir ?? '';
+  const title = buildWorkspaceChipTitle(dir);
+  workspaceChip.title = title;
+  workspaceChip.setAttribute('aria-label', title);
 };
 
 const formatDuration = (ms) => {
@@ -1567,8 +1575,8 @@ const hydrateAiMailStatus = async () => {
 };
 
 const handleWorkspaceChange = async () => {
-  if (!workspaceChangeButton || !window.desktopBridge?.changeWorkspaceDirectory) return;
-  workspaceChangeButton.disabled = true;
+  if (!workspaceChip || !window.desktopBridge?.changeWorkspaceDirectory) return;
+  workspaceChip.disabled = true;
   try {
     const dir = await window.desktopBridge.changeWorkspaceDirectory();
     workspacePath = dir || workspacePath;
@@ -1578,7 +1586,7 @@ const handleWorkspaceChange = async () => {
     workspaceChip.textContent = 'workspace: error';
     workspaceChip.title = '';
   } finally {
-    workspaceChangeButton.disabled = false;
+    workspaceChip.disabled = false;
   }
 };
 
@@ -1711,7 +1719,7 @@ const boot = () => {
   hydrateSystemInfo();
   updateClock();
   setInterval(updateClock, 30000);
-  workspaceChangeButton?.addEventListener('click', () => void handleWorkspaceChange());
+  workspaceChip?.addEventListener('click', () => void handleWorkspaceChange());
   sidePanelToggleButton?.addEventListener('click', toggleSidePanel);
   
   // グローバルイベントリスナーは一度だけ登録
