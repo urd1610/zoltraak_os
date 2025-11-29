@@ -20,6 +20,7 @@
   "dependencies": {
     "mailparser": "^3.9.0",
     "nodemailer": "^7.0.10",
-    "poplib": "^0.1.7"
+    "poplib": "^0.1.7",
+    "three": "^0.181.2"
   }
 }
