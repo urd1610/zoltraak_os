@@ -1138,6 +1138,10 @@ const openAiMailFormattingWindow = () => {
     if (isSyncingAiMailDefaultPrompt) {
       return;
     }
+    const shouldReset = window.confirm('整形プロンプトをデフォルトに戻します。よろしいですか？');
+    if (!shouldReset) {
+      return;
+    }
     isSyncingAiMailDefaultPrompt = true;
     refreshAiMailWindows();
     try {
