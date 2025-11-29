@@ -8,6 +8,18 @@ const systemInfo = {
     : process.release?.name ?? 'unknown',
 };
 
+let three = null;
+
+try {
+  // three.js をプリロードしてレンダラー側へ露出しておく
+  // （nodeIntegration: false でも使えるようにする）
+  three = require('three');
+  contextBridge.exposeInMainWorld('THREE', three);
+} catch (error) {
+  // three がなくても他の機能は動くようにする
+  console.error('three.js の読み込みに失敗しました', error);
+}
+
 contextBridge.exposeInMainWorld('desktopBridge', {
   getSystemInfo: () => systemInfo,
   getNowIso: () => new Date().toISOString(),

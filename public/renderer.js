@@ -393,7 +393,10 @@ const computeWorkspaceLayout = (graph) => {
 const createWorkspaceScene = (graph) => {
   if (!workspaceVisualizer || typeof THREE === 'undefined') return false;
   const rect = workspaceVisualizer.getBoundingClientRect();
-  if (!rect.width || !rect.height) return false;
+  if (!rect.width || !rect.height) {
+    console.warn('workspace visualizer has no measurable size', rect);
+    return false;
+  }
 
   disposeWorkspaceScene();
 
@@ -578,7 +581,12 @@ const startWorkspaceVisualizer = async () => {
     }
     const sceneReady = createWorkspaceScene(graph);
     if (!sceneReady) {
-      setWorkspaceVisualizerMessage('three.jsを初期化できませんでした');
+      const message = typeof THREE === 'undefined'
+        ? 'three.jsを読み込めませんでした。依存関係を再インストールしてください'
+        : 'three.jsを初期化できませんでした';
+      console.error('Failed to create workspace visualizer scene', { hasThree: typeof THREE !== 'undefined' });
+      setWorkspaceVisualizerMessage(message);
+      setTimeout(() => stopWorkspaceVisualizer(), 1400);
       return;
     }
     setWorkspaceVisualizerMessage('');
