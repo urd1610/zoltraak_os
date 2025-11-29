@@ -6,6 +6,8 @@ const quickActionsContainer = document.getElementById('quick-actions');
 const featureCardsContainer = document.getElementById('feature-cards');
 const sidePanel = document.getElementById('side-panel');
 const sidePanelToggleButton = document.getElementById('side-panel-toggle');
+const brandButton = document.getElementById('brand-button');
+const workspaceVisualizer = document.getElementById('workspace-visualizer');
 const QUICK_ACTION_PADDING = 12;
 const QUICK_ACTION_GAP = 12;
 const SIDE_PANEL_STATE_KEY = 'sidePanelOpen';
@@ -231,6 +233,19 @@ const updateWorkspaceChip = (dir) => {
   if (!workspaceChip) return;
   workspaceChip.textContent = dir ? `workspace: ${dir}` : 'workspace: --';
   workspaceChip.title = dir ?? '';
+};
+
+let isWorkspaceVisualizerActive = false;
+
+const setWorkspaceVisualizerActive = (active) => {
+  isWorkspaceVisualizerActive = Boolean(active);
+  if (!workspaceVisualizer) return;
+  workspaceVisualizer.classList.toggle('is-active', isWorkspaceVisualizerActive);
+  workspaceVisualizer.setAttribute('aria-hidden', isWorkspaceVisualizerActive ? 'false' : 'true');
+};
+
+const toggleWorkspaceVisualizer = () => {
+  setWorkspaceVisualizerActive(!isWorkspaceVisualizerActive);
 };
 
 const formatDuration = (ms) => {
@@ -1706,6 +1721,7 @@ const boot = () => {
   renderQuickActions();
   renderFeatureCards();
   setupQuickActionsResizeObserver();
+  setWorkspaceVisualizerActive(false);
   void hydrateWorkspaceChip();
   void hydrateAiMailDefaultPrompt().finally(() => { void hydrateAiMailStatus(); });
   hydrateSystemInfo();
@@ -1713,6 +1729,7 @@ const boot = () => {
   setInterval(updateClock, 30000);
   workspaceChangeButton?.addEventListener('click', () => void handleWorkspaceChange());
   sidePanelToggleButton?.addEventListener('click', toggleSidePanel);
+  brandButton?.addEventListener('dblclick', () => toggleWorkspaceVisualizer());
   
   // グローバルイベントリスナーは一度だけ登録
   document.addEventListener('mousemove', handleGlobalMouseMove);

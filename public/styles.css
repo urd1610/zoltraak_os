@@ -60,6 +60,8 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
+  cursor: pointer;
+  user-select: none;
 }
 
 .brand-title {
@@ -81,6 +83,12 @@ body {
   border-radius: 50%;
   background: conic-gradient(from 45deg, #6ee7ff, #a78bfa, #6ee7ff);
   box-shadow: 0 0 12px rgba(110, 231, 255, 0.6);
+}
+
+.brand:focus-visible {
+  outline: 2px solid rgba(110, 231, 255, 0.6);
+  outline-offset: 4px;
+  border-radius: 12px;
 }
 
 .status {
@@ -247,6 +255,7 @@ button.chip:disabled {
   background: linear-gradient(160deg, rgba(17, 27, 47, 0.65), rgba(6, 10, 22, 0.9));
   box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.35);
   overflow: hidden;
+  isolation: isolate;
 }
 
 .desktop-surface::after {
@@ -291,6 +300,24 @@ button.chip:disabled {
   box-shadow: var(--shadow);
   cursor: pointer;
   transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.workspace-visualizer {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: radial-gradient(circle at 20% 20%, rgba(110, 231, 255, 0.05), transparent 45%),
+    radial-gradient(circle at 80% 30%, rgba(167, 139, 250, 0.06), transparent 50%);
+  opacity: 0;
+  transition: opacity 240ms ease, filter 240ms ease;
+  filter: blur(0px);
+}
+
+.workspace-visualizer.is-active {
+  opacity: 1;
+  filter: blur(0);
 }
 
 .app-card:hover {
