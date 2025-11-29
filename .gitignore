@@ -93,6 +93,7 @@ pytest_cache/
 .kamui/system-graph-state.json
 .kamui/model-versions-cache.json
 .kamui/tasks-state.json
+.kamui/manager/
 
 # Worktrees
 .worktrees/
