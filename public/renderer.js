@@ -1138,6 +1138,10 @@ const openAiMailFormattingWindow = () => {
     if (isSyncingAiMailDefaultPrompt) {
       return;
     }
+    const shouldReset = window.confirm('整形プロンプトをデフォルトに戻します。よろしいですか？');
+    if (!shouldReset) {
+      return;
+    }
     isSyncingAiMailDefaultPrompt = true;
     refreshAiMailWindows();
     try {
@@ -1164,6 +1168,10 @@ const openAiMailFormattingWindow = () => {
       updateAiMailStatus({ lastError: 'デフォルトプロンプト保存のブリッジが見つかりません' });
       renderFeatureCards();
       refreshAiMailWindows();
+      return;
+    }
+    const shouldRegister = window.confirm('現在の整形プロンプトをデフォルトとして保存します。上書きしてよろしいですか？');
+    if (!shouldRegister) {
       return;
     }
     isSyncingAiMailDefaultPrompt = true;
