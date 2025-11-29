@@ -9,7 +9,7 @@
   <body>
     <div class="background-grid"></div>
     <header class="top-bar">
-      <div class="brand">
+      <div id="brand-button" class="brand" title="背景を切り替え">
         <div class="orb"></div>
         <div>
           <div class="brand-title">Zoltraak OS</div>
@@ -34,6 +34,7 @@
 
     <main class="canvas">
       <section class="desktop-surface">
+        <div id="workspace-visualizer" class="workspace-visualizer" aria-hidden="true"></div>
         <button
           id="side-panel-toggle"
           class="side-panel-toggle"
@@ -52,6 +53,7 @@
       </aside>
     </main>
 
+    <script src="../node_modules/three/build/three.min.js"></script>
     <script src="renderer.js"></script>
   </body>
 </html>

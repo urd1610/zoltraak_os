@@ -12,6 +12,17 @@ const DEFAULT_PROMPT_FILE_NAME = 'default.txt';
 const RECORDING_DIR_NAME = 'Recording';
 let workspaceDirectory = null;
 let aiMailMonitor = null;
+const MAX_GRAPH_NODES = 180;
+const MAX_GRAPH_DEPTH = 4;
+const GRAPH_IGNORE_NAMES = new Set([
+  'node_modules',
+  '.git',
+  '.next',
+  '.turbo',
+  'dist',
+  'build',
+  '.worktrees',
+]);
 
 const isExistingDirectory = (dir) => {
   if (!dir) {
@@ -226,6 +237,78 @@ const ensureWorkspaceDirectory = async () => {
   return workspaceDirectory;
 };
 
+const buildWorkspaceGraph = async () => {
+  const root = await ensureWorkspaceDirectory();
+  if (!root) {
+    return { root: null, nodes: [], links: [] };
+  }
+
+  const nodes = [];
+  const links = [];
+  const seen = new Set();
+
+  const toRelativeId = (absPath) => {
+    const rel = path.relative(root, absPath) || '.';
+    return rel.split(path.sep).join('/');
+  };
+
+  const addNode = (id, type, depth) => {
+    if (seen.has(id) || nodes.length >= MAX_GRAPH_NODES) {
+      return false;
+    }
+    seen.add(id);
+    const name = id === '.' ? path.basename(root) : path.basename(id);
+    const ext = type === 'file' ? path.extname(name).replace(/^\./, '') : '';
+    nodes.push({
+      id,
+      name,
+      type,
+      depth,
+      ext,
+    });
+    return true;
+  };
+
+  addNode('.', 'directory', 0);
+
+  const walk = async (currentDir, depth, parentId) => {
+    if (depth > MAX_GRAPH_DEPTH || nodes.length >= MAX_GRAPH_NODES) {
+      return;
+    }
+    let entries = [];
+    try {
+      entries = await fsp.readdir(currentDir, { withFileTypes: true });
+    } catch (error) {
+      return;
+    }
+    for (const entry of entries) {
+      if (nodes.length >= MAX_GRAPH_NODES) {
+        break;
+      }
+      if (entry.isSymbolicLink()) {
+        continue;
+      }
+      if (GRAPH_IGNORE_NAMES.has(entry.name)) {
+        continue;
+      }
+      const absChild = path.join(currentDir, entry.name);
+      const childId = toRelativeId(absChild);
+      const isDir = entry.isDirectory();
+      const added = addNode(childId, isDir ? 'directory' : 'file', depth);
+      if (added) {
+        links.push({ source: parentId, target: childId });
+      }
+      if (isDir) {
+        await walk(absChild, depth + 1, childId);
+      }
+    }
+  };
+
+  await walk(root, 1, '.');
+
+  return { root, nodes, links };
+};
+
 const ensureRecordingDirectory = async () => {
   const dir = await ensureWorkspaceDirectory();
   if (!dir) {
@@ -330,6 +413,7 @@ app.whenReady().then(async () => {
   ipcMain.handle('workspace:change-directory', changeWorkspaceDirectory);
   ipcMain.handle('workspace:get-stored-directory', getStoredWorkspaceDirectory);
   ipcMain.handle('workspace:open-directory', openWorkspaceDirectory);
+  ipcMain.handle('workspace:get-graph', buildWorkspaceGraph);
   ipcMain.handle('recording:save', async (_event, payload) => {
     const { buffer, mimeType } = payload ?? {};
     return saveRecordingBuffer(buffer, mimeType);
