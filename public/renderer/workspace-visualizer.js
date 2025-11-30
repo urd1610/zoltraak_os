@@ -12,7 +12,8 @@ const getWorkspaceNodeColor = (node) => {
 const LABEL_FONT_FAMILY = `'Atkinson Hyperlegible', 'Space Grotesk', 'Segoe UI', 'Noto Sans JP', sans-serif`;
 const LABEL_FONT_WEIGHT = 700;
 const LABEL_FONT_SIZE = 64;
-const LABEL_CANVAS_MAX_DPR = 2.25;
+const LABEL_CANVAS_MAX_DPR = 3.2;
+const LABEL_TARGET_PIXEL_HEIGHT = 54;
 
 let labelFontReadyPromise = null;
 const ensureWorkspaceLabelFontReady = () => {
@@ -30,7 +31,9 @@ const buildWorkspaceLabelSprite = (text, color, scale = 1) => {
   if (typeof THREE === 'undefined') return null;
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
-  const dpr = Math.min(window.devicePixelRatio || 1, LABEL_CANVAS_MAX_DPR);
+  const devicePixelRatio = window.devicePixelRatio || 1;
+  const oversample = 1.3 + Math.max(0, scale - 1) * 0.5;
+  const dpr = Math.min(devicePixelRatio * oversample, LABEL_CANVAS_MAX_DPR);
   const fontSize = LABEL_FONT_SIZE;
   const fontWeight = LABEL_FONT_WEIGHT;
   const fontFamily = LABEL_FONT_FAMILY;
@@ -50,27 +53,26 @@ const buildWorkspaceLabelSprite = (text, color, scale = 1) => {
 
   const centerX = displayWidth / 2;
   const centerY = displayHeight / 2 + 2;
-  ctx.fillStyle = 'rgba(8, 13, 24, 0.8)';
-  ctx.fillRect(0, 0, displayWidth, displayHeight);
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.04)';
-  ctx.fillRect(0, 0, displayWidth, displayHeight);
-
   ctx.lineJoin = 'round';
-  ctx.strokeStyle = '#0b1222e6';
-  ctx.lineWidth = 8;
+  ctx.shadowColor = 'rgba(10, 16, 26, 0.78)';
+  ctx.shadowBlur = 24;
+  ctx.strokeStyle = '#0b1222f0';
+  ctx.lineWidth = 10;
   ctx.strokeText(text, centerX, centerY);
-  ctx.strokeStyle = `${color}c4`;
-  ctx.lineWidth = 5;
-  ctx.strokeText(text, centerX, centerY);
-  ctx.fillStyle = color;
   ctx.shadowColor = `${color}66`;
-  ctx.shadowBlur = 8;
+  ctx.shadowBlur = 14;
+  ctx.strokeStyle = `${color}d8`;
+  ctx.lineWidth = 6;
+  ctx.strokeText(text, centerX, centerY);
+  ctx.shadowColor = 'rgba(12, 18, 28, 0.55)';
+  ctx.shadowBlur = 14;
+  ctx.fillStyle = `${color}f2`;
   ctx.fillText(text, centerX, centerY);
 
   const texture = new THREE.CanvasTexture(canvas);
   texture.minFilter = THREE.LinearMipmapLinearFilter;
   texture.magFilter = THREE.LinearFilter;
-  texture.anisotropy = 8;
+  texture.anisotropy = 12;
   texture.generateMipmaps = true;
   const material = new THREE.SpriteMaterial({
     map: texture,
@@ -83,7 +85,10 @@ const buildWorkspaceLabelSprite = (text, color, scale = 1) => {
   });
   const sprite = new THREE.Sprite(material);
   const spriteScale = 5.6 * scale;
-  sprite.scale.set((displayWidth / displayHeight) * spriteScale, spriteScale, 1);
+  const aspect = displayWidth / displayHeight;
+  sprite.scale.set(aspect * spriteScale, spriteScale, 1);
+  sprite.userData.aspect = aspect;
+  sprite.userData.baseScaleY = spriteScale;
   sprite.userData.baseOpacity = material.opacity;
   sprite.userData.dispose = () => texture.dispose();
   return sprite;
