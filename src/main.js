@@ -389,6 +389,8 @@ const createWindow = () => {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
+      // three.js などをプリロードで解決するため、プリロード側では Node API を許可する
+      sandbox: false,
     },
   });
 

@@ -1,5 +1,12 @@
 const { contextBridge, ipcRenderer } = require('electron');
-const path = require('path');
+
+let pathModule = null;
+
+try {
+  pathModule = require('path');
+} catch (error) {
+  console.warn('path モジュールをプリロードで解決できませんでした。標準の解決のみで依存読込を試みます。', error);
+}
 
 const systemInfo = {
   user: process.env.USERNAME ?? process.env.USER ?? 'unknown',
@@ -10,12 +17,15 @@ const systemInfo = {
 };
 
 const resolveDependency = (name) => {
+  if (!pathModule) {
+    return require(name);
+  }
   // Worktree配下で起動すると app パス直下に node_modules が無いので、探索パスを明示して解決する
   const searchRoots = [
     __dirname,
-    path.resolve(__dirname, '..'),
-    path.resolve(__dirname, '..', '..'),
-    path.resolve(__dirname, '..', '..', '..'),
+    pathModule.resolve(__dirname, '..'),
+    pathModule.resolve(__dirname, '..', '..'),
+    pathModule.resolve(__dirname, '..', '..', '..'),
     process.cwd(),
     process.resourcesPath,
   ].filter(Boolean);
