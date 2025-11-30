@@ -730,17 +730,29 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
           meta.basePosition.y + offsetY + wobble,
           meta.basePosition.z,
         );
+        const distanceToLabel = workspaceScene.camera.position.distanceTo(meta.label.position);
         if (labelScratch?.cameraDir && labelScratch?.toLabel && meta.label.material) {
           labelScratch.toLabel
             .subVectors(meta.label.position, workspaceScene.camera.position)
             .normalize();
           const facing = Math.max(0, labelScratch.cameraDir.dot(labelScratch.toLabel));
           const facingFade = 0.35 + facing * 0.65;
-          const distance = workspaceScene.camera.position.distanceTo(meta.label.position);
-          const distanceFade = 1 - THREE.MathUtils.smoothstep(distance, fadeNear, fadeFar);
+          const distanceFade = 1 - THREE.MathUtils.smoothstep(distanceToLabel, fadeNear, fadeFar);
           const baseOpacity = meta.label.userData?.baseOpacity ?? meta.label.material.opacity ?? 0.8;
           meta.label.material.opacity = baseOpacity
             * THREE.MathUtils.clamp(distanceFade * facingFade, 0.18, 1);
+        }
+        const viewportHeight = workspaceScene.renderer?.domElement?.height ?? 0;
+        if (viewportHeight && Number.isFinite(distanceToLabel)) {
+          const aspect = meta.label.userData?.aspect
+            ?? (meta.label.scale.y !== 0 ? meta.label.scale.x / meta.label.scale.y : 1);
+          const baseScaleY = meta.label.userData?.baseScaleY ?? meta.label.scale.y;
+          const worldHeight = 2 * Math.tan(THREE.MathUtils.degToRad(workspaceScene.camera.fov) * 0.5)
+            * distanceToLabel;
+          const worldPerPixel = worldHeight / viewportHeight;
+          const desiredHeight = worldPerPixel * LABEL_TARGET_PIXEL_HEIGHT;
+          const scaleY = THREE.MathUtils.clamp(desiredHeight, baseScaleY * 0.9, baseScaleY * 2.4);
+          meta.label.scale.set(scaleY * aspect, scaleY, 1);
         }
       }
     });
