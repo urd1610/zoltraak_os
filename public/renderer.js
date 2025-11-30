@@ -249,6 +249,50 @@ let workspaceVisualizerStatusEl = null;
 let workspaceGraphCache = null;
 let workspaceScene = null;
 let workspaceSceneAnimationId = null;
+let threeModulePromise = null;
+
+const normalizeThreeModule = (mod) => {
+  if (mod?.WebGLRenderer) return mod;
+  if (mod?.default?.WebGLRenderer) return mod.default;
+  return mod?.default ?? mod ?? null;
+};
+
+const loadThreeModuleUrl = async () => {
+  if (!window.desktopBridge?.getThreeModuleUrl) return null;
+  try {
+    return await window.desktopBridge.getThreeModuleUrl();
+  } catch (error) {
+    console.error('Failed to resolve three.js module url', error);
+    return null;
+  }
+};
+
+const ensureThree = async () => {
+  if (typeof THREE !== 'undefined' && THREE?.WebGLRenderer) {
+    return THREE;
+  }
+  if (threeModulePromise) {
+    return threeModulePromise;
+  }
+  threeModulePromise = (async () => {
+    const moduleUrl = await loadThreeModuleUrl();
+    if (!moduleUrl) {
+      return null;
+    }
+    const imported = await import(moduleUrl);
+    const three = normalizeThreeModule(imported);
+    if (three?.WebGLRenderer) {
+      window.THREE = three;
+      return three;
+    }
+    return null;
+  })().catch((error) => {
+    console.error('Failed to import three.js module', error);
+    threeModulePromise = null;
+    return null;
+  });
+  return threeModulePromise;
+};
 
 const getWorkspaceVisualizerStatusEl = () => {
   if (!workspaceVisualizer) return null;
@@ -333,8 +377,9 @@ const getWorkspaceNodeColor = (node) => {
   return '#8ba0c2';
 };
 
-const buildWorkspaceLabelSprite = (text, color, scale = 1) => {
-  if (typeof THREE === 'undefined') return null;
+const buildWorkspaceLabelSprite = (text, color, scale = 1, three = THREE) => {
+  const rendererLib = three ?? (typeof THREE !== 'undefined' ? THREE : null);
+  if (!rendererLib) return null;
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
   const fontSize = 64;
@@ -354,16 +399,16 @@ const buildWorkspaceLabelSprite = (text, color, scale = 1) => {
   ctx.shadowColor = color;
   ctx.shadowBlur = 18;
   ctx.fillText(text, width / 2, height / 2 + 6);
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.minFilter = THREE.LinearFilter;
+  const texture = new rendererLib.CanvasTexture(canvas);
+  texture.minFilter = rendererLib.LinearFilter;
   texture.generateMipmaps = false;
-  const material = new THREE.SpriteMaterial({
+  const material = new rendererLib.SpriteMaterial({
     map: texture,
     transparent: true,
     depthWrite: false,
     opacity: 0.9,
   });
-  const sprite = new THREE.Sprite(material);
+  const sprite = new rendererLib.Sprite(material);
   const spriteScale = 6 * scale;
   sprite.scale.set((width / height) * spriteScale, spriteScale, 1);
   sprite.userData.dispose = () => texture.dispose();
@@ -390,8 +435,9 @@ const computeWorkspaceLayout = (graph) => {
   return { positions, radius: baseRadius };
 };
 
-const createWorkspaceScene = (graph) => {
-  if (!workspaceVisualizer || typeof THREE === 'undefined') return false;
+const createWorkspaceScene = (graph, three) => {
+  const rendererLib = three ?? (typeof THREE !== 'undefined' ? THREE : null);
+  if (!workspaceVisualizer || !rendererLib) return false;
   const rect = workspaceVisualizer.getBoundingClientRect();
   if (!rect.width || !rect.height) {
     console.warn('workspace visualizer has no measurable size', rect);
@@ -400,34 +446,34 @@ const createWorkspaceScene = (graph) => {
 
   disposeWorkspaceScene();
 
-  const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+  const renderer = new rendererLib.WebGLRenderer({ alpha: true, antialias: true });
   renderer.setPixelRatio(window.devicePixelRatio || 1);
   renderer.setSize(rect.width, rect.height);
   renderer.setClearColor(0x000000, 0);
   renderer.domElement.classList.add('workspace-visualizer-canvas');
 
-  const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(55, rect.width / rect.height, 0.1, 2000);
+  const scene = new rendererLib.Scene();
+  const camera = new rendererLib.PerspectiveCamera(55, rect.width / rect.height, 0.1, 2000);
   const layout = computeWorkspaceLayout(graph);
 
-  const ambient = new THREE.AmbientLight(0xffffff, 0.5);
-  const keyLight = new THREE.PointLight(0x6ee7ff, 1.2, layout.radius * 6);
+  const ambient = new rendererLib.AmbientLight(0xffffff, 0.5);
+  const keyLight = new rendererLib.PointLight(0x6ee7ff, 1.2, layout.radius * 6);
   keyLight.position.set(layout.radius * 0.5, layout.radius * 0.8, layout.radius * 1.2);
-  const rimLight = new THREE.PointLight(0xa78bfa, 0.9, layout.radius * 5);
+  const rimLight = new rendererLib.PointLight(0xa78bfa, 0.9, layout.radius * 5);
   rimLight.position.set(-layout.radius * 0.7, layout.radius * 0.4, -layout.radius);
   scene.add(ambient, keyLight, rimLight);
 
-  const groups = { nodes: new THREE.Group(), labels: new THREE.Group() };
+  const groups = { nodes: new rendererLib.Group(), labels: new rendererLib.Group() };
   const nodeMeta = [];
 
   (graph.nodes ?? []).forEach((node, index) => {
     const pos = layout.positions.get(node.id);
     if (!pos) return;
     const colorHex = getWorkspaceNodeColor(node);
-    const color = new THREE.Color(colorHex);
+    const color = new rendererLib.Color(colorHex);
     const radius = Math.max(0.4, 1.05 - (node.depth ?? 0) * 0.08);
-    const geometry = new THREE.SphereGeometry(radius, 20, 20);
-    const material = new THREE.MeshStandardMaterial({
+    const geometry = new rendererLib.SphereGeometry(radius, 20, 20);
+    const material = new rendererLib.MeshStandardMaterial({
       color,
       emissive: color,
       emissiveIntensity: 0.55,
@@ -436,11 +482,11 @@ const createWorkspaceScene = (graph) => {
       transparent: true,
       opacity: node.depth === 0 ? 1 : 0.9,
     });
-    const mesh = new THREE.Mesh(geometry, material);
+    const mesh = new rendererLib.Mesh(geometry, material);
     mesh.position.set(pos.x, pos.y, pos.z);
     groups.nodes.add(mesh);
 
-    const label = buildWorkspaceLabelSprite(node.name, colorHex, node.depth === 0 ? 1.25 : 1);
+    const label = buildWorkspaceLabelSprite(node.name, colorHex, node.depth === 0 ? 1.25 : 1, rendererLib);
     if (label) {
       label.position.set(pos.x, pos.y + radius * 3.2, pos.z);
       groups.labels.add(label);
@@ -467,15 +513,15 @@ const createWorkspaceScene = (graph) => {
 
   let lines = null;
   if (linePositions.length) {
-    const lineGeometry = new THREE.BufferGeometry();
-    lineGeometry.setAttribute('position', new THREE.Float32BufferAttribute(linePositions, 3));
-    const lineMaterial = new THREE.LineBasicMaterial({
+    const lineGeometry = new rendererLib.BufferGeometry();
+    lineGeometry.setAttribute('position', new rendererLib.Float32BufferAttribute(linePositions, 3));
+    const lineMaterial = new rendererLib.LineBasicMaterial({
       color: 0x5ac8fa,
       transparent: true,
       opacity: 0.32,
       linewidth: 1,
     });
-    lines = new THREE.LineSegments(lineGeometry, lineMaterial);
+    lines = new rendererLib.LineSegments(lineGeometry, lineMaterial);
     scene.add(lines);
   }
 
@@ -486,9 +532,9 @@ const createWorkspaceScene = (graph) => {
     scatterPositions[i * 3 + 1] = (Math.random() - 0.5) * layout.radius * 3;
     scatterPositions[i * 3 + 2] = (Math.random() - 0.5) * layout.radius * 4;
   }
-  const scatterGeometry = new THREE.BufferGeometry();
-  scatterGeometry.setAttribute('position', new THREE.BufferAttribute(scatterPositions, 3));
-  const scatterMaterial = new THREE.PointsMaterial({
+  const scatterGeometry = new rendererLib.BufferGeometry();
+  scatterGeometry.setAttribute('position', new rendererLib.BufferAttribute(scatterPositions, 3));
+  const scatterMaterial = new rendererLib.PointsMaterial({
     color: 0x99c3ff,
     size: 0.5,
     transparent: true,
@@ -496,11 +542,11 @@ const createWorkspaceScene = (graph) => {
     sizeAttenuation: true,
     depthWrite: false,
   });
-  const scatter = new THREE.Points(scatterGeometry, scatterMaterial);
+  const scatter = new rendererLib.Points(scatterGeometry, scatterMaterial);
   scene.add(scatter);
 
   camera.position.set(0, layout.radius * 0.35, layout.radius * 2.1);
-  camera.lookAt(new THREE.Vector3(0, 0, 0));
+  camera.lookAt(new rendererLib.Vector3(0, 0, 0));
 
   scene.add(groups.nodes);
   scene.add(groups.labels);
@@ -571,6 +617,12 @@ const startWorkspaceVisualizer = async () => {
   setWorkspaceVisualizerActive(true);
   setWorkspaceVisualizerMessage('workspaceを読み込み中…');
   try {
+    const three = await ensureThree();
+    if (!three) {
+      setWorkspaceVisualizerMessage('three.jsを読み込めませんでした。依存関係を再インストールしてください');
+      setTimeout(() => stopWorkspaceVisualizer(), 1400);
+      return;
+    }
     const graph = await loadWorkspaceGraph();
     if (!isWorkspaceVisualizerActive) {
       return;
@@ -579,12 +631,10 @@ const startWorkspaceVisualizer = async () => {
       setWorkspaceVisualizerMessage('表示できるファイルが見つかりません');
       return;
     }
-    const sceneReady = createWorkspaceScene(graph);
+    const sceneReady = createWorkspaceScene(graph, three);
     if (!sceneReady) {
-      const message = typeof THREE === 'undefined'
-        ? 'three.jsを読み込めませんでした。依存関係を再インストールしてください'
-        : 'three.jsを初期化できませんでした';
-      console.error('Failed to create workspace visualizer scene', { hasThree: typeof THREE !== 'undefined' });
+      const message = 'three.jsを初期化できませんでした';
+      console.error('Failed to create workspace visualizer scene', { hasThree: true });
       setWorkspaceVisualizerMessage(message);
       setTimeout(() => stopWorkspaceVisualizer(), 1400);
       return;
