@@ -281,6 +281,14 @@ const buildWorkspaceGraph = async () => {
     } catch (error) {
       return;
     }
+    entries.sort((a, b) => {
+      const aIsDir = a.isDirectory();
+      const bIsDir = b.isDirectory();
+      if (aIsDir !== bIsDir) {
+        return aIsDir ? -1 : 1;
+      }
+      return a.name.localeCompare(b.name);
+    });
     for (const entry of entries) {
       if (nodes.length >= MAX_GRAPH_NODES) {
         break;

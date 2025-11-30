@@ -46,24 +46,107 @@ const buildWorkspaceLabelSprite = (text, color, scale = 1) => {
   return sprite;
 };
 
-const computeWorkspaceLayout = (graph) => {
-  const nodes = Array.isArray(graph?.nodes) ? graph.nodes : [];
-  const total = nodes.length || 1;
-  const baseRadius = Math.max(18, total * 0.35);
-  const golden = Math.PI * (3 - Math.sqrt(5));
-  const positions = new Map();
-  nodes.forEach((node, index) => {
-    const theta = index * golden;
-    const layer = Math.max(1, (node?.depth ?? 1));
-    const radial = baseRadius * (0.7 + layer * 0.15);
-    const y = ((index / total) - 0.5) * baseRadius * 0.35;
-    positions.set(node.id, {
-      x: Math.cos(theta) * radial + (Math.random() - 0.5) * 2,
-      y: y + (Math.random() - 0.5) * 1.4,
-      z: Math.sin(theta) * radial + (Math.random() - 0.5) * 2,
-    });
+const buildWorkspaceTree = (graph) => {
+  const nodeMap = new Map();
+  (graph?.nodes ?? []).forEach((node) => {
+    nodeMap.set(node.id, { ...node, children: [] });
   });
-  return { positions, radius: baseRadius };
+
+  (graph?.links ?? []).forEach((link) => {
+    const parent = nodeMap.get(link.source);
+    const child = nodeMap.get(link.target);
+    if (parent && child) {
+      parent.children.push(child);
+    }
+  });
+
+  const root = nodeMap.get('.') ?? (nodeMap.size ? nodeMap.values().next().value : null);
+
+  const sortChildren = (node) => {
+    if (!node?.children?.length) return;
+    node.children.sort((a, b) => {
+      if (a.type !== b.type) {
+        return a.type === 'directory' ? -1 : 1;
+      }
+      return a.name.localeCompare(b.name);
+    });
+    node.children.forEach(sortChildren);
+  };
+  sortChildren(root);
+
+  return { root, nodeMap };
+};
+
+const measureTree = (node, widths, depth = 0) => {
+  if (!node) {
+    return { width: 1, maxDepth: depth };
+  }
+  if (!node.children?.length) {
+    widths.set(node.id, 1);
+    return { width: 1, maxDepth: depth };
+  }
+
+  let totalWidth = 0;
+  let maxDepth = depth;
+  node.children.forEach((child) => {
+    const { width: childWidth, maxDepth: childDepth } = measureTree(child, widths, depth + 1);
+    totalWidth += childWidth;
+    maxDepth = Math.max(maxDepth, childDepth);
+  });
+  const width = Math.max(1, totalWidth);
+  widths.set(node.id, width);
+  return { width, maxDepth };
+};
+
+const assignTreePositions = (node, widths, positions, config, left, depth, siblingIndex = 0, siblingCount = 1) => {
+  if (!node) {
+    return;
+  }
+  const width = widths.get(node.id) ?? 1;
+  const { horizontalGap, verticalGap, zSpread, jitter } = config;
+  const centerX = (left + width / 2) * horizontalGap;
+  const z = (siblingIndex - (siblingCount - 1) / 2) * zSpread;
+  const xJitter = (Math.random() - 0.5) * jitter;
+  const zJitter = (Math.random() - 0.5) * jitter;
+  positions.set(node.id, {
+    x: centerX + xJitter,
+    y: -depth * verticalGap,
+    z: z + zJitter,
+  });
+
+  let cursor = left;
+  node.children?.forEach((child, index) => {
+    const childWidth = widths.get(child.id) ?? 1;
+    assignTreePositions(child, widths, positions, config, cursor, depth + 1, index, node.children.length);
+    cursor += childWidth;
+  });
+};
+
+const computeWorkspaceLayout = (graph) => {
+  const positions = new Map();
+  const { root } = buildWorkspaceTree(graph);
+  if (!root) {
+    return { positions, radius: 12, maxDepth: 0 };
+  }
+
+  const widths = new Map();
+  const { width: rootWidth, maxDepth } = measureTree(root, widths, 0);
+
+  const horizontalGap = Math.min(5, 2.4 + Math.log2(rootWidth + 1) * 0.6);
+  const verticalGap = 3 + Math.max(0, maxDepth - 2) * 0.35;
+  const zSpread = 1.6;
+  const jitter = 0.35;
+  const config = { horizontalGap, verticalGap, zSpread, jitter };
+
+  assignTreePositions(root, widths, positions, config, -rootWidth / 2, 0, 0, 1);
+
+  let radius = 12;
+  positions.forEach((pos) => {
+    const dist = Math.sqrt(pos.x * pos.x + pos.y * pos.y + pos.z * pos.z);
+    radius = Math.max(radius, dist * 1.35);
+  });
+
+  return { positions, radius, maxDepth };
 };
 
 export const createWorkspaceVisualizer = (workspaceVisualizer) => {
@@ -165,13 +248,17 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(55, rect.width / rect.height, 0.1, 2000);
     const layout = computeWorkspaceLayout(graph);
+    const focusY = -Math.min(layout.radius * 0.4, (layout.maxDepth ?? 0) * 3.2);
+    const focusPoint = new THREE.Vector3(0, focusY, 0);
 
-    const ambient = new THREE.AmbientLight(0xffffff, 0.5);
-    const keyLight = new THREE.PointLight(0x6ee7ff, 1.2, layout.radius * 6);
-    keyLight.position.set(layout.radius * 0.5, layout.radius * 0.8, layout.radius * 1.2);
-    const rimLight = new THREE.PointLight(0xa78bfa, 0.9, layout.radius * 5);
-    rimLight.position.set(-layout.radius * 0.7, layout.radius * 0.4, -layout.radius);
-    scene.add(ambient, keyLight, rimLight);
+    const ambient = new THREE.AmbientLight(0xffffff, 0.6);
+    const keyLight = new THREE.PointLight(0x7dd3fc, 1.15, layout.radius * 5.5);
+    keyLight.position.set(layout.radius * 0.42, layout.radius * 0.65, layout.radius * 1.6);
+    const rimLight = new THREE.PointLight(0xc4b5fd, 0.9, layout.radius * 5);
+    rimLight.position.set(-layout.radius * 0.55, layout.radius * 0.35, -layout.radius * 0.6);
+    const fillLight = new THREE.DirectionalLight(0x93c5fd, 0.35);
+    fillLight.position.set(0, layout.radius * 0.9, layout.radius * 1.8);
+    scene.add(ambient, keyLight, rimLight, fillLight);
 
     const groups = { nodes: new THREE.Group(), labels: new THREE.Group() };
     const nodeMeta = [];
@@ -181,24 +268,28 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
       if (!pos) return;
       const colorHex = getWorkspaceNodeColor(node);
       const color = new THREE.Color(colorHex);
-      const radius = Math.max(0.4, 1.05 - (node.depth ?? 0) * 0.08);
+      const level = node.depth ?? 0;
+      const isDirectory = node.type === 'directory';
+      const radius = isDirectory
+        ? Math.max(0.7, 1.2 - level * 0.07)
+        : Math.max(0.45, 0.95 - level * 0.06);
       const geometry = new THREE.SphereGeometry(radius, 20, 20);
       const material = new THREE.MeshStandardMaterial({
         color,
         emissive: color,
-        emissiveIntensity: 0.55,
-        roughness: 0.25,
-        metalness: 0.3,
+        emissiveIntensity: isDirectory ? 0.72 : 0.55,
+        roughness: 0.22,
+        metalness: 0.35,
         transparent: true,
-        opacity: node.depth === 0 ? 1 : 0.9,
+        opacity: isDirectory ? 0.96 : 0.88,
       });
       const mesh = new THREE.Mesh(geometry, material);
       mesh.position.set(pos.x, pos.y, pos.z);
       groups.nodes.add(mesh);
 
-      const label = buildWorkspaceLabelSprite(node.name, colorHex, node.depth === 0 ? 1.25 : 1);
+      const label = buildWorkspaceLabelSprite(node.name, colorHex, isDirectory ? 1.1 : 0.95);
       if (label) {
-        label.position.set(pos.x, pos.y + radius * 3.2, pos.z);
+        label.position.set(pos.x, pos.y + radius * 2.6, pos.z);
         groups.labels.add(label);
       }
 
@@ -206,8 +297,8 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
         mesh,
         label,
         basePosition: pos,
-        wobbleSpeed: 0.35 + Math.random() * 0.35 + (node.depth ?? 0) * 0.05,
-        wobbleAmp: 0.25 + Math.random() * 0.65,
+        wobbleSpeed: 0.2,
+        wobbleAmp: 0,
         wobblePhase: Math.random() * Math.PI * 2,
       });
     });
@@ -226,16 +317,16 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
       const lineGeometry = new THREE.BufferGeometry();
       lineGeometry.setAttribute('position', new THREE.Float32BufferAttribute(linePositions, 3));
       const lineMaterial = new THREE.LineBasicMaterial({
-        color: 0x5ac8fa,
+        color: 0x93c5fd,
         transparent: true,
-        opacity: 0.32,
+        opacity: 0.4,
         linewidth: 1,
       });
       lines = new THREE.LineSegments(lineGeometry, lineMaterial);
       scene.add(lines);
     }
 
-    const scatterCount = Math.min(800, Math.max(220, (graph.nodes?.length ?? 20) * 6));
+    const scatterCount = Math.min(520, Math.max(140, (graph.nodes?.length ?? 20) * 4));
     const scatterPositions = new Float32Array(scatterCount * 3);
     for (let i = 0; i < scatterCount; i += 1) {
       scatterPositions[i * 3] = (Math.random() - 0.5) * layout.radius * 4;
@@ -245,18 +336,18 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
     const scatterGeometry = new THREE.BufferGeometry();
     scatterGeometry.setAttribute('position', new THREE.BufferAttribute(scatterPositions, 3));
     const scatterMaterial = new THREE.PointsMaterial({
-      color: 0x99c3ff,
-      size: 0.5,
+      color: 0xa5b4fc,
+      size: 0.45,
       transparent: true,
-      opacity: 0.32,
+      opacity: 0.28,
       sizeAttenuation: true,
       depthWrite: false,
     });
     const scatter = new THREE.Points(scatterGeometry, scatterMaterial);
     scene.add(scatter);
 
-    camera.position.set(0, layout.radius * 0.35, layout.radius * 2.1);
-    camera.lookAt(new THREE.Vector3(0, 0, 0));
+    camera.position.set(0, layout.radius * 0.18, layout.radius * 2.35);
+    camera.lookAt(focusPoint);
 
     scene.add(groups.nodes);
     scene.add(groups.labels);
@@ -290,26 +381,13 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
       return;
     }
     const t = (timestamp ?? performance.now()) * 0.001;
-    workspaceScene.nodeMeta.forEach((node) => {
-      const { basePosition, wobbleAmp, wobbleSpeed, wobblePhase, mesh, label } = node;
-      const bob = Math.sin(t * wobbleSpeed + wobblePhase) * wobbleAmp;
-      const sway = Math.cos(t * (wobbleSpeed * 0.8) + wobblePhase) * wobbleAmp * 0.4;
-      mesh.position.set(
-        basePosition.x + sway * 0.4,
-        basePosition.y + bob,
-        basePosition.z + Math.sin(t * 0.35 + wobblePhase) * wobbleAmp * 0.35,
-      );
-      if (label) {
-        const offsetY = (mesh.geometry?.parameters?.radius ?? 1) * 2.6;
-        label.position.set(mesh.position.x, mesh.position.y + offsetY, mesh.position.z);
-      }
-    });
 
     if (workspaceScene.lines?.material) {
-      workspaceScene.lines.material.opacity = 0.28 + Math.sin(t * 0.6) * 0.06;
+      workspaceScene.lines.material.opacity = 0.34 + Math.sin(t * 0.5) * 0.05;
     }
 
-    workspaceScene.scene.rotation.y = Math.sin(t * 0.05) * 0.05;
+    workspaceScene.scene.rotation.y = Math.sin(t * 0.07) * 0.06;
+    workspaceScene.scene.rotation.x = -0.04 + Math.cos(t * 0.05) * 0.015;
     workspaceScene.renderer.render(workspaceScene.scene, workspaceScene.camera);
     workspaceSceneAnimationId = requestAnimationFrame(animateWorkspaceScene);
   };
