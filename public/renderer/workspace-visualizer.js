@@ -14,7 +14,9 @@ const buildWorkspaceLabelSprite = (text, color, scale = 1) => {
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
   const fontSize = 64;
-  ctx.font = `800 ${fontSize}px 'Space Grotesk', 'Inter', sans-serif`;
+  const fontWeight = 900;
+  const fontFamily = `'Space Grotesk', 'Inter', sans-serif`;
+  ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
   const paddingX = 110;
   const paddingY = 70;
   const measured = Math.max(260, Math.ceil(ctx.measureText(text).width + paddingX));
@@ -22,30 +24,36 @@ const buildWorkspaceLabelSprite = (text, color, scale = 1) => {
   const height = Math.max(200, fontSize + paddingY);
   canvas.width = width;
   canvas.height = height;
-  ctx.font = `800 ${fontSize}px 'Space Grotesk', 'Inter', sans-serif`;
+  ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
 
-  ctx.shadowColor = `${color}80`;
-  ctx.shadowBlur = 26;
-  ctx.shadowOffsetY = 3;
-  ctx.fillStyle = color;
-  ctx.lineWidth = 7;
+  const centerX = width / 2;
+  const centerY = height / 2 + 4;
+  ctx.shadowColor = `${color}6a`;
+  ctx.shadowBlur = 16;
+  ctx.shadowOffsetY = 4;
   ctx.lineJoin = 'round';
-  ctx.strokeStyle = `${color}c0`;
-  ctx.strokeText(text, width / 2, height / 2 + 4);
-  ctx.fillText(text, width / 2, height / 2 + 4);
+  ctx.strokeStyle = '#0b1222d8';
+  ctx.lineWidth = 10;
+  ctx.strokeText(text, centerX, centerY);
+  ctx.strokeStyle = `${color}d0`;
+  ctx.lineWidth = 6;
+  ctx.strokeText(text, centerX, centerY);
+  ctx.fillStyle = color;
+  ctx.fillText(text, centerX, centerY);
 
   const texture = new THREE.CanvasTexture(canvas);
   texture.minFilter = THREE.LinearFilter;
   texture.magFilter = THREE.LinearFilter;
+  texture.anisotropy = 4;
   texture.generateMipmaps = false;
   const material = new THREE.SpriteMaterial({
     map: texture,
     transparent: true,
     depthWrite: false,
     depthTest: false,
-    opacity: 0.82,
+    opacity: 0.9,
     blending: THREE.NormalBlending,
     toneMapped: false,
   });
