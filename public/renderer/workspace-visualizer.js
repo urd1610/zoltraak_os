@@ -13,36 +13,40 @@ const buildWorkspaceLabelSprite = (text, color, scale = 1) => {
   if (typeof THREE === 'undefined') return null;
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
-  const fontSize = 72;
+  const fontSize = 64;
   ctx.font = `700 ${fontSize}px 'Space Grotesk', 'Inter', sans-serif`;
-  const paddingX = 140;
-  const paddingY = 90;
-  const measured = Math.max(320, Math.ceil(ctx.measureText(text).width + paddingX));
-  const width = Math.min(1400, measured);
-  const height = Math.max(220, fontSize + paddingY);
+  const paddingX = 110;
+  const paddingY = 70;
+  const measured = Math.max(260, Math.ceil(ctx.measureText(text).width + paddingX));
+  const width = Math.min(1200, measured);
+  const height = Math.max(200, fontSize + paddingY);
   canvas.width = width;
   canvas.height = height;
   ctx.font = `700 ${fontSize}px 'Space Grotesk', 'Inter', sans-serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
 
-  const barHeight = fontSize * 1.8;
+  const barHeight = fontSize * 1.55;
   const barY = height / 2 - barHeight / 2;
 
-  ctx.fillStyle = 'rgba(4, 7, 14, 0.82)';
+  const barGradient = ctx.createLinearGradient(0, barY, width, barY + barHeight);
+  barGradient.addColorStop(0, 'rgba(6, 10, 20, 0.9)');
+  barGradient.addColorStop(1, 'rgba(10, 14, 24, 0.82)');
+  ctx.fillStyle = barGradient;
   ctx.fillRect(0, barY, width, barHeight);
 
-  const gradient = ctx.createLinearGradient(0, 0, width, height);
-  gradient.addColorStop(0, 'rgba(255, 255, 255, 0.12)');
-  gradient.addColorStop(0.45, 'rgba(255, 255, 255, 0.18)');
-  gradient.addColorStop(1, 'rgba(255, 255, 255, 0.08)');
+  const gradient = ctx.createLinearGradient(0, barY, width, barY + barHeight);
+  gradient.addColorStop(0, 'rgba(255, 255, 255, 0.04)');
+  gradient.addColorStop(0.5, 'rgba(255, 255, 255, 0.08)');
+  gradient.addColorStop(1, 'rgba(255, 255, 255, 0.03)');
   ctx.fillStyle = gradient;
   ctx.fillRect(0, barY, width, barHeight);
 
-  ctx.shadowColor = color;
-  ctx.shadowBlur = 48;
+  ctx.shadowColor = `${color}80`;
+  ctx.shadowBlur = 26;
+  ctx.shadowOffsetY = 3;
   ctx.fillStyle = color;
-  ctx.fillText(text, width / 2, height / 2 + 6);
+  ctx.fillText(text, width / 2, height / 2 + 4);
 
   const texture = new THREE.CanvasTexture(canvas);
   texture.minFilter = THREE.LinearFilter;
@@ -52,12 +56,15 @@ const buildWorkspaceLabelSprite = (text, color, scale = 1) => {
     map: texture,
     transparent: true,
     depthWrite: false,
-    opacity: 0.94,
-    blending: THREE.AdditiveBlending,
+    depthTest: false,
+    opacity: 0.82,
+    blending: THREE.NormalBlending,
+    toneMapped: false,
   });
   const sprite = new THREE.Sprite(material);
-  const spriteScale = 6.4 * scale;
+  const spriteScale = 5.6 * scale;
   sprite.scale.set((width / height) * spriteScale, spriteScale, 1);
+  sprite.userData.baseOpacity = material.opacity;
   sprite.userData.dispose = () => texture.dispose();
   return sprite;
 };
