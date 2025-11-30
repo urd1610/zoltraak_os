@@ -226,6 +226,49 @@ const computeWorkspaceLayout = (graph) => {
   return { positions, radius, maxDepth };
 };
 
+const createOrbitControlsState = (camera, focusPoint, layoutRadius) => {
+  if (typeof THREE === 'undefined' || !camera || !focusPoint) return null;
+  const offset = new THREE.Vector3().subVectors(camera.position, focusPoint);
+  const spherical = new THREE.Spherical().setFromVector3(offset);
+  const target = spherical.clone();
+  const scratch = new THREE.Vector3();
+  const limits = {
+    minRadius: Math.max(6, layoutRadius * 0.55),
+    maxRadius: Math.max(layoutRadius * 1.6, layoutRadius * 4),
+    minPhi: 0.18,
+    maxPhi: Math.PI - 0.14,
+  };
+  return {
+    spherical,
+    target,
+    focusPoint: focusPoint.clone(),
+    limits,
+    lastPointer: { x: 0, y: 0 },
+    isDragging: false,
+    scratch,
+  };
+};
+
+const applyOrbitControlsToCamera = (controls, camera) => {
+  if (!controls || !camera || typeof THREE === 'undefined') return;
+  const { spherical, target, limits, scratch, focusPoint } = controls;
+  const easing = controls.isDragging ? 0.22 : 0.12;
+
+  spherical.theta += (target.theta - spherical.theta) * easing;
+  spherical.phi += (target.phi - spherical.phi) * easing;
+  spherical.radius += (target.radius - spherical.radius) * 0.18;
+
+  spherical.phi = THREE.MathUtils.clamp(spherical.phi, limits.minPhi, limits.maxPhi);
+  target.phi = THREE.MathUtils.clamp(target.phi, limits.minPhi, limits.maxPhi);
+
+  spherical.radius = THREE.MathUtils.clamp(spherical.radius, limits.minRadius, limits.maxRadius);
+  target.radius = THREE.MathUtils.clamp(target.radius, limits.minRadius, limits.maxRadius);
+
+  scratch.setFromSpherical(spherical).add(focusPoint);
+  camera.position.copy(scratch);
+  camera.lookAt(focusPoint);
+};
+
 export const createWorkspaceVisualizer = (workspaceVisualizer) => {
   let isWorkspaceVisualizerActive = false;
   let workspaceVisualizerLoading = false;
@@ -471,6 +514,7 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
 
     camera.position.set(0, layout.radius * 0.18, layout.radius * 2.35);
     camera.lookAt(focusPoint);
+    const orbitControls = createOrbitControlsState(camera, focusPoint, layout.radius);
 
     scene.add(groups.nodes);
     scene.add(groups.labels);
@@ -486,6 +530,7 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
       scatter,
       nodeMeta,
       radius: layout.radius,
+      controls: orbitControls,
     };
     return true;
   };
@@ -525,6 +570,7 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
       line.material.opacity = linePulse * damp;
     });
 
+    applyOrbitControlsToCamera(workspaceScene.controls, workspaceScene.camera);
     workspaceScene.scene.rotation.y = Math.sin(t * 0.07) * 0.06;
     workspaceScene.scene.rotation.x = -0.04 + Math.cos(t * 0.05) * 0.015;
     workspaceScene.renderer.render(workspaceScene.scene, workspaceScene.camera);
