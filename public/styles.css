@@ -308,6 +308,7 @@ button.chip:disabled {
   z-index: 0;
   overflow: hidden;
   pointer-events: none;
+  touch-action: none;
   background: radial-gradient(circle at 20% 20%, rgba(110, 231, 255, 0.05), transparent 45%),
     radial-gradient(circle at 80% 30%, rgba(167, 139, 250, 0.06), transparent 50%);
   opacity: 0;
@@ -318,6 +319,7 @@ button.chip:disabled {
 .workspace-visualizer.is-active {
   opacity: 1;
   filter: blur(0);
+  pointer-events: auto;
   cursor: grab;
 }
 
@@ -334,6 +336,7 @@ button.chip:disabled {
     drop-shadow(0 0 36px rgba(167, 139, 250, 0.18));
   mix-blend-mode: screen;
   opacity: 0.96;
+  pointer-events: auto;
 }
 
 .workspace-visualizer-status {
@@ -757,6 +760,7 @@ button.chip:disabled {
   position: absolute;
   inset: 0;
   z-index: 1;
+  pointer-events: none;
 }
 
 .quick-actions.workspace-draggable {
@@ -769,6 +773,7 @@ button.chip:disabled {
 
 .quick-action {
   position: absolute;
+  pointer-events: auto;
   display: flex;
   flex-direction: column;
   align-items: center;
