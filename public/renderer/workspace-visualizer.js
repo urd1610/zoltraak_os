@@ -239,10 +239,10 @@ const computeWorkspaceLayout = (graph) => {
 
       const parentDistance = distances.get(parent.id) ?? 0;
       const depth = child.depth ?? (parent.depth ?? 0) + 1;
-      const step = 3.6 + depth * 0.52;
-      const length = parentDistance + step * (child.type === 'directory' ? 1.12 : 0.92);
+      const step = 4.1 + depth * 0.6;
+      const length = parentDistance + step * (child.type === 'directory' ? 1.22 : 1.05);
       const { u, v } = buildBranchBasis(dir);
-      const spread = Math.max(0.45, 0.62 + (children.length - 1) * 0.12);
+      const spread = Math.max(0.65, 0.9 + (children.length - 1) * 0.14);
       const phase = children.length > 1
         ? ((index / Math.max(1, children.length - 1)) - 0.5) * Math.PI * 0.82
         : 0;
