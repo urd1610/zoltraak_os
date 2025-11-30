@@ -280,7 +280,12 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
     };
     groups?.nodes?.traverse?.(disposeChild);
     groups?.labels?.traverse?.(disposeChild);
-    if (lines) {
+    if (Array.isArray(lines)) {
+      lines.forEach((line) => {
+        line.geometry?.dispose?.();
+        line.material?.dispose?.();
+      });
+    } else if (lines) {
       lines.geometry?.dispose?.();
       lines.material?.dispose?.();
     }
