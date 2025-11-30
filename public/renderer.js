@@ -562,6 +562,7 @@ const createWorkspaceScene = (graph, three) => {
     scatter,
     nodeMeta,
     radius: layout.radius,
+    rotation: { yaw: 0, pitch: 0 },
   };
   return true;
 };
@@ -599,7 +600,9 @@ const animateWorkspaceScene = (timestamp) => {
     workspaceScene.lines.material.opacity = 0.28 + Math.sin(t * 0.6) * 0.06;
   }
 
-  workspaceScene.scene.rotation.y = Math.sin(t * 0.05) * 0.05;
+  const rotation = workspaceScene.rotation ?? { yaw: 0, pitch: 0 };
+  const autoYaw = Math.sin(t * 0.05) * 0.05;
+  workspaceScene.scene.rotation.set(rotation.pitch ?? 0, autoYaw + (rotation.yaw ?? 0), 0);
   workspaceScene.renderer.render(workspaceScene.scene, workspaceScene.camera);
   workspaceSceneAnimationId = requestAnimationFrame(animateWorkspaceScene);
 };
