@@ -268,14 +268,18 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
     }
     if (!workspaceScene) return;
     const { renderer, groups, lines, scatter } = workspaceScene;
-    groups?.nodes?.children?.forEach((child) => {
+    const disposeChild = (child) => {
+      child.userData?.dispose?.();
+      if (child.material?.map) {
+        child.material.map.dispose?.();
+      }
+      if (child.material?.dispose) {
+        child.material.dispose();
+      }
       child.geometry?.dispose?.();
-      child.material?.dispose?.();
-    });
-    groups?.labels?.children?.forEach((child) => {
-      child.material?.map?.dispose?.();
-      child.material?.dispose?.();
-    });
+    };
+    groups?.nodes?.traverse?.(disposeChild);
+    groups?.labels?.traverse?.(disposeChild);
     if (lines) {
       lines.geometry?.dispose?.();
       lines.material?.dispose?.();
@@ -348,34 +352,48 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
       const level = node.depth ?? 0;
       const isDirectory = node.type === 'directory';
       const radius = isDirectory
-        ? Math.max(0.7, 1.2 - level * 0.07)
-        : Math.max(0.45, 0.95 - level * 0.06);
-      const geometry = new THREE.SphereGeometry(radius, 20, 20);
-      const material = new THREE.MeshStandardMaterial({
+        ? Math.max(0.9, 1.35 - level * 0.065)
+        : Math.max(0.52, 1 - level * 0.05);
+      const geometry = new THREE.SphereGeometry(radius, 28, 28);
+      const material = new THREE.MeshPhysicalMaterial({
         color,
         emissive: color,
-        emissiveIntensity: isDirectory ? 0.72 : 0.55,
-        roughness: 0.22,
-        metalness: 0.35,
+        emissiveIntensity: isDirectory ? 1.18 : 0.95,
+        roughness: 0.18,
+        metalness: 0.48,
+        clearcoat: 0.35,
+        clearcoatRoughness: 0.2,
+        transmission: 0.12,
         transparent: true,
-        opacity: isDirectory ? 0.96 : 0.88,
+        opacity: isDirectory ? 0.98 : 0.9,
       });
-      const mesh = new THREE.Mesh(geometry, material);
-      mesh.position.set(pos.x, pos.y, pos.z);
-      groups.nodes.add(mesh);
+      const core = new THREE.Mesh(geometry, material);
+      core.castShadow = false;
+      core.receiveShadow = false;
 
-      const label = buildWorkspaceLabelSprite(node.name, colorHex, isDirectory ? 1.1 : 0.95);
+      const nodeGroup = new THREE.Group();
+      nodeGroup.position.set(pos.x, pos.y, pos.z);
+
+      const glow = buildNodeGlowSprite(colorHex, radius * 3.4, isDirectory ? 1.1 : 0.9);
+      if (glow) {
+        nodeGroup.add(glow);
+      }
+
+      nodeGroup.add(core);
+      groups.nodes.add(nodeGroup);
+
+      const label = buildWorkspaceLabelSprite(node.name, colorHex, isDirectory ? 1.06 : 0.98);
       if (label) {
-        label.position.set(pos.x, pos.y + radius * 2.6, pos.z);
+        label.position.set(pos.x, pos.y + radius * 2.9, pos.z);
         groups.labels.add(label);
       }
 
       nodeMeta.push({
-        mesh,
+        mesh: nodeGroup,
         label,
         basePosition: pos,
-        wobbleSpeed: 0.2,
-        wobbleAmp: 0,
+        wobbleSpeed: 0.32 + Math.random() * 0.18,
+        wobbleAmp: 0.12 + Math.random() * 0.14,
         wobblePhase: Math.random() * Math.PI * 2,
       });
     });
@@ -458,6 +476,16 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
       return;
     }
     const t = (timestamp ?? performance.now()) * 0.001;
+
+    (workspaceScene.nodeMeta ?? []).forEach((meta) => {
+      if (!meta?.mesh || !meta.basePosition) return;
+      const wobble = Math.sin(t * meta.wobbleSpeed + meta.wobblePhase) * meta.wobbleAmp;
+      meta.mesh.position.set(
+        meta.basePosition.x,
+        meta.basePosition.y + wobble,
+        meta.basePosition.z,
+      );
+    });
 
     if (workspaceScene.lines?.material) {
       workspaceScene.lines.material.opacity = 0.34 + Math.sin(t * 0.5) * 0.05;
