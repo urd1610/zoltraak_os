@@ -556,14 +556,18 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
       groups.nodes.add(nodeGroup);
 
       const label = buildWorkspaceLabelSprite(node.name, colorHex, isDirectory ? 1.06 : 0.98);
+      const labelOffset = radius * 2.9;
       if (label) {
-        label.position.set(pos.x, pos.y + radius * 2.9, pos.z);
+        label.position.set(pos.x, pos.y + labelOffset, pos.z);
+        label.userData.offsetY = labelOffset;
+        label.userData.baseOpacity = label.userData.baseOpacity ?? label.material?.opacity ?? 0.82;
         groups.labels.add(label);
       }
 
       nodeMeta.push({
         mesh: nodeGroup,
         label,
+        labelOffset,
         basePosition: pos,
         wobbleSpeed: 0.32 + Math.random() * 0.18,
         wobbleAmp: 0.12 + Math.random() * 0.14,
@@ -652,6 +656,10 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
       nodeMeta,
       radius: layout.radius,
       controls: orbitControls,
+      labelFadeScratch: {
+        cameraDir: new THREE.Vector3(),
+        toLabel: new THREE.Vector3(),
+      },
     };
     ensureWorkspaceInteractionHandlers();
     return true;
@@ -671,6 +679,12 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
       return;
     }
     const t = (timestamp ?? performance.now()) * 0.001;
+    const labelScratch = workspaceScene.labelFadeScratch;
+    if (labelScratch?.cameraDir) {
+      workspaceScene.camera.getWorldDirection(labelScratch.cameraDir);
+    }
+    const fadeNear = workspaceScene.radius * 0.38;
+    const fadeFar = workspaceScene.radius * 1.5;
 
     (workspaceScene.nodeMeta ?? []).forEach((meta) => {
       if (!meta?.mesh || !meta.basePosition) return;
@@ -680,6 +694,26 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
         meta.basePosition.y + wobble,
         meta.basePosition.z,
       );
+      if (meta.label) {
+        const offsetY = meta.labelOffset ?? meta.label.userData?.offsetY ?? 0;
+        meta.label.position.set(
+          meta.basePosition.x,
+          meta.basePosition.y + offsetY + wobble,
+          meta.basePosition.z,
+        );
+        if (labelScratch?.cameraDir && labelScratch?.toLabel && meta.label.material) {
+          labelScratch.toLabel
+            .subVectors(meta.label.position, workspaceScene.camera.position)
+            .normalize();
+          const facing = Math.max(0, labelScratch.cameraDir.dot(labelScratch.toLabel));
+          const facingFade = 0.35 + facing * 0.65;
+          const distance = workspaceScene.camera.position.distanceTo(meta.label.position);
+          const distanceFade = 1 - THREE.MathUtils.smoothstep(distance, fadeNear, fadeFar);
+          const baseOpacity = meta.label.userData?.baseOpacity ?? meta.label.material.opacity ?? 0.8;
+          meta.label.material.opacity = baseOpacity
+            * THREE.MathUtils.clamp(distanceFade * facingFade, 0.18, 1);
+        }
+      }
     });
 
     const lineMeshes = Array.isArray(workspaceScene.lines)
