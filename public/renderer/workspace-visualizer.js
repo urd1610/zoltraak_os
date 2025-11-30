@@ -493,19 +493,19 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
     scene.fog = new THREE.FogExp2(0x050915, 0.012);
     const camera = new THREE.PerspectiveCamera(55, rect.width / rect.height, 0.1, 2000);
     const layout = computeWorkspaceLayout(graph);
-    const focusY = -Math.min(layout.radius * 0.4, (layout.maxDepth ?? 0) * 3.2);
-    const focusPoint = new THREE.Vector3(0, focusY, 0);
+    const focusPoint = new THREE.Vector3(0, -layout.radius * 0.08, 0);
 
-    const ambient = new THREE.AmbientLight(0xffffff, 0.78);
-    const keyLight = new THREE.PointLight(0x7dd3fc, 1.35, layout.radius * 6.5);
+    const ambient = new THREE.AmbientLight(0xffffff, 0.9);
+    const keyLight = new THREE.PointLight(0x7dd3fc, 1.45, layout.radius * 6.5);
     keyLight.position.set(layout.radius * 0.42, layout.radius * 0.65, layout.radius * 1.6);
-    const rimLight = new THREE.PointLight(0xc4b5fd, 1.05, layout.radius * 5.6);
+    const rimLight = new THREE.PointLight(0xc4b5fd, 1.2, layout.radius * 5.6);
     rimLight.position.set(-layout.radius * 0.55, layout.radius * 0.35, -layout.radius * 0.6);
-    const fillLight = new THREE.DirectionalLight(0x93c5fd, 0.46);
+    const fillLight = new THREE.DirectionalLight(0x93c5fd, 0.55);
     fillLight.position.set(0, layout.radius * 0.9, layout.radius * 1.8);
-    const backLight = new THREE.PointLight(0x60a5fa, 0.6, layout.radius * 4.4);
+    const backLight = new THREE.PointLight(0x60a5fa, 0.7, layout.radius * 4.4);
     backLight.position.set(-layout.radius * 0.2, -layout.radius * 0.15, layout.radius * 1.2);
-    scene.add(ambient, keyLight, rimLight, fillLight, backLight);
+    const coreLight = new THREE.PointLight(0xffffff, 0.4, layout.radius * 2.2);
+    scene.add(ambient, keyLight, rimLight, fillLight, backLight, coreLight);
 
     const groups = { nodes: new THREE.Group(), labels: new THREE.Group() };
     const nodeMeta = [];
@@ -524,12 +524,12 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
       const material = new THREE.MeshPhysicalMaterial({
         color,
         emissive: color,
-        emissiveIntensity: isDirectory ? 1.18 : 0.95,
-        roughness: 0.18,
-        metalness: 0.48,
-        clearcoat: 0.35,
+        emissiveIntensity: isDirectory ? 1.34 : 1.08,
+        roughness: 0.16,
+        metalness: 0.52,
+        clearcoat: 0.42,
         clearcoatRoughness: 0.2,
-        transmission: 0.12,
+        transmission: 0.16,
         transparent: true,
         opacity: isDirectory ? 0.98 : 0.9,
       });
@@ -540,7 +540,7 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
       const nodeGroup = new THREE.Group();
       nodeGroup.position.set(pos.x, pos.y, pos.z);
 
-      const glow = buildNodeGlowSprite(colorHex, radius * 3.4, isDirectory ? 1.1 : 0.9);
+      const glow = buildNodeGlowSprite(colorHex, radius * 3.9, isDirectory ? 1.25 : 1.05);
       if (glow) {
         nodeGroup.add(glow);
       }
@@ -580,7 +580,7 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
       const lineMaterial = new THREE.LineBasicMaterial({
         color: 0x9ad2ff,
         transparent: true,
-        opacity: 0.58,
+        opacity: 0.74,
         linewidth: 1,
         blending: THREE.AdditiveBlending,
         depthWrite: false,
@@ -594,7 +594,7 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
       const glowMaterial = new THREE.LineBasicMaterial({
         color: 0xcde8ff,
         transparent: true,
-        opacity: 0.22,
+        opacity: 0.3,
         linewidth: 2,
         blending: THREE.AdditiveBlending,
         depthWrite: false,
@@ -606,7 +606,7 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
       scene.add(glowLines);
     }
 
-    const scatterCount = Math.min(520, Math.max(140, (graph.nodes?.length ?? 20) * 4));
+    const scatterCount = Math.min(720, Math.max(160, (graph.nodes?.length ?? 20) * 5));
     const scatterPositions = new Float32Array(scatterCount * 3);
     for (let i = 0; i < scatterCount; i += 1) {
       scatterPositions[i * 3] = (Math.random() - 0.5) * layout.radius * 4;
@@ -626,7 +626,7 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
     const scatter = new THREE.Points(scatterGeometry, scatterMaterial);
     scene.add(scatter);
 
-    camera.position.set(0, layout.radius * 0.18, layout.radius * 2.35);
+    camera.position.set(layout.radius * 0.42, layout.radius * 0.2, layout.radius * 2.2);
     camera.lookAt(focusPoint);
     const orbitControls = createOrbitControlsState(camera, focusPoint, layout.radius);
 
