@@ -381,26 +381,13 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
       return;
     }
     const t = (timestamp ?? performance.now()) * 0.001;
-    workspaceScene.nodeMeta.forEach((node) => {
-      const { basePosition, wobbleAmp, wobbleSpeed, wobblePhase, mesh, label } = node;
-      const bob = Math.sin(t * wobbleSpeed + wobblePhase) * wobbleAmp;
-      const sway = Math.cos(t * (wobbleSpeed * 0.8) + wobblePhase) * wobbleAmp * 0.4;
-      mesh.position.set(
-        basePosition.x + sway * 0.4,
-        basePosition.y + bob,
-        basePosition.z + Math.sin(t * 0.35 + wobblePhase) * wobbleAmp * 0.35,
-      );
-      if (label) {
-        const offsetY = (mesh.geometry?.parameters?.radius ?? 1) * 2.6;
-        label.position.set(mesh.position.x, mesh.position.y + offsetY, mesh.position.z);
-      }
-    });
 
     if (workspaceScene.lines?.material) {
-      workspaceScene.lines.material.opacity = 0.28 + Math.sin(t * 0.6) * 0.06;
+      workspaceScene.lines.material.opacity = 0.34 + Math.sin(t * 0.5) * 0.05;
     }
 
-    workspaceScene.scene.rotation.y = Math.sin(t * 0.05) * 0.05;
+    workspaceScene.scene.rotation.y = Math.sin(t * 0.07) * 0.06;
+    workspaceScene.scene.rotation.x = -0.04 + Math.cos(t * 0.05) * 0.015;
     workspaceScene.renderer.render(workspaceScene.scene, workspaceScene.camera);
     workspaceSceneAnimationId = requestAnimationFrame(animateWorkspaceScene);
   };
