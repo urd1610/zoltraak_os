@@ -1,0 +1,502 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>3D File Graph Background</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-outer: #050915;
+      --bg-inner: #0c152a;
+      --panel: rgba(17, 26, 44, 0.78);
+      --text: #dce6ff;
+      --muted: #7f8ba3;
+      --accent: #6ee7ff;
+      --accent-strong: #c084fc;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: 'Space Grotesk', 'Inter', system-ui, -apple-system, sans-serif;
+      color: var(--text);
+      background: radial-gradient(circle at 20% 20%, #0e1b37 0%, #060b18 40%, #030712 85%);
+      overflow: hidden;
+      transition: background 240ms ease;
+    }
+
+    header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 76px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      background: linear-gradient(180deg, rgba(10, 14, 26, 0.85), rgba(10, 14, 26, 0.35));
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      backdrop-filter: blur(10px);
+      z-index: 2;
+    }
+
+    .brand-button {
+      display: inline-flex;
+      align-items: center;
+      gap: 14px;
+      padding: 12px 16px;
+      border-radius: 14px;
+      cursor: pointer;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      transition: transform 120ms ease, box-shadow 160ms ease, border-color 160ms ease;
+      user-select: none;
+    }
+
+    .brand-button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(110, 231, 255, 0.18);
+      border-color: rgba(110, 231, 255, 0.35);
+    }
+
+    .brand-orb {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, #6ee7ff, #2563eb 70%);
+      position: relative;
+      box-shadow:
+        0 0 24px rgba(110, 231, 255, 0.75),
+        0 0 46px rgba(192, 132, 252, 0.55);
+      overflow: hidden;
+    }
+
+    .brand-orb::after {
+      content: '';
+      position: absolute;
+      inset: 4px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.65), rgba(255, 255, 255, 0));
+      mix-blend-mode: screen;
+      opacity: 0.8;
+    }
+
+    .brand-text {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .brand-name {
+      font-weight: 700;
+      letter-spacing: 0.4px;
+      font-size: 16px;
+    }
+
+    .brand-desc {
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: 0.3px;
+    }
+
+    .status {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .status-pill {
+      padding: 8px 12px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      letter-spacing: 0.2px;
+    }
+
+    main {
+      position: relative;
+      min-height: 100vh;
+    }
+
+    .graph-shell {
+      position: fixed;
+      inset: 0;
+      overflow: hidden;
+      background: radial-gradient(circle at 50% 20%, rgba(77, 124, 255, 0.12), rgba(3, 7, 18, 0.95));
+    }
+
+    .graph-shell::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 10% 10%, rgba(6, 182, 212, 0.12), transparent 40%),
+                  radial-gradient(circle at 80% 20%, rgba(192, 132, 252, 0.18), transparent 45%);
+      opacity: 0.8;
+      filter: blur(30px);
+      pointer-events: none;
+    }
+
+    .graph-layer {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 180ms ease;
+    }
+
+    .graph-layer canvas {
+      width: 100% !important;
+      height: 100% !important;
+    }
+
+    body.graph-active .graph-layer {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .graph-overlay {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      padding: 14px 18px;
+      border-radius: 12px;
+      background: var(--panel);
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      transition: opacity 180ms ease, transform 180ms ease;
+    }
+
+    body.graph-active .graph-overlay {
+      opacity: 0;
+      transform: translate(-50%, -40%);
+    }
+
+    .hint-accent {
+      display: inline-block;
+      padding: 6px 10px;
+      border-radius: 10px;
+      background: rgba(110, 231, 255, 0.12);
+      color: var(--accent);
+      border: 1px solid rgba(110, 231, 255, 0.35);
+      font-weight: 600;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="graph-shell">
+    <div id="graph-layer" class="graph-layer"></div>
+    <div class="graph-overlay">
+      <span class="hint-accent">ダブルクリック</span>
+      <span>ヘッダーのアイコンで 3D グラフ背景を切り替え</span>
+    </div>
+  </div>
+
+  <header>
+    <div id="brand-button" class="brand-button" title="背景の 3D グラフを切り替え">
+      <div class="brand-orb"></div>
+      <div class="brand-text">
+        <span class="brand-name">Zoltraak OS</span>
+        <span class="brand-desc">3D File Graph</span>
+      </div>
+    </div>
+    <div class="status">
+      <span class="status-pill" data-status="orbit">orbit: ready</span>
+      <span class="status-pill" data-status="graph">force-graph: pending</span>
+    </div>
+  </header>
+
+  <main aria-label="3D file graph background"></main>
+
+  <script src="https://cdn.jsdelivr.net/npm/three@0.161.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/3d-force-graph@1.73.1/dist/3d-force-graph.min.js"></script>
+  <script>
+    const brandButton = document.getElementById('brand-button');
+    const graphLayer = document.getElementById('graph-layer');
+    const graphStatus = document.querySelector('[data-status="graph"]');
+
+    const fileNodes = [
+      { id: 'root', name: 'project', type: 'directory', size: 0, parentId: null },
+      { id: 'src', name: 'src', type: 'directory', size: 0, parentId: 'root' },
+      { id: 'components', name: 'components', type: 'directory', size: 0, parentId: 'src' },
+      { id: 'app-js', name: 'App.js', type: 'file', size: 4200, parentId: 'src' },
+      { id: 'main-js', name: 'main.js', type: 'file', size: 2600, parentId: 'src' },
+      { id: 'styles', name: 'styles', type: 'directory', size: 0, parentId: 'root' },
+      { id: 'base-css', name: 'base.css', type: 'file', size: 1800, parentId: 'styles' },
+      { id: 'theme-css', name: 'theme.css', type: 'file', size: 950, parentId: 'styles' },
+      { id: 'utils', name: 'utils', type: 'directory', size: 0, parentId: 'src' },
+      { id: 'format-js', name: 'format.js', type: 'file', size: 2100, parentId: 'utils' },
+      { id: 'api', name: 'api', type: 'directory', size: 0, parentId: 'root' },
+      { id: 'client-js', name: 'client.js', type: 'file', size: 1400, parentId: 'api' },
+      { id: 'types', name: 'types', type: 'directory', size: 0, parentId: 'root' },
+      { id: 'index-d-ts', name: 'index.d.ts', type: 'file', size: 700, parentId: 'types' },
+      { id: 'readme-md', name: 'README.md', type: 'file', size: 1200, parentId: 'root' },
+    ];
+
+    const buildGraphData = () => {
+      const nodes = fileNodes.map((node) => ({ ...node }));
+      const links = fileNodes
+        .filter((node) => node.parentId)
+        .map((node) => ({ source: node.parentId, target: node.id }));
+      return { nodes, links };
+    };
+
+    const colorForNode = (node) => {
+      if (node.type === 'directory') return '#6ee7ff';
+      if (node.name.endsWith('.css')) return '#34d399';
+      if (node.name.endsWith('.md')) return '#93c5fd';
+      return '#c084fc';
+    };
+
+    const createGlowSprite = (color, radius) => {
+      const size = 256;
+      const canvas = document.createElement('canvas');
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      const gradient = ctx.createRadialGradient(size / 2, size / 2, size * 0.1, size / 2, size / 2, size / 2);
+      gradient.addColorStop(0, 'rgba(255,255,255,0.65)');
+      gradient.addColorStop(0.28, `${color}cc`);
+      gradient.addColorStop(0.55, `${color}55`);
+      gradient.addColorStop(1, `${color}00`);
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, size, size);
+
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.minFilter = THREE.LinearFilter;
+      texture.magFilter = THREE.LinearFilter;
+      const material = new THREE.SpriteMaterial({
+        map: texture,
+        transparent: true,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+        opacity: 0.75,
+      });
+      const sprite = new THREE.Sprite(material);
+      sprite.scale.set(radius * 3.2, radius * 3.2, 1);
+      sprite.renderOrder = -1;
+      return sprite;
+    };
+
+    const createLabelSprite = (text, color) => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const fontSize = 72;
+      ctx.font = `700 ${fontSize}px 'Space Grotesk', sans-serif`;
+      const paddingX = 180;
+      const paddingY = 120;
+      const measured = Math.max(260, Math.ceil(ctx.measureText(text).width + paddingX));
+      const width = Math.min(1100, measured);
+      const height = Math.max(200, fontSize + paddingY);
+      canvas.width = width;
+      canvas.height = height;
+      ctx.font = `700 ${fontSize}px 'Space Grotesk', sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = 'rgba(6, 11, 22, 0.9)';
+      ctx.fillRect(0, 0, width, height);
+      const gradient = ctx.createLinearGradient(0, 0, width, height);
+      gradient.addColorStop(0, 'rgba(255,255,255,0.1)');
+      gradient.addColorStop(0.5, 'rgba(255,255,255,0.16)');
+      gradient.addColorStop(1, 'rgba(255,255,255,0.08)');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, width, height);
+      ctx.fillStyle = color;
+      ctx.shadowColor = color;
+      ctx.shadowBlur = 40;
+      ctx.fillText(text, width / 2, height / 2);
+
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.minFilter = THREE.LinearFilter;
+      texture.magFilter = THREE.LinearFilter;
+      const material = new THREE.SpriteMaterial({
+        map: texture,
+        transparent: true,
+        depthWrite: false,
+        opacity: 0.9,
+      });
+      const sprite = new THREE.Sprite(material);
+      const scale = 0.025;
+      sprite.scale.set(width * scale, height * scale, 1);
+      sprite.renderOrder = 5;
+      return sprite;
+    };
+
+    let graphInstance = null;
+    let graphReady = false;
+    let graphActive = false;
+    const highlightNodes = new Set();
+    const highlightLinks = new Set();
+
+    const updateGraphStatus = (text) => {
+      if (graphStatus) {
+        graphStatus.textContent = text;
+      }
+    };
+
+    const createNodeObject = (node) => {
+      const color = colorForNode(node);
+      const baseRadius = node.type === 'directory' ? 5.4 : 3.2;
+      const sizeFactor = node.size ? Math.min(2.5, Math.log10(node.size + 16)) : 1;
+      const radius = baseRadius + (sizeFactor - 1) * 1.1;
+      const group = new THREE.Group();
+      const geometry = new THREE.SphereGeometry(radius, 36, 36);
+      const material = new THREE.MeshPhysicalMaterial({
+        color,
+        emissive: new THREE.Color(color),
+        emissiveIntensity: 1.2,
+        roughness: 0.22,
+        metalness: 0.55,
+        clearcoat: 0.45,
+        clearcoatRoughness: 0.18,
+        transmission: 0.12,
+        transparent: true,
+        opacity: 0.92,
+      });
+      const core = new THREE.Mesh(geometry, material);
+      core.castShadow = false;
+      core.receiveShadow = false;
+      group.add(core);
+
+      const glow = createGlowSprite(color, radius);
+      if (glow) {
+        group.add(glow);
+      }
+      const label = createLabelSprite(node.name, color);
+      if (label) {
+        label.position.set(0, radius * 1.8, 0);
+        group.add(label);
+      }
+
+      node.__core = core;
+      node.__glow = glow;
+      node.__label = label;
+      node.__group = group;
+      node.__radius = radius;
+      return group;
+    };
+
+    const initGraph = () => {
+      const data = buildGraphData();
+      graphInstance = ForceGraph3D({
+        rendererConfig: { antialias: true, alpha: true },
+      })(graphLayer)
+        .backgroundColor('rgba(0,0,0,0)')
+        .graphData(data)
+        .showNavInfo(false)
+        .nodeThreeObject(createNodeObject)
+        .nodeThreeObjectExtend(false)
+        .linkOpacity(0.24)
+        .linkWidth((link) => (highlightLinks.has(link) ? 3 : highlightLinks.size ? 0.45 : 0.9))
+        .linkColor((link) => {
+          if (highlightLinks.has(link)) return '#7ad7ff';
+          if (highlightLinks.size) return 'rgba(255,255,255,0.06)';
+          return 'rgba(255,255,255,0.18)';
+        })
+        .linkDirectionalParticles((link) => (highlightLinks.has(link) ? 4 : 0))
+        .linkDirectionalParticleWidth((link) => (highlightLinks.has(link) ? 2.2 : 0))
+        .linkDirectionalParticleSpeed(0.0062)
+        .cooldownTicks(90)
+        .d3VelocityDecay(0.28);
+
+      graphInstance.d3Force('charge').strength(-220);
+      graphInstance.d3Force('link').distance((link) => (link.target?.type === 'directory' ? 44 : 30));
+      graphInstance.cameraPosition({ z: 120 });
+
+      graphInstance.onNodeClick((node) => {
+        setHighlight(node);
+        refreshGraphStyles();
+      });
+
+      const controls = graphInstance.controls();
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.12;
+      controls.rotateSpeed = 0.95;
+      controls.zoomSpeed = 0.9;
+      controls.minDistance = 24;
+      controls.maxDistance = 180;
+
+      graphReady = true;
+      updateGraphStatus('force-graph: ready');
+      refreshGraphStyles();
+    };
+
+    const setHighlight = (node) => {
+      highlightNodes.clear();
+      highlightLinks.clear();
+      if (!node || !graphInstance) return;
+      highlightNodes.add(node);
+      const { links = [] } = graphInstance.graphData?.() ?? {};
+      links.forEach((link) => {
+        const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
+        const targetId = typeof link.target === 'object' ? link.target.id : link.target;
+        if (sourceId === node.id || targetId === node.id) {
+          highlightLinks.add(link);
+        }
+      });
+    };
+
+    const applyNodeHighlight = (node) => {
+      const active = highlightNodes.has(node);
+      const scale = active ? 1.28 : 1;
+      if (node.__group) {
+        node.__group.scale.set(scale, scale, scale);
+      }
+      if (node.__core?.material) {
+        node.__core.material.emissiveIntensity = active ? 1.9 : 1.2;
+        node.__core.material.opacity = active ? 1 : 0.92;
+      }
+      if (node.__glow?.material) {
+        node.__glow.material.opacity = active ? 1.15 : 0.75;
+      }
+      if (node.__label?.material) {
+        node.__label.material.opacity = active ? 1 : 0.9;
+      }
+    };
+
+    const refreshGraphStyles = () => {
+      if (!graphInstance) return;
+      const { nodes = [] } = graphInstance.graphData?.() ?? {};
+      nodes.forEach((node) => applyNodeHighlight(node));
+      graphInstance.linkColor(graphInstance.linkColor());
+      graphInstance.linkWidth(graphInstance.linkWidth());
+      graphInstance.linkDirectionalParticles(graphInstance.linkDirectionalParticles());
+      graphInstance.linkDirectionalParticleWidth(graphInstance.linkDirectionalParticleWidth());
+    };
+
+    const toggleGraph = () => {
+      if (!graphReady) {
+        initGraph();
+      }
+      graphActive = !graphActive;
+      document.body.classList.toggle('graph-active', graphActive);
+      if (!graphInstance) return;
+      if (graphActive) {
+        graphInstance.resumeAnimation?.();
+      } else {
+        graphInstance.pauseAnimation?.();
+      }
+      const label = graphActive ? 'force-graph: active' : 'force-graph: idle';
+      updateGraphStatus(label);
+    };
+
+    brandButton?.addEventListener('dblclick', () => {
+      toggleGraph();
+    });
+  </script>
+</body>
+</html>
