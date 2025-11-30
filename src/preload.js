@@ -1,4 +1,6 @@
 const { contextBridge, ipcRenderer } = require('electron');
+const fs = require('fs');
+const { pathToFileURL } = require('url');
 
 let pathModule = null;
 
@@ -16,12 +18,12 @@ const systemInfo = {
     : process.release?.name ?? 'unknown',
 };
 
-const resolveDependency = (name) => {
+const getDependencySearchRoots = () => {
   if (!pathModule) {
-    return require(name);
+    return [];
   }
   // Worktree配下で起動すると app パス直下に node_modules が無いので、探索パスを明示して解決する
-  const searchRoots = [
+  return [
     __dirname,
     pathModule.resolve(__dirname, '..'),
     pathModule.resolve(__dirname, '..', '..'),
@@ -29,7 +31,34 @@ const resolveDependency = (name) => {
     process.cwd(),
     process.resourcesPath,
   ].filter(Boolean);
+};
 
+const resolveDependencyPath = (name) => {
+  if (!pathModule) {
+    return require.resolve(name);
+  }
+
+  const searchRoots = getDependencySearchRoots();
+  let lastError = null;
+  for (const base of searchRoots) {
+    try {
+      return require.resolve(name, { paths: [base] });
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  if (lastError) {
+    throw lastError;
+  }
+  return null;
+};
+
+const resolveDependency = (name) => {
+  if (!pathModule) {
+    return require(name);
+  }
+
+  const searchRoots = getDependencySearchRoots();
   let lastError = null;
   for (const base of searchRoots) {
     try {
@@ -45,17 +74,32 @@ const resolveDependency = (name) => {
   return null;
 };
 
-let three = null;
+let threeModuleUrl = null;
 
-try {
-  // three.js をプリロードしてレンダラー側へ露出しておく
-  // （nodeIntegration: false でも使えるようにする）
-  three = resolveDependency('three');
-  contextBridge.exposeInMainWorld('THREE', three);
-} catch (error) {
-  // three がなくても他の機能は動くようにする
-  console.error('three.js の読み込みに失敗しました', error);
-}
+const getThreeModuleUrl = () => {
+  if (threeModuleUrl) {
+    return threeModuleUrl;
+  }
+  if (!pathModule) {
+    return null;
+  }
+  try {
+    const resolvedEntryPath = resolveDependencyPath('three');
+    const entryDir = pathModule.dirname(resolvedEntryPath);
+    const pkgDir = pathModule.basename(entryDir) === 'build'
+      ? pathModule.dirname(entryDir)
+      : entryDir;
+    const modulePath = pathModule.join(pkgDir, 'build', 'three.module.js');
+    if (!fs.existsSync(modulePath)) {
+      throw new Error(`three.module.js が見つかりません: ${modulePath}`);
+    }
+    threeModuleUrl = pathToFileURL(modulePath).toString();
+    return threeModuleUrl;
+  } catch (error) {
+    console.error('three.js の読み込みに失敗しました', error);
+    return null;
+  }
+};
 
 contextBridge.exposeInMainWorld('desktopBridge', {
   getSystemInfo: () => systemInfo,
@@ -74,4 +118,5 @@ contextBridge.exposeInMainWorld('desktopBridge', {
   updateAiMailFormatting: (formatting) => ipcRenderer.invoke('ai-mail:update-formatting', formatting),
   getAiMailDefaultPrompt: () => ipcRenderer.invoke('ai-mail:get-default-prompt'),
   saveAiMailDefaultPrompt: (prompt) => ipcRenderer.invoke('ai-mail:save-default-prompt', prompt),
+  getThreeModuleUrl: () => getThreeModuleUrl(),
 });
