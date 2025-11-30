@@ -329,22 +329,26 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
     renderer.setPixelRatio(window.devicePixelRatio || 1);
     renderer.setSize(rect.width, rect.height);
     renderer.setClearColor(0x000000, 0);
+    renderer.toneMappingExposure = 1.08;
     renderer.domElement.classList.add('workspace-visualizer-canvas');
 
     const scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0x050915, 0.012);
     const camera = new THREE.PerspectiveCamera(55, rect.width / rect.height, 0.1, 2000);
     const layout = computeWorkspaceLayout(graph);
     const focusY = -Math.min(layout.radius * 0.4, (layout.maxDepth ?? 0) * 3.2);
     const focusPoint = new THREE.Vector3(0, focusY, 0);
 
-    const ambient = new THREE.AmbientLight(0xffffff, 0.6);
-    const keyLight = new THREE.PointLight(0x7dd3fc, 1.15, layout.radius * 5.5);
+    const ambient = new THREE.AmbientLight(0xffffff, 0.78);
+    const keyLight = new THREE.PointLight(0x7dd3fc, 1.35, layout.radius * 6.5);
     keyLight.position.set(layout.radius * 0.42, layout.radius * 0.65, layout.radius * 1.6);
-    const rimLight = new THREE.PointLight(0xc4b5fd, 0.9, layout.radius * 5);
+    const rimLight = new THREE.PointLight(0xc4b5fd, 1.05, layout.radius * 5.6);
     rimLight.position.set(-layout.radius * 0.55, layout.radius * 0.35, -layout.radius * 0.6);
-    const fillLight = new THREE.DirectionalLight(0x93c5fd, 0.35);
+    const fillLight = new THREE.DirectionalLight(0x93c5fd, 0.46);
     fillLight.position.set(0, layout.radius * 0.9, layout.radius * 1.8);
-    scene.add(ambient, keyLight, rimLight, fillLight);
+    const backLight = new THREE.PointLight(0x60a5fa, 0.6, layout.radius * 4.4);
+    backLight.position.set(-layout.radius * 0.2, -layout.radius * 0.15, layout.radius * 1.2);
+    scene.add(ambient, keyLight, rimLight, fillLight, backLight);
 
     const groups = { nodes: new THREE.Group(), labels: new THREE.Group() };
     const nodeMeta = [];
@@ -455,10 +459,10 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
     const scatterGeometry = new THREE.BufferGeometry();
     scatterGeometry.setAttribute('position', new THREE.BufferAttribute(scatterPositions, 3));
     const scatterMaterial = new THREE.PointsMaterial({
-      color: 0xa5b4fc,
-      size: 0.45,
+      color: 0xbcd7ff,
+      size: 0.4,
       transparent: true,
-      opacity: 0.28,
+      opacity: 0.22,
       sizeAttenuation: true,
       depthWrite: false,
     });
