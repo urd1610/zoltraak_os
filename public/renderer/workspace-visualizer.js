@@ -210,6 +210,8 @@ const computeWorkspaceLayout = (graph) => {
   const seedDirections = buildSeedDirections(root.children?.length ?? 0);
   let maxDepth = 0;
   let radius = 12;
+  const spacingScale = 1.32;
+  const lateralScale = 1.14;
 
   const placeChildren = (parent) => {
     const children = parent.children ?? [];
@@ -227,10 +229,12 @@ const computeWorkspaceLayout = (graph) => {
 
       const parentDistance = distances.get(parent.id) ?? 0;
       const depth = child.depth ?? (parent.depth ?? 0) + 1;
-      const step = 4.1 + depth * 0.6;
+      const stepBase = 4.1 + depth * 0.6;
+      const step = stepBase * spacingScale;
       const length = parentDistance + step * (child.type === 'directory' ? 1.22 : 1.05);
       const { u, v } = buildBranchBasis(dir);
-      const spread = Math.max(0.65, 0.9 + (children.length - 1) * 0.14);
+      const spreadBase = Math.max(0.65, 0.9 + (children.length - 1) * 0.14);
+      const spread = spreadBase * lateralScale;
       const phase = children.length > 1
         ? ((index / Math.max(1, children.length - 1)) - 0.5) * Math.PI * 0.82
         : 0;
@@ -241,9 +245,9 @@ const computeWorkspaceLayout = (graph) => {
         )
         : { x: 0, y: 0, z: 0 };
       const jitter = {
-        x: jitterFromHash(`${key}:jx`, 0.9 + depth * 0.08),
-        y: jitterFromHash(`${key}:jy`, 0.7 + depth * 0.08),
-        z: jitterFromHash(`${key}:jz`, 0.9 + depth * 0.08),
+        x: jitterFromHash(`${key}:jx`, (0.9 + depth * 0.08) * spacingScale * 0.85),
+        y: jitterFromHash(`${key}:jy`, (0.7 + depth * 0.08) * spacingScale * 0.85),
+        z: jitterFromHash(`${key}:jz`, (0.9 + depth * 0.08) * spacingScale * 0.85),
       };
 
       const radial = scaleVec(dir, length);
