@@ -29,6 +29,7 @@
       color: var(--text);
       background: radial-gradient(circle at 20% 20%, #0e1b37 0%, #060b18 40%, #030712 85%);
       overflow: hidden;
+      transition: background 240ms ease;
     }
 
     header {
@@ -134,12 +135,28 @@
       background: radial-gradient(circle at 50% 20%, rgba(77, 124, 255, 0.12), rgba(3, 7, 18, 0.95));
     }
 
+    .graph-shell::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 10% 10%, rgba(6, 182, 212, 0.12), transparent 40%),
+                  radial-gradient(circle at 80% 20%, rgba(192, 132, 252, 0.18), transparent 45%);
+      opacity: 0.8;
+      filter: blur(30px);
+      pointer-events: none;
+    }
+
     .graph-layer {
       position: absolute;
       inset: 0;
       opacity: 0;
       pointer-events: none;
       transition: opacity 180ms ease;
+    }
+
+    .graph-layer canvas {
+      width: 100% !important;
+      height: 100% !important;
     }
 
     body.graph-active .graph-layer {
@@ -198,19 +215,223 @@
       </div>
     </div>
     <div class="status">
-      <span class="status-pill">orbit: ready</span>
-      <span class="status-pill">force-graph: pending</span>
+      <span class="status-pill" data-status="orbit">orbit: ready</span>
+      <span class="status-pill" data-status="graph">force-graph: pending</span>
     </div>
   </header>
 
   <main aria-label="3D file graph background"></main>
 
+  <script src="https://cdn.jsdelivr.net/npm/three@0.161.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/3d-force-graph@1.73.1/dist/3d-force-graph.min.js"></script>
   <script>
     const brandButton = document.getElementById('brand-button');
     const graphLayer = document.getElementById('graph-layer');
+    const graphStatus = document.querySelector('[data-status="graph"]');
+
+    const fileNodes = [
+      { id: 'root', name: 'project', type: 'directory', size: 0, parentId: null },
+      { id: 'src', name: 'src', type: 'directory', size: 0, parentId: 'root' },
+      { id: 'components', name: 'components', type: 'directory', size: 0, parentId: 'src' },
+      { id: 'app-js', name: 'App.js', type: 'file', size: 4200, parentId: 'src' },
+      { id: 'main-js', name: 'main.js', type: 'file', size: 2600, parentId: 'src' },
+      { id: 'styles', name: 'styles', type: 'directory', size: 0, parentId: 'root' },
+      { id: 'base-css', name: 'base.css', type: 'file', size: 1800, parentId: 'styles' },
+      { id: 'theme-css', name: 'theme.css', type: 'file', size: 950, parentId: 'styles' },
+      { id: 'utils', name: 'utils', type: 'directory', size: 0, parentId: 'src' },
+      { id: 'format-js', name: 'format.js', type: 'file', size: 2100, parentId: 'utils' },
+      { id: 'api', name: 'api', type: 'directory', size: 0, parentId: 'root' },
+      { id: 'client-js', name: 'client.js', type: 'file', size: 1400, parentId: 'api' },
+      { id: 'types', name: 'types', type: 'directory', size: 0, parentId: 'root' },
+      { id: 'index-d-ts', name: 'index.d.ts', type: 'file', size: 700, parentId: 'types' },
+      { id: 'readme-md', name: 'README.md', type: 'file', size: 1200, parentId: 'root' },
+    ];
+
+    const buildGraphData = () => {
+      const nodes = fileNodes.map((node) => ({ ...node }));
+      const links = fileNodes
+        .filter((node) => node.parentId)
+        .map((node) => ({ source: node.parentId, target: node.id }));
+      return { nodes, links };
+    };
+
+    const colorForNode = (node) => {
+      if (node.type === 'directory') return '#6ee7ff';
+      if (node.name.endsWith('.css')) return '#34d399';
+      if (node.name.endsWith('.md')) return '#93c5fd';
+      return '#c084fc';
+    };
+
+    const createGlowSprite = (color, radius) => {
+      const size = 256;
+      const canvas = document.createElement('canvas');
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      const gradient = ctx.createRadialGradient(size / 2, size / 2, size * 0.1, size / 2, size / 2, size / 2);
+      gradient.addColorStop(0, 'rgba(255,255,255,0.65)');
+      gradient.addColorStop(0.28, `${color}cc`);
+      gradient.addColorStop(0.55, `${color}55`);
+      gradient.addColorStop(1, `${color}00`);
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, size, size);
+
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.minFilter = THREE.LinearFilter;
+      texture.magFilter = THREE.LinearFilter;
+      const material = new THREE.SpriteMaterial({
+        map: texture,
+        transparent: true,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+        opacity: 0.75,
+      });
+      const sprite = new THREE.Sprite(material);
+      sprite.scale.set(radius * 3.2, radius * 3.2, 1);
+      sprite.renderOrder = -1;
+      return sprite;
+    };
+
+    const createLabelSprite = (text, color) => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const fontSize = 72;
+      ctx.font = `700 ${fontSize}px 'Space Grotesk', sans-serif`;
+      const paddingX = 180;
+      const paddingY = 120;
+      const measured = Math.max(260, Math.ceil(ctx.measureText(text).width + paddingX));
+      const width = Math.min(1100, measured);
+      const height = Math.max(200, fontSize + paddingY);
+      canvas.width = width;
+      canvas.height = height;
+      ctx.font = `700 ${fontSize}px 'Space Grotesk', sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = 'rgba(6, 11, 22, 0.9)';
+      ctx.fillRect(0, 0, width, height);
+      const gradient = ctx.createLinearGradient(0, 0, width, height);
+      gradient.addColorStop(0, 'rgba(255,255,255,0.1)');
+      gradient.addColorStop(0.5, 'rgba(255,255,255,0.16)');
+      gradient.addColorStop(1, 'rgba(255,255,255,0.08)');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, width, height);
+      ctx.fillStyle = color;
+      ctx.shadowColor = color;
+      ctx.shadowBlur = 40;
+      ctx.fillText(text, width / 2, height / 2);
+
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.minFilter = THREE.LinearFilter;
+      texture.magFilter = THREE.LinearFilter;
+      const material = new THREE.SpriteMaterial({
+        map: texture,
+        transparent: true,
+        depthWrite: false,
+        opacity: 0.9,
+      });
+      const sprite = new THREE.Sprite(material);
+      const scale = 0.025;
+      sprite.scale.set(width * scale, height * scale, 1);
+      sprite.renderOrder = 5;
+      return sprite;
+    };
+
+    let graphInstance = null;
+    let graphReady = false;
+    let graphActive = false;
+
+    const updateGraphStatus = (text) => {
+      if (graphStatus) {
+        graphStatus.textContent = text;
+      }
+    };
+
+    const createNodeObject = (node) => {
+      const color = colorForNode(node);
+      const baseRadius = node.type === 'directory' ? 5.4 : 3.2;
+      const sizeFactor = node.size ? Math.min(2.5, Math.log10(node.size + 16)) : 1;
+      const radius = baseRadius + (sizeFactor - 1) * 1.1;
+      const group = new THREE.Group();
+      const geometry = new THREE.SphereGeometry(radius, 36, 36);
+      const material = new THREE.MeshPhysicalMaterial({
+        color,
+        emissive: new THREE.Color(color),
+        emissiveIntensity: 1.2,
+        roughness: 0.22,
+        metalness: 0.55,
+        clearcoat: 0.45,
+        clearcoatRoughness: 0.18,
+        transmission: 0.12,
+        transparent: true,
+        opacity: 0.92,
+      });
+      const core = new THREE.Mesh(geometry, material);
+      core.castShadow = false;
+      core.receiveShadow = false;
+      group.add(core);
+
+      const glow = createGlowSprite(color, radius);
+      if (glow) {
+        group.add(glow);
+      }
+      const label = createLabelSprite(node.name, color);
+      if (label) {
+        label.position.set(0, radius * 1.8, 0);
+        group.add(label);
+      }
+
+      node.__core = core;
+      node.__glow = glow;
+      node.__label = label;
+      node.__group = group;
+      node.__radius = radius;
+      return group;
+    };
+
+    const initGraph = () => {
+      const data = buildGraphData();
+      graphInstance = ForceGraph3D({
+        rendererConfig: { antialias: true, alpha: true },
+      })(graphLayer)
+        .backgroundColor('rgba(0,0,0,0)')
+        .graphData(data)
+        .showNavInfo(false)
+        .nodeThreeObject(createNodeObject)
+        .nodeThreeObjectExtend(true)
+        .linkOpacity(0.2)
+        .linkWidth(0.8)
+        .linkColor(() => 'rgba(255,255,255,0.18)')
+        .cooldownTicks(90)
+        .d3VelocityDecay(0.28);
+
+      graphInstance.d3Force('charge').strength(-220);
+      graphInstance.d3Force('link').distance((link) => (link.target?.type === 'directory' ? 44 : 30));
+      graphInstance.cameraPosition({ z: 120 });
+
+      const controls = graphInstance.controls();
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.12;
+      controls.rotateSpeed = 0.95;
+      controls.zoomSpeed = 0.9;
+      controls.minDistance = 24;
+      controls.maxDistance = 180;
+
+      graphReady = true;
+      updateGraphStatus('force-graph: ready');
+    };
 
     const toggleGraph = () => {
-      document.body.classList.toggle('graph-active');
+      if (!graphReady) {
+        initGraph();
+      }
+      graphActive = !graphActive;
+      document.body.classList.toggle('graph-active', graphActive);
+      if (!graphInstance) return;
+      if (graphActive) {
+        graphInstance.resumeAnimation?.();
+      } else {
+        graphInstance.pauseAnimation?.();
+      }
     };
 
     brandButton?.addEventListener('dblclick', () => {
