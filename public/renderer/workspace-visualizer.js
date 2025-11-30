@@ -14,7 +14,9 @@ const buildWorkspaceLabelSprite = (text, color, scale = 1) => {
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
   const fontSize = 64;
-  ctx.font = `800 ${fontSize}px 'Space Grotesk', 'Inter', sans-serif`;
+  const fontWeight = 900;
+  const fontFamily = `'Space Grotesk', 'Inter', sans-serif`;
+  ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
   const paddingX = 110;
   const paddingY = 70;
   const measured = Math.max(260, Math.ceil(ctx.measureText(text).width + paddingX));
@@ -22,30 +24,36 @@ const buildWorkspaceLabelSprite = (text, color, scale = 1) => {
   const height = Math.max(200, fontSize + paddingY);
   canvas.width = width;
   canvas.height = height;
-  ctx.font = `800 ${fontSize}px 'Space Grotesk', 'Inter', sans-serif`;
+  ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
 
-  ctx.shadowColor = `${color}80`;
-  ctx.shadowBlur = 26;
-  ctx.shadowOffsetY = 3;
-  ctx.fillStyle = color;
-  ctx.lineWidth = 7;
+  const centerX = width / 2;
+  const centerY = height / 2 + 4;
+  ctx.shadowColor = `${color}6a`;
+  ctx.shadowBlur = 16;
+  ctx.shadowOffsetY = 4;
   ctx.lineJoin = 'round';
-  ctx.strokeStyle = `${color}c0`;
-  ctx.strokeText(text, width / 2, height / 2 + 4);
-  ctx.fillText(text, width / 2, height / 2 + 4);
+  ctx.strokeStyle = '#0b1222d8';
+  ctx.lineWidth = 10;
+  ctx.strokeText(text, centerX, centerY);
+  ctx.strokeStyle = `${color}d0`;
+  ctx.lineWidth = 6;
+  ctx.strokeText(text, centerX, centerY);
+  ctx.fillStyle = color;
+  ctx.fillText(text, centerX, centerY);
 
   const texture = new THREE.CanvasTexture(canvas);
   texture.minFilter = THREE.LinearFilter;
   texture.magFilter = THREE.LinearFilter;
+  texture.anisotropy = 4;
   texture.generateMipmaps = false;
   const material = new THREE.SpriteMaterial({
     map: texture,
     transparent: true,
     depthWrite: false,
     depthTest: false,
-    opacity: 0.82,
+    opacity: 0.9,
     blending: THREE.NormalBlending,
     toneMapped: false,
   });
@@ -210,6 +218,8 @@ const computeWorkspaceLayout = (graph) => {
   const seedDirections = buildSeedDirections(root.children?.length ?? 0);
   let maxDepth = 0;
   let radius = 12;
+  const spacingScale = 1.32;
+  const lateralScale = 1.14;
 
   const placeChildren = (parent) => {
     const children = parent.children ?? [];
@@ -227,10 +237,12 @@ const computeWorkspaceLayout = (graph) => {
 
       const parentDistance = distances.get(parent.id) ?? 0;
       const depth = child.depth ?? (parent.depth ?? 0) + 1;
-      const step = 4.1 + depth * 0.6;
+      const stepBase = 4.1 + depth * 0.6;
+      const step = stepBase * spacingScale;
       const length = parentDistance + step * (child.type === 'directory' ? 1.22 : 1.05);
       const { u, v } = buildBranchBasis(dir);
-      const spread = Math.max(0.65, 0.9 + (children.length - 1) * 0.14);
+      const spreadBase = Math.max(0.65, 0.9 + (children.length - 1) * 0.14);
+      const spread = spreadBase * lateralScale;
       const phase = children.length > 1
         ? ((index / Math.max(1, children.length - 1)) - 0.5) * Math.PI * 0.82
         : 0;
@@ -241,9 +253,9 @@ const computeWorkspaceLayout = (graph) => {
         )
         : { x: 0, y: 0, z: 0 };
       const jitter = {
-        x: jitterFromHash(`${key}:jx`, 0.9 + depth * 0.08),
-        y: jitterFromHash(`${key}:jy`, 0.7 + depth * 0.08),
-        z: jitterFromHash(`${key}:jz`, 0.9 + depth * 0.08),
+        x: jitterFromHash(`${key}:jx`, (0.9 + depth * 0.08) * spacingScale * 0.85),
+        y: jitterFromHash(`${key}:jy`, (0.7 + depth * 0.08) * spacingScale * 0.85),
+        z: jitterFromHash(`${key}:jz`, (0.9 + depth * 0.08) * spacingScale * 0.85),
       };
 
       const radial = scaleVec(dir, length);
