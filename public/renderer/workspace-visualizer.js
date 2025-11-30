@@ -431,6 +431,12 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
     setWorkspaceVisualizerActive(true);
     setWorkspaceVisualizerMessage('workspaceを読み込み中…');
     try {
+      const three = await loadThreeModule();
+      if (!three) {
+        setWorkspaceVisualizerMessage('three.jsを読み込めませんでした。依存関係を再インストールしてください');
+        setTimeout(() => stopWorkspaceVisualizer(), 1400);
+        return;
+      }
       const graph = await loadWorkspaceGraph();
       if (!isWorkspaceVisualizerActive) {
         return;
