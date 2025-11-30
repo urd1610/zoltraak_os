@@ -46,6 +46,32 @@ const buildWorkspaceLabelSprite = (text, color, scale = 1) => {
   return sprite;
 };
 
+let threeLoadPromise = null;
+
+const loadThreeModule = async () => {
+  if (typeof THREE !== 'undefined') return THREE;
+  if (threeLoadPromise) return threeLoadPromise;
+  if (typeof window === 'undefined') return null;
+  const moduleUrl = window.desktopBridge?.getThreeModuleUrl?.();
+  if (!moduleUrl) {
+    console.error('three.js module URL is unavailable');
+    return null;
+  }
+  threeLoadPromise = import(moduleUrl)
+    .then((mod) => {
+      if (typeof THREE === 'undefined' && mod) {
+        window.THREE = mod;
+      }
+      return window.THREE ?? mod ?? null;
+    })
+    .catch((error) => {
+      console.error('Failed to load three.js module', error);
+      threeLoadPromise = null;
+      return null;
+    });
+  return threeLoadPromise;
+};
+
 const buildWorkspaceTree = (graph) => {
   const nodeMap = new Map();
   (graph?.nodes ?? []).forEach((node) => {
@@ -405,6 +431,12 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
     setWorkspaceVisualizerActive(true);
     setWorkspaceVisualizerMessage('workspaceを読み込み中…');
     try {
+      const three = await loadThreeModule();
+      if (!three) {
+        setWorkspaceVisualizerMessage('three.jsを読み込めませんでした。依存関係を再インストールしてください');
+        setTimeout(() => stopWorkspaceVisualizer(), 1400);
+        return;
+      }
       const graph = await loadWorkspaceGraph();
       if (!isWorkspaceVisualizerActive) {
         return;
