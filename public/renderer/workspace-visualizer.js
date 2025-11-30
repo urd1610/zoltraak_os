@@ -226,6 +226,49 @@ const computeWorkspaceLayout = (graph) => {
   return { positions, radius, maxDepth };
 };
 
+const createOrbitControlsState = (camera, focusPoint, layoutRadius) => {
+  if (typeof THREE === 'undefined' || !camera || !focusPoint) return null;
+  const offset = new THREE.Vector3().subVectors(camera.position, focusPoint);
+  const spherical = new THREE.Spherical().setFromVector3(offset);
+  const target = spherical.clone();
+  const scratch = new THREE.Vector3();
+  const limits = {
+    minRadius: Math.max(6, layoutRadius * 0.55),
+    maxRadius: Math.max(layoutRadius * 1.6, layoutRadius * 4),
+    minPhi: 0.18,
+    maxPhi: Math.PI - 0.14,
+  };
+  return {
+    spherical,
+    target,
+    focusPoint: focusPoint.clone(),
+    limits,
+    lastPointer: { x: 0, y: 0 },
+    isDragging: false,
+    scratch,
+  };
+};
+
+const applyOrbitControlsToCamera = (controls, camera) => {
+  if (!controls || !camera || typeof THREE === 'undefined') return;
+  const { spherical, target, limits, scratch, focusPoint } = controls;
+  const easing = controls.isDragging ? 0.22 : 0.12;
+
+  spherical.theta += (target.theta - spherical.theta) * easing;
+  spherical.phi += (target.phi - spherical.phi) * easing;
+  spherical.radius += (target.radius - spherical.radius) * 0.18;
+
+  spherical.phi = THREE.MathUtils.clamp(spherical.phi, limits.minPhi, limits.maxPhi);
+  target.phi = THREE.MathUtils.clamp(target.phi, limits.minPhi, limits.maxPhi);
+
+  spherical.radius = THREE.MathUtils.clamp(spherical.radius, limits.minRadius, limits.maxRadius);
+  target.radius = THREE.MathUtils.clamp(target.radius, limits.minRadius, limits.maxRadius);
+
+  scratch.setFromSpherical(spherical).add(focusPoint);
+  camera.position.copy(scratch);
+  camera.lookAt(focusPoint);
+};
+
 export const createWorkspaceVisualizer = (workspaceVisualizer) => {
   let isWorkspaceVisualizerActive = false;
   let workspaceVisualizerLoading = false;
@@ -233,6 +276,7 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
   let workspaceGraphCache = null;
   let workspaceScene = null;
   let workspaceSceneAnimationId = null;
+  let hasWorkspaceInteractionHandlers = false;
 
   const getWorkspaceVisualizerStatusEl = () => {
     if (!workspaceVisualizer) return null;
@@ -254,11 +298,78 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
     target.hidden = text.length === 0;
   };
 
+  const getOrbitControls = () => workspaceScene?.controls ?? null;
+
+  const stopOrbitDrag = () => {
+    const controls = getOrbitControls();
+    if (controls) {
+      controls.isDragging = false;
+    }
+    workspaceVisualizer?.classList?.remove?.('is-dragging');
+  };
+
   const setWorkspaceVisualizerActive = (active) => {
     isWorkspaceVisualizerActive = Boolean(active);
     if (!workspaceVisualizer) return;
     workspaceVisualizer.classList.toggle('is-active', isWorkspaceVisualizerActive);
     workspaceVisualizer.setAttribute('aria-hidden', isWorkspaceVisualizerActive ? 'false' : 'true');
+    if (!isWorkspaceVisualizerActive) {
+      stopOrbitDrag();
+    }
+  };
+
+  const handleWorkspacePointerDown = (event) => {
+    if (!isWorkspaceVisualizerActive || workspaceVisualizerLoading) return;
+    if (event.button !== undefined && event.button !== 0) return;
+    const controls = getOrbitControls();
+    if (!controls || typeof THREE === 'undefined') return;
+    controls.isDragging = true;
+    controls.lastPointer = { x: event.clientX, y: event.clientY };
+    workspaceVisualizer?.classList?.add?.('is-dragging');
+    event.preventDefault();
+  };
+
+  const handleWorkspacePointerMove = (event) => {
+    const controls = getOrbitControls();
+    if (!isWorkspaceVisualizerActive || !controls?.isDragging || typeof THREE === 'undefined') return;
+    const dx = event.clientX - (controls.lastPointer?.x ?? 0);
+    const dy = event.clientY - (controls.lastPointer?.y ?? 0);
+    controls.lastPointer = { x: event.clientX, y: event.clientY };
+    const rotateSpeed = 0.0062;
+    const tiltSpeed = 0.0044;
+    controls.target.theta -= dx * rotateSpeed;
+    controls.target.phi = THREE.MathUtils.clamp(
+      controls.target.phi + dy * tiltSpeed,
+      controls.limits.minPhi,
+      controls.limits.maxPhi,
+    );
+    event.preventDefault();
+  };
+
+  const handleWorkspacePointerUp = () => {
+    stopOrbitDrag();
+  };
+
+  const handleWorkspaceWheel = (event) => {
+    if (!isWorkspaceVisualizerActive || typeof THREE === 'undefined') return;
+    const controls = getOrbitControls();
+    if (!controls) return;
+    const zoomFactor = Math.exp(event.deltaY * 0.0012);
+    controls.target.radius = THREE.MathUtils.clamp(
+      controls.target.radius * zoomFactor,
+      controls.limits.minRadius,
+      controls.limits.maxRadius,
+    );
+    event.preventDefault();
+  };
+
+  const ensureWorkspaceInteractionHandlers = () => {
+    if (hasWorkspaceInteractionHandlers || !workspaceVisualizer) return;
+    workspaceVisualizer.addEventListener('pointerdown', handleWorkspacePointerDown);
+    window.addEventListener('pointermove', handleWorkspacePointerMove);
+    window.addEventListener('pointerup', handleWorkspacePointerUp);
+    workspaceVisualizer.addEventListener('wheel', handleWorkspaceWheel, { passive: false });
+    hasWorkspaceInteractionHandlers = true;
   };
 
   const disposeWorkspaceScene = () => {
@@ -267,6 +378,7 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
       workspaceSceneAnimationId = null;
     }
     if (!workspaceScene) return;
+    stopOrbitDrag();
     const { renderer, groups, lines, scatter } = workspaceScene;
     const disposeChild = (child) => {
       child.userData?.dispose?.();
@@ -471,6 +583,7 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
 
     camera.position.set(0, layout.radius * 0.18, layout.radius * 2.35);
     camera.lookAt(focusPoint);
+    const orbitControls = createOrbitControlsState(camera, focusPoint, layout.radius);
 
     scene.add(groups.nodes);
     scene.add(groups.labels);
@@ -486,7 +599,9 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
       scatter,
       nodeMeta,
       radius: layout.radius,
+      controls: orbitControls,
     };
+    ensureWorkspaceInteractionHandlers();
     return true;
   };
 
@@ -525,8 +640,10 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
       line.material.opacity = linePulse * damp;
     });
 
-    workspaceScene.scene.rotation.y = Math.sin(t * 0.07) * 0.06;
-    workspaceScene.scene.rotation.x = -0.04 + Math.cos(t * 0.05) * 0.015;
+    applyOrbitControlsToCamera(workspaceScene.controls, workspaceScene.camera);
+    const wobbleDamp = workspaceScene.controls?.isDragging ? 0.4 : 1;
+    workspaceScene.scene.rotation.y = Math.sin(t * 0.07) * 0.06 * wobbleDamp;
+    workspaceScene.scene.rotation.x = -0.04 + Math.cos(t * 0.05) * 0.015 * wobbleDamp;
     workspaceScene.renderer.render(workspaceScene.scene, workspaceScene.camera);
     workspaceSceneAnimationId = requestAnimationFrame(animateWorkspaceScene);
   };
@@ -543,6 +660,7 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
     workspaceVisualizerLoading = true;
     setWorkspaceVisualizerActive(true);
     setWorkspaceVisualizerMessage('workspaceを読み込み中…');
+    ensureWorkspaceInteractionHandlers();
     try {
       const three = await loadThreeModule();
       if (!three) {
