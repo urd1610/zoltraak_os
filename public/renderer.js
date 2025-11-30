@@ -249,6 +249,7 @@ let workspaceVisualizerStatusEl = null;
 let workspaceGraphCache = null;
 let workspaceScene = null;
 let workspaceSceneAnimationId = null;
+let workspaceOrbitDrag = null;
 let threeModulePromise = null;
 
 const normalizeThreeModule = (mod) => {
@@ -316,9 +317,65 @@ const setWorkspaceVisualizerMessage = (message) => {
 
 const setWorkspaceVisualizerActive = (active) => {
   isWorkspaceVisualizerActive = Boolean(active);
-  if (!workspaceVisualizer) return;
-  workspaceVisualizer.classList.toggle('is-active', isWorkspaceVisualizerActive);
-  workspaceVisualizer.setAttribute('aria-hidden', isWorkspaceVisualizerActive ? 'false' : 'true');
+  if (workspaceVisualizer) {
+    workspaceVisualizer.classList.toggle('is-active', isWorkspaceVisualizerActive);
+    if (!isWorkspaceVisualizerActive) {
+      workspaceVisualizer.classList.remove('is-dragging');
+    }
+    workspaceVisualizer.setAttribute('aria-hidden', isWorkspaceVisualizerActive ? 'false' : 'true');
+  }
+  if (quickActionsContainer) {
+    quickActionsContainer.classList.toggle('workspace-draggable', isWorkspaceVisualizerActive);
+    if (!isWorkspaceVisualizerActive) {
+      quickActionsContainer.classList.remove('workspace-dragging');
+    }
+  }
+};
+
+const WORKSPACE_MAX_PITCH = 0.9;
+const WORKSPACE_YAW_SENSITIVITY = 0.004;
+const WORKSPACE_PITCH_SENSITIVITY = 0.0025;
+
+const clampWorkspacePitch = (value) => Math.min(Math.max(value, -WORKSPACE_MAX_PITCH), WORKSPACE_MAX_PITCH);
+
+const stopWorkspaceDrag = () => {
+  if (!workspaceOrbitDrag) return;
+  document.removeEventListener('pointermove', handleWorkspaceDragMove);
+  document.removeEventListener('pointerup', stopWorkspaceDrag);
+  document.removeEventListener('pointercancel', stopWorkspaceDrag);
+  workspaceVisualizer?.classList.remove('is-dragging');
+  quickActionsContainer?.classList.remove('workspace-dragging');
+  workspaceOrbitDrag = null;
+};
+
+const handleWorkspaceDragMove = (event) => {
+  if (!workspaceOrbitDrag || !workspaceScene?.rotation) return;
+  if (typeof event.pointerId === 'number' && typeof workspaceOrbitDrag.pointerId === 'number' && event.pointerId !== workspaceOrbitDrag.pointerId) {
+    return;
+  }
+  const deltaX = (event.clientX ?? 0) - workspaceOrbitDrag.startX;
+  const deltaY = (event.clientY ?? 0) - workspaceOrbitDrag.startY;
+  workspaceScene.rotation.yaw = workspaceOrbitDrag.startYaw + deltaX * WORKSPACE_YAW_SENSITIVITY;
+  workspaceScene.rotation.pitch = clampWorkspacePitch(workspaceOrbitDrag.startPitch + deltaY * WORKSPACE_PITCH_SENSITIVITY);
+};
+
+const startWorkspaceDrag = (event) => {
+  if (!workspaceScene?.rotation) return;
+  if (workspaceOrbitDrag) {
+    stopWorkspaceDrag();
+  }
+  workspaceOrbitDrag = {
+    pointerId: typeof event.pointerId === 'number' ? event.pointerId : null,
+    startX: event.clientX ?? 0,
+    startY: event.clientY ?? 0,
+    startYaw: workspaceScene.rotation.yaw ?? 0,
+    startPitch: workspaceScene.rotation.pitch ?? 0,
+  };
+  workspaceVisualizer?.classList.add('is-dragging');
+  quickActionsContainer?.classList.add('workspace-dragging');
+  document.addEventListener('pointermove', handleWorkspaceDragMove);
+  document.addEventListener('pointerup', stopWorkspaceDrag);
+  document.addEventListener('pointercancel', stopWorkspaceDrag);
 };
 
 const disposeWorkspaceScene = () => {
@@ -326,6 +383,7 @@ const disposeWorkspaceScene = () => {
     cancelAnimationFrame(workspaceSceneAnimationId);
     workspaceSceneAnimationId = null;
   }
+  stopWorkspaceDrag();
   if (!workspaceScene) return;
   const { renderer, groups, lines, scatter } = workspaceScene;
   groups?.nodes?.children?.forEach((child) => {
@@ -562,6 +620,7 @@ const createWorkspaceScene = (graph, three) => {
     scatter,
     nodeMeta,
     radius: layout.radius,
+    rotation: { yaw: 0, pitch: 0 },
   };
   return true;
 };
@@ -599,9 +658,20 @@ const animateWorkspaceScene = (timestamp) => {
     workspaceScene.lines.material.opacity = 0.28 + Math.sin(t * 0.6) * 0.06;
   }
 
-  workspaceScene.scene.rotation.y = Math.sin(t * 0.05) * 0.05;
+  const rotation = workspaceScene.rotation ?? { yaw: 0, pitch: 0 };
+  const autoYaw = workspaceOrbitDrag ? 0 : Math.sin(t * 0.05) * 0.05;
+  workspaceScene.scene.rotation.set(rotation.pitch ?? 0, autoYaw + (rotation.yaw ?? 0), 0);
   workspaceScene.renderer.render(workspaceScene.scene, workspaceScene.camera);
   workspaceSceneAnimationId = requestAnimationFrame(animateWorkspaceScene);
+};
+
+const handleWorkspacePointerDown = (event) => {
+  if (!isWorkspaceVisualizerActive || workspaceVisualizerLoading || !workspaceScene?.rotation) return;
+  if (event.button !== undefined && event.button !== 0) return;
+  if (event.target?.closest('.quick-action')) return;
+  if (currentDraggingElement || activeWindowDrag) return;
+  startWorkspaceDrag(event);
+  event.preventDefault();
 };
 
 const stopWorkspaceVisualizer = () => {
@@ -2157,6 +2227,8 @@ const boot = () => {
   workspaceChip?.addEventListener('click', () => void handleWorkspaceChange());
   sidePanelToggleButton?.addEventListener('click', toggleSidePanel);
   brandButton?.addEventListener('dblclick', () => toggleWorkspaceVisualizer());
+  workspaceVisualizer?.addEventListener('pointerdown', handleWorkspacePointerDown);
+  quickActionsContainer?.addEventListener('pointerdown', handleWorkspacePointerDown);
   
   // グローバルイベントリスナーは一度だけ登録
   document.addEventListener('mousemove', handleGlobalMouseMove);
