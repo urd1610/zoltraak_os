@@ -1,4 +1,5 @@
 const { contextBridge, ipcRenderer } = require('electron');
+const path = require('path');
 
 const systemInfo = {
   user: process.env.USERNAME ?? process.env.USER ?? 'unknown',
@@ -8,12 +9,38 @@ const systemInfo = {
     : process.release?.name ?? 'unknown',
 };
 
+const resolveDependency = (name) => {
+  // Worktree配下で起動すると app パス直下に node_modules が無いので、探索パスを明示して解決する
+  const searchRoots = [
+    __dirname,
+    path.resolve(__dirname, '..'),
+    path.resolve(__dirname, '..', '..'),
+    path.resolve(__dirname, '..', '..', '..'),
+    process.cwd(),
+    process.resourcesPath,
+  ].filter(Boolean);
+
+  let lastError = null;
+  for (const base of searchRoots) {
+    try {
+      const resolved = require.resolve(name, { paths: [base] });
+      return require(resolved);
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  if (lastError) {
+    throw lastError;
+  }
+  return null;
+};
+
 let three = null;
 
 try {
   // three.js をプリロードしてレンダラー側へ露出しておく
   // （nodeIntegration: false でも使えるようにする）
-  three = require('three');
+  three = resolveDependency('three');
   contextBridge.exposeInMainWorld('THREE', three);
 } catch (error) {
   // three がなくても他の機能は動くようにする
