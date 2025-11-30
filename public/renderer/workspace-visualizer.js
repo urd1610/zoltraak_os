@@ -46,24 +46,107 @@ const buildWorkspaceLabelSprite = (text, color, scale = 1) => {
   return sprite;
 };
 
-const computeWorkspaceLayout = (graph) => {
-  const nodes = Array.isArray(graph?.nodes) ? graph.nodes : [];
-  const total = nodes.length || 1;
-  const baseRadius = Math.max(18, total * 0.35);
-  const golden = Math.PI * (3 - Math.sqrt(5));
-  const positions = new Map();
-  nodes.forEach((node, index) => {
-    const theta = index * golden;
-    const layer = Math.max(1, (node?.depth ?? 1));
-    const radial = baseRadius * (0.7 + layer * 0.15);
-    const y = ((index / total) - 0.5) * baseRadius * 0.35;
-    positions.set(node.id, {
-      x: Math.cos(theta) * radial + (Math.random() - 0.5) * 2,
-      y: y + (Math.random() - 0.5) * 1.4,
-      z: Math.sin(theta) * radial + (Math.random() - 0.5) * 2,
-    });
+const buildWorkspaceTree = (graph) => {
+  const nodeMap = new Map();
+  (graph?.nodes ?? []).forEach((node) => {
+    nodeMap.set(node.id, { ...node, children: [] });
   });
-  return { positions, radius: baseRadius };
+
+  (graph?.links ?? []).forEach((link) => {
+    const parent = nodeMap.get(link.source);
+    const child = nodeMap.get(link.target);
+    if (parent && child) {
+      parent.children.push(child);
+    }
+  });
+
+  const root = nodeMap.get('.') ?? (nodeMap.size ? nodeMap.values().next().value : null);
+
+  const sortChildren = (node) => {
+    if (!node?.children?.length) return;
+    node.children.sort((a, b) => {
+      if (a.type !== b.type) {
+        return a.type === 'directory' ? -1 : 1;
+      }
+      return a.name.localeCompare(b.name);
+    });
+    node.children.forEach(sortChildren);
+  };
+  sortChildren(root);
+
+  return { root, nodeMap };
+};
+
+const measureTree = (node, widths, depth = 0) => {
+  if (!node) {
+    return { width: 1, maxDepth: depth };
+  }
+  if (!node.children?.length) {
+    widths.set(node.id, 1);
+    return { width: 1, maxDepth: depth };
+  }
+
+  let totalWidth = 0;
+  let maxDepth = depth;
+  node.children.forEach((child) => {
+    const { width: childWidth, maxDepth: childDepth } = measureTree(child, widths, depth + 1);
+    totalWidth += childWidth;
+    maxDepth = Math.max(maxDepth, childDepth);
+  });
+  const width = Math.max(1, totalWidth);
+  widths.set(node.id, width);
+  return { width, maxDepth };
+};
+
+const assignTreePositions = (node, widths, positions, config, left, depth, siblingIndex = 0, siblingCount = 1) => {
+  if (!node) {
+    return;
+  }
+  const width = widths.get(node.id) ?? 1;
+  const { horizontalGap, verticalGap, zSpread, jitter } = config;
+  const centerX = (left + width / 2) * horizontalGap;
+  const z = (siblingIndex - (siblingCount - 1) / 2) * zSpread;
+  const xJitter = (Math.random() - 0.5) * jitter;
+  const zJitter = (Math.random() - 0.5) * jitter;
+  positions.set(node.id, {
+    x: centerX + xJitter,
+    y: -depth * verticalGap,
+    z: z + zJitter,
+  });
+
+  let cursor = left;
+  node.children?.forEach((child, index) => {
+    const childWidth = widths.get(child.id) ?? 1;
+    assignTreePositions(child, widths, positions, config, cursor, depth + 1, index, node.children.length);
+    cursor += childWidth;
+  });
+};
+
+const computeWorkspaceLayout = (graph) => {
+  const positions = new Map();
+  const { root } = buildWorkspaceTree(graph);
+  if (!root) {
+    return { positions, radius: 12, maxDepth: 0 };
+  }
+
+  const widths = new Map();
+  const { width: rootWidth, maxDepth } = measureTree(root, widths, 0);
+
+  const horizontalGap = Math.min(5, 2.4 + Math.log2(rootWidth + 1) * 0.6);
+  const verticalGap = 3 + Math.max(0, maxDepth - 2) * 0.35;
+  const zSpread = 1.6;
+  const jitter = 0.35;
+  const config = { horizontalGap, verticalGap, zSpread, jitter };
+
+  assignTreePositions(root, widths, positions, config, -rootWidth / 2, 0, 0, 1);
+
+  let radius = 12;
+  positions.forEach((pos) => {
+    const dist = Math.sqrt(pos.x * pos.x + pos.y * pos.y + pos.z * pos.z);
+    radius = Math.max(radius, dist * 1.35);
+  });
+
+  return { positions, radius, maxDepth };
 };
 
 export const createWorkspaceVisualizer = (workspaceVisualizer) => {
