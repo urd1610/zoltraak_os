@@ -14,7 +14,7 @@ const buildWorkspaceLabelSprite = (text, color, scale = 1) => {
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
   const fontSize = 64;
-  ctx.font = `700 ${fontSize}px 'Space Grotesk', 'Inter', sans-serif`;
+  ctx.font = `800 ${fontSize}px 'Space Grotesk', 'Inter', sans-serif`;
   const paddingX = 110;
   const paddingY = 70;
   const measured = Math.max(260, Math.ceil(ctx.measureText(text).width + paddingX));
@@ -22,7 +22,7 @@ const buildWorkspaceLabelSprite = (text, color, scale = 1) => {
   const height = Math.max(200, fontSize + paddingY);
   canvas.width = width;
   canvas.height = height;
-  ctx.font = `700 ${fontSize}px 'Space Grotesk', 'Inter', sans-serif`;
+  ctx.font = `800 ${fontSize}px 'Space Grotesk', 'Inter', sans-serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
 
@@ -46,6 +46,10 @@ const buildWorkspaceLabelSprite = (text, color, scale = 1) => {
   ctx.shadowBlur = 26;
   ctx.shadowOffsetY = 3;
   ctx.fillStyle = color;
+  ctx.lineWidth = 7;
+  ctx.lineJoin = 'round';
+  ctx.strokeStyle = `${color}c0`;
+  ctx.strokeText(text, width / 2, height / 2 + 4);
   ctx.fillText(text, width / 2, height / 2 + 4);
 
   const texture = new THREE.CanvasTexture(canvas);
