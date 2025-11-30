@@ -13,35 +13,86 @@ const buildWorkspaceLabelSprite = (text, color, scale = 1) => {
   if (typeof THREE === 'undefined') return null;
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
-  const fontSize = 64;
+  const fontSize = 72;
   ctx.font = `700 ${fontSize}px 'Space Grotesk', 'Inter', sans-serif`;
-  const padding = 80;
-  const measured = Math.max(240, Math.ceil(ctx.measureText(text).width + padding));
-  const width = Math.min(1024, measured);
-  const height = 160;
+  const paddingX = 140;
+  const paddingY = 90;
+  const measured = Math.max(320, Math.ceil(ctx.measureText(text).width + paddingX));
+  const width = Math.min(1400, measured);
+  const height = Math.max(220, fontSize + paddingY);
   canvas.width = width;
   canvas.height = height;
   ctx.font = `700 ${fontSize}px 'Space Grotesk', 'Inter', sans-serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillStyle = 'rgba(8, 13, 22, 0.82)';
-  ctx.fillRect(0, height / 2 - fontSize, width, fontSize * 1.9);
-  ctx.fillStyle = color;
+
+  const barHeight = fontSize * 1.8;
+  const barY = height / 2 - barHeight / 2;
+
+  ctx.fillStyle = 'rgba(4, 7, 14, 0.82)';
+  ctx.fillRect(0, barY, width, barHeight);
+
+  const gradient = ctx.createLinearGradient(0, 0, width, height);
+  gradient.addColorStop(0, 'rgba(255, 255, 255, 0.12)');
+  gradient.addColorStop(0.45, 'rgba(255, 255, 255, 0.18)');
+  gradient.addColorStop(1, 'rgba(255, 255, 255, 0.08)');
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, barY, width, barHeight);
+
   ctx.shadowColor = color;
-  ctx.shadowBlur = 18;
+  ctx.shadowBlur = 48;
+  ctx.fillStyle = color;
   ctx.fillText(text, width / 2, height / 2 + 6);
+
   const texture = new THREE.CanvasTexture(canvas);
   texture.minFilter = THREE.LinearFilter;
+  texture.magFilter = THREE.LinearFilter;
   texture.generateMipmaps = false;
   const material = new THREE.SpriteMaterial({
     map: texture,
     transparent: true,
     depthWrite: false,
+    opacity: 0.94,
+    blending: THREE.AdditiveBlending,
+  });
+  const sprite = new THREE.Sprite(material);
+  const spriteScale = 6.4 * scale;
+  sprite.scale.set((width / height) * spriteScale, spriteScale, 1);
+  sprite.userData.dispose = () => texture.dispose();
+  return sprite;
+};
+
+const buildNodeGlowSprite = (color, radius = 3, intensity = 1) => {
+  if (typeof THREE === 'undefined') return null;
+  const canvas = document.createElement('canvas');
+  const size = 256;
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  const gradient = ctx.createRadialGradient(size / 2, size / 2, 4, size / 2, size / 2, size / 2);
+  gradient.addColorStop(0, `rgba(255, 255, 255, ${0.22 * intensity})`);
+  gradient.addColorStop(0.25, `rgba(255, 255, 255, ${0.14 * intensity})`);
+  gradient.addColorStop(0.45, `${color}33`);
+  gradient.addColorStop(1, `${color}00`);
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, size, size);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.minFilter = THREE.LinearFilter;
+  texture.magFilter = THREE.LinearFilter;
+  texture.generateMipmaps = false;
+
+  const material = new THREE.SpriteMaterial({
+    map: texture,
+    color,
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
     opacity: 0.9,
   });
   const sprite = new THREE.Sprite(material);
-  const spriteScale = 6 * scale;
-  sprite.scale.set((width / height) * spriteScale, spriteScale, 1);
+  const spriteScale = radius * 4;
+  sprite.scale.set(spriteScale, spriteScale, 1);
   sprite.userData.dispose = () => texture.dispose();
   return sprite;
 };
