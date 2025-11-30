@@ -317,9 +317,19 @@ const setWorkspaceVisualizerMessage = (message) => {
 
 const setWorkspaceVisualizerActive = (active) => {
   isWorkspaceVisualizerActive = Boolean(active);
-  if (!workspaceVisualizer) return;
-  workspaceVisualizer.classList.toggle('is-active', isWorkspaceVisualizerActive);
-  workspaceVisualizer.setAttribute('aria-hidden', isWorkspaceVisualizerActive ? 'false' : 'true');
+  if (workspaceVisualizer) {
+    workspaceVisualizer.classList.toggle('is-active', isWorkspaceVisualizerActive);
+    if (!isWorkspaceVisualizerActive) {
+      workspaceVisualizer.classList.remove('is-dragging');
+    }
+    workspaceVisualizer.setAttribute('aria-hidden', isWorkspaceVisualizerActive ? 'false' : 'true');
+  }
+  if (quickActionsContainer) {
+    quickActionsContainer.classList.toggle('workspace-draggable', isWorkspaceVisualizerActive);
+    if (!isWorkspaceVisualizerActive) {
+      quickActionsContainer.classList.remove('workspace-dragging');
+    }
+  }
 };
 
 const WORKSPACE_MAX_PITCH = 0.9;
@@ -333,6 +343,8 @@ const stopWorkspaceDrag = () => {
   document.removeEventListener('pointermove', handleWorkspaceDragMove);
   document.removeEventListener('pointerup', stopWorkspaceDrag);
   document.removeEventListener('pointercancel', stopWorkspaceDrag);
+  workspaceVisualizer?.classList.remove('is-dragging');
+  quickActionsContainer?.classList.remove('workspace-dragging');
   workspaceOrbitDrag = null;
 };
 
@@ -359,6 +371,8 @@ const startWorkspaceDrag = (event) => {
     startYaw: workspaceScene.rotation.yaw ?? 0,
     startPitch: workspaceScene.rotation.pitch ?? 0,
   };
+  workspaceVisualizer?.classList.add('is-dragging');
+  quickActionsContainer?.classList.add('workspace-dragging');
   document.addEventListener('pointermove', handleWorkspaceDragMove);
   document.addEventListener('pointerup', stopWorkspaceDrag);
   document.addEventListener('pointercancel', stopWorkspaceDrag);
