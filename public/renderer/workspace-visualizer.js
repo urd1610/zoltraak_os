@@ -14,6 +14,18 @@ const LABEL_FONT_WEIGHT = 700;
 const LABEL_FONT_SIZE = 64;
 const LABEL_CANVAS_MAX_DPR = 2.25;
 
+let labelFontReadyPromise = null;
+const ensureWorkspaceLabelFontReady = () => {
+  if (labelFontReadyPromise) return labelFontReadyPromise;
+  if (typeof document === 'undefined' || !document.fonts?.load) {
+    labelFontReadyPromise = Promise.resolve();
+    return labelFontReadyPromise;
+  }
+  const fontSpec = `${LABEL_FONT_WEIGHT} ${LABEL_FONT_SIZE}px ${LABEL_FONT_FAMILY}`;
+  labelFontReadyPromise = Promise.all([document.fonts.ready, document.fonts.load(fontSpec)]).catch(() => {});
+  return labelFontReadyPromise;
+};
+
 const buildWorkspaceLabelSprite = (text, color, scale = 1) => {
   if (typeof THREE === 'undefined') return null;
   const canvas = document.createElement('canvas');
@@ -760,6 +772,7 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
     setWorkspaceVisualizerMessage('workspaceを読み込み中…');
     ensureWorkspaceInteractionHandlers();
     try {
+      await ensureWorkspaceLabelFontReady();
       const three = await loadThreeModule();
       if (!three) {
         setWorkspaceVisualizerMessage('three.jsを読み込めませんでした。依存関係を再インストールしてください');
