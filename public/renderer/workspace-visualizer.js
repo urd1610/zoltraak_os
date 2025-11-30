@@ -412,18 +412,37 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
       linePositions.push(from.x, from.y, from.z, to.x, to.y, to.z);
     });
 
-    let lines = null;
+    const lineMeshes = [];
     if (linePositions.length) {
       const lineGeometry = new THREE.BufferGeometry();
       lineGeometry.setAttribute('position', new THREE.Float32BufferAttribute(linePositions, 3));
       const lineMaterial = new THREE.LineBasicMaterial({
-        color: 0x93c5fd,
+        color: 0x9ad2ff,
         transparent: true,
-        opacity: 0.4,
+        opacity: 0.58,
         linewidth: 1,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
       });
-      lines = new THREE.LineSegments(lineGeometry, lineMaterial);
-      scene.add(lines);
+      const baseLines = new THREE.LineSegments(lineGeometry, lineMaterial);
+      baseLines.renderOrder = -2;
+      lineMeshes.push(baseLines);
+      scene.add(baseLines);
+
+      const glowGeometry = lineGeometry.clone();
+      const glowMaterial = new THREE.LineBasicMaterial({
+        color: 0xcde8ff,
+        transparent: true,
+        opacity: 0.22,
+        linewidth: 2,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+      });
+      const glowLines = new THREE.LineSegments(glowGeometry, glowMaterial);
+      glowLines.renderOrder = -3;
+      glowLines.scale.set(1.008, 1.008, 1.008);
+      lineMeshes.push(glowLines);
+      scene.add(glowLines);
     }
 
     const scatterCount = Math.min(520, Math.max(140, (graph.nodes?.length ?? 20) * 4));
@@ -459,7 +478,7 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
       scene,
       camera,
       groups,
-      lines,
+      lines: lineMeshes,
       scatter,
       nodeMeta,
       radius: layout.radius,
@@ -492,9 +511,15 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
       );
     });
 
-    if (workspaceScene.lines?.material) {
-      workspaceScene.lines.material.opacity = 0.34 + Math.sin(t * 0.5) * 0.05;
-    }
+    const lineMeshes = Array.isArray(workspaceScene.lines)
+      ? workspaceScene.lines
+      : [workspaceScene.lines].filter(Boolean);
+    const linePulse = 0.45 + Math.sin(t * 0.6) * 0.08;
+    lineMeshes.forEach((line, index) => {
+      if (!line?.material) return;
+      const damp = index === 0 ? 1 : 0.7;
+      line.material.opacity = linePulse * damp;
+    });
 
     workspaceScene.scene.rotation.y = Math.sin(t * 0.07) * 0.06;
     workspaceScene.scene.rotation.x = -0.04 + Math.cos(t * 0.05) * 0.015;
