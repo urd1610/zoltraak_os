@@ -26,22 +26,6 @@ const buildWorkspaceLabelSprite = (text, color, scale = 1) => {
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
 
-  const barHeight = fontSize * 1.55;
-  const barY = height / 2 - barHeight / 2;
-
-  const barGradient = ctx.createLinearGradient(0, barY, width, barY + barHeight);
-  barGradient.addColorStop(0, 'rgba(6, 10, 20, 0.9)');
-  barGradient.addColorStop(1, 'rgba(10, 14, 24, 0.82)');
-  ctx.fillStyle = barGradient;
-  ctx.fillRect(0, barY, width, barHeight);
-
-  const gradient = ctx.createLinearGradient(0, barY, width, barY + barHeight);
-  gradient.addColorStop(0, 'rgba(255, 255, 255, 0.04)');
-  gradient.addColorStop(0.5, 'rgba(255, 255, 255, 0.08)');
-  gradient.addColorStop(1, 'rgba(255, 255, 255, 0.03)');
-  ctx.fillStyle = gradient;
-  ctx.fillRect(0, barY, width, barHeight);
-
   ctx.shadowColor = `${color}80`;
   ctx.shadowBlur = 26;
   ctx.shadowOffsetY = 3;
