@@ -9,57 +9,81 @@ const getWorkspaceNodeColor = (node) => {
   return '#8ba0c2';
 };
 
+const LABEL_FONT_FAMILY = `'Atkinson Hyperlegible', 'Space Grotesk', 'Segoe UI', 'Noto Sans JP', sans-serif`;
+const LABEL_FONT_WEIGHT = 700;
+const LABEL_FONT_SIZE = 64;
+const LABEL_CANVAS_MAX_DPR = 2.25;
+
+let labelFontReadyPromise = null;
+const ensureWorkspaceLabelFontReady = () => {
+  if (labelFontReadyPromise) return labelFontReadyPromise;
+  if (typeof document === 'undefined' || !document.fonts?.load) {
+    labelFontReadyPromise = Promise.resolve();
+    return labelFontReadyPromise;
+  }
+  const fontSpec = `${LABEL_FONT_WEIGHT} ${LABEL_FONT_SIZE}px ${LABEL_FONT_FAMILY}`;
+  labelFontReadyPromise = Promise.all([document.fonts.ready, document.fonts.load(fontSpec)]).catch(() => {});
+  return labelFontReadyPromise;
+};
+
 const buildWorkspaceLabelSprite = (text, color, scale = 1) => {
   if (typeof THREE === 'undefined') return null;
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
-  const fontSize = 64;
-  const fontWeight = 900;
-  const fontFamily = `'Space Grotesk', 'Inter', sans-serif`;
-  ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
-  const paddingX = 110;
-  const paddingY = 70;
-  const measured = Math.max(260, Math.ceil(ctx.measureText(text).width + paddingX));
-  const width = Math.min(1200, measured);
-  const height = Math.max(200, fontSize + paddingY);
-  canvas.width = width;
-  canvas.height = height;
-  ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
+  const dpr = Math.min(window.devicePixelRatio || 1, LABEL_CANVAS_MAX_DPR);
+  const fontSize = LABEL_FONT_SIZE;
+  const fontWeight = LABEL_FONT_WEIGHT;
+  const fontFamily = LABEL_FONT_FAMILY;
+  const font = `${fontWeight} ${fontSize}px ${fontFamily}`;
+  ctx.font = font;
+  const paddingX = 140;
+  const paddingY = 90;
+  const measured = Math.max(320, Math.ceil(ctx.measureText(text).width + paddingX));
+  const displayWidth = Math.min(1400, measured);
+  const displayHeight = Math.max(230, fontSize + paddingY);
+  canvas.width = displayWidth * dpr;
+  canvas.height = displayHeight * dpr;
+  ctx.scale(dpr, dpr);
+  ctx.font = font;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
 
-  const centerX = width / 2;
-  const centerY = height / 2 + 4;
-  ctx.shadowColor = `${color}6a`;
-  ctx.shadowBlur = 16;
-  ctx.shadowOffsetY = 4;
+  const centerX = displayWidth / 2;
+  const centerY = displayHeight / 2 + 2;
+  ctx.fillStyle = 'rgba(8, 13, 24, 0.8)';
+  ctx.fillRect(0, 0, displayWidth, displayHeight);
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.04)';
+  ctx.fillRect(0, 0, displayWidth, displayHeight);
+
   ctx.lineJoin = 'round';
-  ctx.strokeStyle = '#0b1222d8';
-  ctx.lineWidth = 10;
+  ctx.strokeStyle = '#0b1222e6';
+  ctx.lineWidth = 8;
   ctx.strokeText(text, centerX, centerY);
-  ctx.strokeStyle = `${color}d0`;
-  ctx.lineWidth = 6;
+  ctx.strokeStyle = `${color}c4`;
+  ctx.lineWidth = 5;
   ctx.strokeText(text, centerX, centerY);
   ctx.fillStyle = color;
+  ctx.shadowColor = `${color}66`;
+  ctx.shadowBlur = 8;
   ctx.fillText(text, centerX, centerY);
 
   const texture = new THREE.CanvasTexture(canvas);
-  texture.minFilter = THREE.LinearFilter;
+  texture.minFilter = THREE.LinearMipmapLinearFilter;
   texture.magFilter = THREE.LinearFilter;
-  texture.anisotropy = 4;
-  texture.generateMipmaps = false;
+  texture.anisotropy = 8;
+  texture.generateMipmaps = true;
   const material = new THREE.SpriteMaterial({
     map: texture,
     transparent: true,
     depthWrite: false,
     depthTest: false,
-    opacity: 0.9,
+    opacity: 0.95,
     blending: THREE.NormalBlending,
     toneMapped: false,
   });
   const sprite = new THREE.Sprite(material);
   const spriteScale = 5.6 * scale;
-  sprite.scale.set((width / height) * spriteScale, spriteScale, 1);
+  sprite.scale.set((displayWidth / displayHeight) * spriteScale, spriteScale, 1);
   sprite.userData.baseOpacity = material.opacity;
   sprite.userData.dispose = () => texture.dispose();
   return sprite;
@@ -748,6 +772,7 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
     setWorkspaceVisualizerMessage('workspaceを読み込み中…');
     ensureWorkspaceInteractionHandlers();
     try {
+      await ensureWorkspaceLabelFontReady();
       const three = await loadThreeModule();
       if (!three) {
         setWorkspaceVisualizerMessage('three.jsを読み込めませんでした。依存関係を再インストールしてください');
