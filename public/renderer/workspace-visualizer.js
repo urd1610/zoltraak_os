@@ -248,13 +248,17 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(55, rect.width / rect.height, 0.1, 2000);
     const layout = computeWorkspaceLayout(graph);
+    const focusY = -Math.min(layout.radius * 0.4, (layout.maxDepth ?? 0) * 3.2);
+    const focusPoint = new THREE.Vector3(0, focusY, 0);
 
-    const ambient = new THREE.AmbientLight(0xffffff, 0.5);
-    const keyLight = new THREE.PointLight(0x6ee7ff, 1.2, layout.radius * 6);
-    keyLight.position.set(layout.radius * 0.5, layout.radius * 0.8, layout.radius * 1.2);
-    const rimLight = new THREE.PointLight(0xa78bfa, 0.9, layout.radius * 5);
-    rimLight.position.set(-layout.radius * 0.7, layout.radius * 0.4, -layout.radius);
-    scene.add(ambient, keyLight, rimLight);
+    const ambient = new THREE.AmbientLight(0xffffff, 0.6);
+    const keyLight = new THREE.PointLight(0x7dd3fc, 1.15, layout.radius * 5.5);
+    keyLight.position.set(layout.radius * 0.42, layout.radius * 0.65, layout.radius * 1.6);
+    const rimLight = new THREE.PointLight(0xc4b5fd, 0.9, layout.radius * 5);
+    rimLight.position.set(-layout.radius * 0.55, layout.radius * 0.35, -layout.radius * 0.6);
+    const fillLight = new THREE.DirectionalLight(0x93c5fd, 0.35);
+    fillLight.position.set(0, layout.radius * 0.9, layout.radius * 1.8);
+    scene.add(ambient, keyLight, rimLight, fillLight);
 
     const groups = { nodes: new THREE.Group(), labels: new THREE.Group() };
     const nodeMeta = [];
@@ -264,24 +268,28 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
       if (!pos) return;
       const colorHex = getWorkspaceNodeColor(node);
       const color = new THREE.Color(colorHex);
-      const radius = Math.max(0.4, 1.05 - (node.depth ?? 0) * 0.08);
+      const level = node.depth ?? 0;
+      const isDirectory = node.type === 'directory';
+      const radius = isDirectory
+        ? Math.max(0.7, 1.2 - level * 0.07)
+        : Math.max(0.45, 0.95 - level * 0.06);
       const geometry = new THREE.SphereGeometry(radius, 20, 20);
       const material = new THREE.MeshStandardMaterial({
         color,
         emissive: color,
-        emissiveIntensity: 0.55,
-        roughness: 0.25,
-        metalness: 0.3,
+        emissiveIntensity: isDirectory ? 0.72 : 0.55,
+        roughness: 0.22,
+        metalness: 0.35,
         transparent: true,
-        opacity: node.depth === 0 ? 1 : 0.9,
+        opacity: isDirectory ? 0.96 : 0.88,
       });
       const mesh = new THREE.Mesh(geometry, material);
       mesh.position.set(pos.x, pos.y, pos.z);
       groups.nodes.add(mesh);
 
-      const label = buildWorkspaceLabelSprite(node.name, colorHex, node.depth === 0 ? 1.25 : 1);
+      const label = buildWorkspaceLabelSprite(node.name, colorHex, isDirectory ? 1.1 : 0.95);
       if (label) {
-        label.position.set(pos.x, pos.y + radius * 3.2, pos.z);
+        label.position.set(pos.x, pos.y + radius * 2.6, pos.z);
         groups.labels.add(label);
       }
 
@@ -289,8 +297,8 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
         mesh,
         label,
         basePosition: pos,
-        wobbleSpeed: 0.35 + Math.random() * 0.35 + (node.depth ?? 0) * 0.05,
-        wobbleAmp: 0.25 + Math.random() * 0.65,
+        wobbleSpeed: 0.2,
+        wobbleAmp: 0,
         wobblePhase: Math.random() * Math.PI * 2,
       });
     });
@@ -309,16 +317,16 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
       const lineGeometry = new THREE.BufferGeometry();
       lineGeometry.setAttribute('position', new THREE.Float32BufferAttribute(linePositions, 3));
       const lineMaterial = new THREE.LineBasicMaterial({
-        color: 0x5ac8fa,
+        color: 0x93c5fd,
         transparent: true,
-        opacity: 0.32,
+        opacity: 0.4,
         linewidth: 1,
       });
       lines = new THREE.LineSegments(lineGeometry, lineMaterial);
       scene.add(lines);
     }
 
-    const scatterCount = Math.min(800, Math.max(220, (graph.nodes?.length ?? 20) * 6));
+    const scatterCount = Math.min(520, Math.max(140, (graph.nodes?.length ?? 20) * 4));
     const scatterPositions = new Float32Array(scatterCount * 3);
     for (let i = 0; i < scatterCount; i += 1) {
       scatterPositions[i * 3] = (Math.random() - 0.5) * layout.radius * 4;
@@ -328,18 +336,18 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
     const scatterGeometry = new THREE.BufferGeometry();
     scatterGeometry.setAttribute('position', new THREE.BufferAttribute(scatterPositions, 3));
     const scatterMaterial = new THREE.PointsMaterial({
-      color: 0x99c3ff,
-      size: 0.5,
+      color: 0xa5b4fc,
+      size: 0.45,
       transparent: true,
-      opacity: 0.32,
+      opacity: 0.28,
       sizeAttenuation: true,
       depthWrite: false,
     });
     const scatter = new THREE.Points(scatterGeometry, scatterMaterial);
     scene.add(scatter);
 
-    camera.position.set(0, layout.radius * 0.35, layout.radius * 2.1);
-    camera.lookAt(new THREE.Vector3(0, 0, 0));
+    camera.position.set(0, layout.radius * 0.18, layout.radius * 2.35);
+    camera.lookAt(focusPoint);
 
     scene.add(groups.nodes);
     scene.add(groups.labels);
