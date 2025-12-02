@@ -376,6 +376,8 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
   let isWorkspaceVisualizerActive = false;
   let workspaceVisualizerLoading = false;
   let workspaceVisualizerStatusEl = null;
+  let workspaceContextMenuEl = null;
+  let workspaceContextMenuMeta = null;
   let workspaceGraphCache = null;
   let workspaceScene = null;
   let workspaceSceneAnimationId = null;
@@ -407,6 +409,97 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
     target.hidden = text.length === 0;
   };
 
+  const flashWorkspaceVisualizerMessage = (message, durationMs = 2000) => {
+    const text = message ?? '';
+    if (!text) {
+      setWorkspaceVisualizerMessage('');
+      return;
+    }
+    setWorkspaceVisualizerMessage(text);
+    if (durationMs > 0) {
+      setTimeout(() => {
+        if (workspaceVisualizerStatusEl?.textContent === text) {
+          setWorkspaceVisualizerMessage('');
+        }
+      }, durationMs);
+    }
+  };
+
+  const hideWorkspaceContextMenu = () => {
+    if (workspaceContextMenuEl) {
+      workspaceContextMenuEl.classList.remove('is-visible');
+      workspaceContextMenuEl.style.left = '-9999px';
+      workspaceContextMenuEl.style.top = '-9999px';
+      workspaceContextMenuEl.style.visibility = 'hidden';
+    }
+    workspaceContextMenuMeta = null;
+  };
+
+  const ensureWorkspaceContextMenu = () => {
+    if (workspaceContextMenuEl) return workspaceContextMenuEl;
+    const menu = document.createElement('div');
+    menu.className = 'workspace-context-menu';
+    const title = document.createElement('div');
+    title.className = 'workspace-context-menu__title';
+    const openButton = document.createElement('button');
+    openButton.type = 'button';
+    openButton.className = 'workspace-context-menu__item';
+    openButton.textContent = '開く';
+    openButton.addEventListener('click', () => {
+      if (workspaceContextMenuMeta) {
+        void openWorkspaceNode(workspaceContextMenuMeta);
+      }
+      hideWorkspaceContextMenu();
+    });
+    menu.append(title, openButton);
+    document.body.append(menu);
+    workspaceContextMenuEl = menu;
+    return menu;
+  };
+
+  const positionWorkspaceContextMenu = (menu, x, y) => {
+    if (!menu) return;
+    menu.style.visibility = 'hidden';
+    menu.classList.add('is-visible');
+    const rect = menu.getBoundingClientRect();
+    const margin = 8;
+    const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 0;
+    const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+    const nextX = Math.min(Math.max(x, margin), Math.max(margin, viewportWidth - rect.width - margin));
+    const nextY = Math.min(Math.max(y, margin), Math.max(margin, viewportHeight - rect.height - margin));
+    menu.style.left = `${nextX}px`;
+    menu.style.top = `${nextY}px`;
+    menu.style.visibility = 'visible';
+  };
+
+  const showWorkspaceContextMenu = (meta, event) => {
+    if (!meta) return;
+    const menu = ensureWorkspaceContextMenu();
+    workspaceContextMenuMeta = meta;
+    const title = menu.querySelector('.workspace-context-menu__title');
+    if (title) {
+      const label = meta?.data?.name || meta?.data?.id || 'node';
+      const typeLabel = meta?.data?.type === 'directory' ? 'ディレクトリ' : 'ファイル';
+      title.textContent = `${label} を開く (${typeLabel})`;
+    }
+    const { clientX, clientY } = event ?? { clientX: 0, clientY: 0 };
+    positionWorkspaceContextMenu(menu, clientX, clientY);
+  };
+
+  const openWorkspaceNode = async (meta) => {
+    if (!meta?.data?.id) return;
+    if (!window.desktopBridge?.openWorkspaceEntry) {
+      flashWorkspaceVisualizerMessage('パスを開けませんでした');
+      return;
+    }
+    try {
+      await window.desktopBridge.openWorkspaceEntry(meta.data.id);
+    } catch (error) {
+      console.error('Failed to open workspace entry', error);
+      flashWorkspaceVisualizerMessage('ノードを開けませんでした');
+    }
+  };
+
   const getOrbitControls = () => workspaceScene?.controls ?? null;
 
   const stopOrbitDrag = () => {
@@ -429,6 +522,7 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
 
   const handleWorkspacePointerDown = (event) => {
     if (!isWorkspaceVisualizerActive || workspaceVisualizerLoading) return;
+    hideWorkspaceContextMenu();
     if (event.button !== undefined && event.button !== 0) return;
     const controls = getOrbitControls();
     if (!controls || typeof THREE === 'undefined') return;
@@ -532,6 +626,39 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
     controls.autoSpin = false;
   };
 
+  const handleWorkspaceDoubleClick = (event) => {
+    if (!isWorkspaceVisualizerActive || workspaceVisualizerLoading) return;
+    if (workspaceScene?.controls?.isDragging) return;
+    const hitMeta = pickWorkspaceNodeMeta(event);
+    if (!hitMeta) return;
+    event.preventDefault();
+    hideWorkspaceContextMenu();
+    void openWorkspaceNode(hitMeta);
+  };
+
+  const handleWorkspaceContextMenu = (event) => {
+    if (!isWorkspaceVisualizerActive || workspaceVisualizerLoading) return;
+    const hitMeta = pickWorkspaceNodeMeta(event);
+    if (!hitMeta) {
+      hideWorkspaceContextMenu();
+      return;
+    }
+    event.preventDefault();
+    showWorkspaceContextMenu(hitMeta, event);
+  };
+
+  const handleWorkspaceContextDismiss = (event) => {
+    if (!workspaceContextMenuEl?.classList?.contains?.('is-visible')) return;
+    if (workspaceContextMenuEl.contains(event.target)) return;
+    hideWorkspaceContextMenu();
+  };
+
+  const handleWorkspaceKeyDown = (event) => {
+    if (event.key === 'Escape') {
+      hideWorkspaceContextMenu();
+    }
+  };
+
   const handleWorkspaceTap = (event) => {
     const hitMeta = pickWorkspaceNodeMeta(event);
     if (hitMeta) {
@@ -563,8 +690,12 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
   const ensureWorkspaceInteractionHandlers = () => {
     if (hasWorkspaceInteractionHandlers || !workspaceVisualizer) return;
     workspaceVisualizer.addEventListener('pointerdown', handleWorkspacePointerDown);
+    workspaceVisualizer.addEventListener('dblclick', handleWorkspaceDoubleClick);
+    workspaceVisualizer.addEventListener('contextmenu', handleWorkspaceContextMenu);
     window.addEventListener('pointermove', handleWorkspacePointerMove);
     window.addEventListener('pointerup', handleWorkspacePointerUp);
+    window.addEventListener('pointerdown', handleWorkspaceContextDismiss);
+    window.addEventListener('keydown', handleWorkspaceKeyDown);
     workspaceVisualizer.addEventListener('wheel', handleWorkspaceWheel, { passive: false });
     hasWorkspaceInteractionHandlers = true;
   };
@@ -574,6 +705,7 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
       cancelAnimationFrame(workspaceSceneAnimationId);
       workspaceSceneAnimationId = null;
     }
+    hideWorkspaceContextMenu();
     if (!workspaceScene) return;
     stopOrbitDrag();
     const { renderer, groups, lines, scatter } = workspaceScene;
