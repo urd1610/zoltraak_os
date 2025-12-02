@@ -1,0 +1,55 @@
+.pill.accent {
+  background: rgba(110, 231, 255, 0.12);
+  color: #cffafe;
+  border: 1px solid rgba(110, 231, 255, 0.3);
+}
+
+.list {
+  display: grid;
+  gap: 8px;
+}
+
+.list-item {
+  padding: 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.mono {
+  font-family: 'IBM Plex Mono', 'Space Grotesk', monospace;
+  color: #cbd5ff;
+  font-size: 13px;
+}
+
+button.primary,
+button.ghost {
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 140ms ease, border-color 140ms ease, background 140ms ease;
+}
+
+button.primary {
+  background: linear-gradient(90deg, #6ee7ff, #a78bfa);
+  color: #041022;
+  box-shadow: 0 12px 30px rgba(110, 231, 255, 0.25);
+}
+
+button.primary:hover {
+  transform: translateY(-2px);
+}
+
+button.ghost {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+button.ghost:hover {
+  border-color: rgba(110, 231, 255, 0.25);
+  transform: translateY(-2px);
+}
+
