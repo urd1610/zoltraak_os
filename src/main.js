@@ -317,6 +317,38 @@ const buildWorkspaceGraph = async () => {
   return { root, nodes, links };
 };
 
+const resolveWorkspaceEntryPath = async (entryId) => {
+  const root = await ensureWorkspaceDirectory();
+  if (!root) {
+    throw new Error('作業ディレクトリが設定されていません');
+  }
+  const normalizedId = typeof entryId === 'string' && entryId.trim() ? entryId : '.';
+  const resolved = path.resolve(root, normalizedId);
+  const relative = path.relative(root, resolved);
+  if (relative.startsWith('..') || path.isAbsolute(relative)) {
+    throw new Error('作業ディレクトリ外のパスは開けません');
+  }
+  return resolved;
+};
+
+const openWorkspaceEntry = async (entryId) => {
+  const targetPath = await resolveWorkspaceEntryPath(entryId);
+  let stat = null;
+  try {
+    stat = await fsp.stat(targetPath);
+  } catch (error) {
+    throw new Error('指定のパスが見つかりません');
+  }
+  const result = await shell.openPath(targetPath);
+  if (result) {
+    throw new Error(`パスを開けませんでした: ${result}`);
+  }
+  return {
+    path: targetPath,
+    type: stat.isDirectory() ? 'directory' : 'file',
+  };
+};
+
 const ensureRecordingDirectory = async () => {
   const dir = await ensureWorkspaceDirectory();
   if (!dir) {
@@ -423,6 +455,7 @@ app.whenReady().then(async () => {
   ipcMain.handle('workspace:change-directory', changeWorkspaceDirectory);
   ipcMain.handle('workspace:get-stored-directory', getStoredWorkspaceDirectory);
   ipcMain.handle('workspace:open-directory', openWorkspaceDirectory);
+  ipcMain.handle('workspace:open-entry', async (_event, entryId) => openWorkspaceEntry(entryId));
   ipcMain.handle('workspace:get-graph', buildWorkspaceGraph);
   ipcMain.handle('recording:save', async (_event, payload) => {
     const { buffer, mimeType } = payload ?? {};
