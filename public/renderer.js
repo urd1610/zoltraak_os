@@ -64,9 +64,9 @@ const updateWorkspaceChip = (dir) => {
 const workspaceVisualizerController = createWorkspaceVisualizer(workspaceVisualizer);
 const startWorkspaceVisualizer = () => workspaceVisualizerController.start();
 const stopWorkspaceVisualizer = () => workspaceVisualizerController.stop();
-const toggleWorkspaceVisualizer = () => workspaceVisualizerController.toggle();
 const resizeWorkspaceScene = () => workspaceVisualizerController.resize();
 const resetWorkspaceGraphCache = () => workspaceVisualizerController.resetGraphCache();
+const isWorkspaceVisualizerActive = () => workspaceVisualizerController.isActive();
 
 const renderQuickActions = () => {
   quickActionsContainer.innerHTML = '';
@@ -532,13 +532,15 @@ const hydrateAiMailStatus = async () => {
 const handleWorkspaceChange = async () => {
   if (!workspaceChip || !window.desktopBridge?.changeWorkspaceDirectory) return;
   workspaceChip.disabled = true;
+  const shouldRestoreVisualizer = isWorkspaceVisualizerActive();
   try {
     const dir = await window.desktopBridge.changeWorkspaceDirectory();
     workspacePath = dir || workspacePath;
     updateWorkspaceChip(workspacePath);
     resetWorkspaceGraphCache();
-    if (workspaceVisualizerController.isActive()) {
+    if (shouldRestoreVisualizer) {
       stopWorkspaceVisualizer();
+      void startWorkspaceVisualizer();
     }
   } catch (error) {
     console.error('Failed to change workspace directory', error);
@@ -674,14 +676,20 @@ const boot = () => {
   renderQuickActions();
   renderFeatureCards();
   setupQuickActionsResizeObserver();
-  workspaceVisualizerController.setActiveState(false);
+  void startWorkspaceVisualizer();
   void hydrateWorkspaceChip();
   hydrateSystemInfo();
   updateClock();
   setInterval(updateClock, 30000);
   workspaceChip?.addEventListener('click', () => void handleWorkspaceChange());
   sidePanelToggleButton?.addEventListener('click', toggleSidePanel);
-  brandButton?.addEventListener('dblclick', () => toggleWorkspaceVisualizer());
+  brandButton?.addEventListener('dblclick', () => {
+    if (isWorkspaceVisualizerActive()) {
+      stopWorkspaceVisualizer();
+      return;
+    }
+    startWorkspaceVisualizer();
+  });
   
   // グローバルイベントリスナーは一度だけ登録
   document.addEventListener('mousemove', handleGlobalMouseMove);
