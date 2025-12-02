@@ -485,10 +485,17 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
     const targets = workspaceScene.interactiveNodes ?? [];
     const intersections = workspaceScene.raycaster.intersectObjects(targets, true);
     if (!intersections?.length) return null;
-    const hit = intersections.find((item) => item?.object?.userData?.nodeMeta)
-      ?? intersections[0];
-    return hit?.object?.userData?.nodeMeta
-      ?? hit?.object?.parent?.userData?.nodeMeta
+    const hit = intersections.find((item) => {
+      const obj = item?.object;
+      if (!obj) return false;
+      if (obj.userData?.ignoreHit || obj.parent?.userData?.ignoreHit) {
+        return false;
+      }
+      return obj.userData?.nodeMeta || obj.parent?.userData?.nodeMeta;
+    });
+    if (!hit?.object) return null;
+    return hit.object.userData?.nodeMeta
+      ?? hit.object.parent?.userData?.nodeMeta
       ?? null;
   };
 
@@ -691,6 +698,7 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
 
       const glow = buildNodeGlowSprite(colorHex, radius * 3.9, isDirectory ? 1.25 : 1.05);
       if (glow) {
+        glow.userData.ignoreHit = true;
         nodeGroup.add(glow);
       }
 
@@ -725,10 +733,7 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
       };
       nodeGroup.userData.nodeMeta = meta;
       core.userData.nodeMeta = meta;
-      if (glow) {
-        glow.userData.nodeMeta = meta;
-      }
-      interactiveNodes.push(nodeGroup);
+      interactiveNodes.push(core);
       nodeMeta.push(meta);
     });
 
