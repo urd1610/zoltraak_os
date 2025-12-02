@@ -312,6 +312,7 @@ const createOrbitControlsState = (camera, focusPoint, layoutRadius) => {
   const spherical = new THREE.Spherical().setFromVector3(offset);
   const target = spherical.clone();
   const scratch = new THREE.Vector3();
+  const focusTarget = focusPoint.clone();
   const limits = {
     minRadius: Math.max(6, layoutRadius * 0.55),
     maxRadius: Math.max(layoutRadius * 1.6, layoutRadius * 4),
@@ -322,17 +323,39 @@ const createOrbitControlsState = (camera, focusPoint, layoutRadius) => {
     spherical,
     target,
     focusPoint: focusPoint.clone(),
+    focusTarget,
+    focusLerp: 0.14,
     limits,
     lastPointer: { x: 0, y: 0 },
     isDragging: false,
+    autoSpin: false,
+    autoSpinSpeed: 0.0062,
     scratch,
   };
 };
 
 const applyOrbitControlsToCamera = (controls, camera) => {
   if (!controls || !camera || typeof THREE === 'undefined') return;
-  const { spherical, target, limits, scratch, focusPoint } = controls;
+  const {
+    spherical,
+    target,
+    limits,
+    scratch,
+    focusPoint,
+    focusTarget,
+    autoSpin,
+    autoSpinSpeed,
+    focusLerp,
+  } = controls;
   const easing = controls.isDragging ? 0.22 : 0.12;
+
+  if (autoSpin && !controls.isDragging) {
+    target.theta += autoSpinSpeed ?? 0.005;
+  }
+
+  if (focusPoint && focusTarget) {
+    focusPoint.lerp(focusTarget, focusLerp ?? 0.12);
+  }
 
   spherical.theta += (target.theta - spherical.theta) * easing;
   spherical.phi += (target.phi - spherical.phi) * easing;
@@ -357,6 +380,12 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
   let workspaceScene = null;
   let workspaceSceneAnimationId = null;
   let hasWorkspaceInteractionHandlers = false;
+  const pointerState = {
+    isDown: false,
+    start: { x: 0, y: 0 },
+    moved: false,
+  };
+  const CLICK_MOVE_THRESHOLD = 6;
 
   const getWorkspaceVisualizerStatusEl = () => {
     if (!workspaceVisualizer) return null;
@@ -403,6 +432,9 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
     if (event.button !== undefined && event.button !== 0) return;
     const controls = getOrbitControls();
     if (!controls || typeof THREE === 'undefined') return;
+    pointerState.isDown = true;
+    pointerState.moved = false;
+    pointerState.start = { x: event.clientX, y: event.clientY };
     controls.isDragging = true;
     controls.lastPointer = { x: event.clientX, y: event.clientY };
     workspaceVisualizer?.classList?.add?.('is-dragging');
@@ -412,6 +444,11 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
   const handleWorkspacePointerMove = (event) => {
     const controls = getOrbitControls();
     if (!isWorkspaceVisualizerActive || !controls?.isDragging || typeof THREE === 'undefined') return;
+    const start = pointerState.start ?? { x: event.clientX, y: event.clientY };
+    const totalDelta = Math.hypot(event.clientX - start.x, event.clientY - start.y);
+    if (totalDelta > CLICK_MOVE_THRESHOLD) {
+      pointerState.moved = true;
+    }
     const dx = event.clientX - (controls.lastPointer?.x ?? 0);
     const dy = event.clientY - (controls.lastPointer?.y ?? 0);
     controls.lastPointer = { x: event.clientX, y: event.clientY };
@@ -426,7 +463,80 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
     event.preventDefault();
   };
 
-  const handleWorkspacePointerUp = () => {
+  const pickWorkspaceNodeMeta = (event) => {
+    if (!workspaceScene || !workspaceVisualizer || typeof THREE === 'undefined') return null;
+    const rect = workspaceVisualizer.getBoundingClientRect();
+    if (!rect.width || !rect.height) return null;
+    if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) {
+      return null;
+    }
+    if (!workspaceScene.raycaster) {
+      workspaceScene.raycaster = new THREE.Raycaster();
+    }
+    if (!workspaceScene.pointerNdc) {
+      workspaceScene.pointerNdc = new THREE.Vector2();
+    }
+    const pointerNdc = workspaceScene.pointerNdc;
+    pointerNdc.set(
+      ((event.clientX - rect.left) / rect.width) * 2 - 1,
+      -((event.clientY - rect.top) / rect.height) * 2 + 1,
+    );
+    workspaceScene.raycaster.setFromCamera(pointerNdc, workspaceScene.camera);
+    const targets = workspaceScene.interactiveNodes ?? [];
+    const intersections = workspaceScene.raycaster.intersectObjects(targets, true);
+    if (!intersections?.length) return null;
+    const hit = intersections.find((item) => item?.object?.userData?.nodeMeta)
+      ?? intersections[0];
+    return hit?.object?.userData?.nodeMeta
+      ?? hit?.object?.parent?.userData?.nodeMeta
+      ?? null;
+  };
+
+  const focusOrbitOnNode = (meta) => {
+    if (!meta || !workspaceScene?.controls || typeof THREE === 'undefined') return;
+    workspaceScene.orbitAnchor = meta;
+    const controls = workspaceScene.controls;
+    const focus = meta.mesh?.position
+      ? meta.mesh.position.clone()
+      : new THREE.Vector3(
+        meta.basePosition?.x ?? 0,
+        meta.basePosition?.y ?? 0,
+        meta.basePosition?.z ?? 0,
+      );
+    if (meta.labelOffset) {
+      focus.y += meta.labelOffset * 0.08;
+    }
+    if (controls.focusTarget) {
+      controls.focusTarget.copy(focus);
+    }
+    if (controls.focusPoint) {
+      controls.focusPoint.copy(focus);
+    }
+    const preferredRadius = THREE.MathUtils.clamp(
+      workspaceScene.radius * 0.9,
+      controls.limits.minRadius,
+      controls.limits.maxRadius * 0.82,
+    );
+    controls.target.radius = THREE.MathUtils.lerp(
+      controls.target.radius ?? preferredRadius,
+      preferredRadius,
+      0.7,
+    );
+    controls.autoSpin = true;
+  };
+
+  const handleWorkspaceTap = (event) => {
+    const hitMeta = pickWorkspaceNodeMeta(event);
+    if (hitMeta) {
+      focusOrbitOnNode(hitMeta);
+    }
+  };
+
+  const handleWorkspacePointerUp = (event) => {
+    if (pointerState.isDown && !pointerState.moved && event) {
+      handleWorkspaceTap(event);
+    }
+    pointerState.isDown = false;
     stopOrbitDrag();
   };
 
@@ -491,6 +601,9 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
       renderer.domElement?.remove();
     }
     workspaceScene = null;
+    pointerState.isDown = false;
+    pointerState.moved = false;
+    pointerState.start = { x: 0, y: 0 };
   };
 
   const loadWorkspaceGraph = async () => {
@@ -544,6 +657,7 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
 
     const groups = { nodes: new THREE.Group(), labels: new THREE.Group() };
     const nodeMeta = [];
+    const interactiveNodes = [];
 
     (graph.nodes ?? []).forEach((node) => {
       const pos = layout.positions.get(node.id);
@@ -582,6 +696,8 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
 
       nodeGroup.add(core);
       groups.nodes.add(nodeGroup);
+      nodeGroup.userData.nodeMeta = null;
+      core.userData.nodeMeta = null;
 
       const label = buildWorkspaceLabelSprite(node.name, colorHex, isDirectory ? 1.06 : 0.98);
       const labelOffset = radius * 2.9;
@@ -592,7 +708,7 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
         groups.labels.add(label);
       }
 
-      nodeMeta.push({
+      const meta = {
         mesh: nodeGroup,
         label,
         labelOffset,
@@ -600,7 +716,20 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
         wobbleSpeed: 0.32 + Math.random() * 0.18,
         wobbleAmp: 0.12 + Math.random() * 0.14,
         wobblePhase: Math.random() * Math.PI * 2,
-      });
+        core,
+        glow,
+        data: node,
+        baseScale: nodeGroup.scale.x,
+        baseEmissive: material.emissiveIntensity,
+        baseOpacity: material.opacity,
+      };
+      nodeGroup.userData.nodeMeta = meta;
+      core.userData.nodeMeta = meta;
+      if (glow) {
+        glow.userData.nodeMeta = meta;
+      }
+      interactiveNodes.push(nodeGroup);
+      nodeMeta.push(meta);
     });
 
     const linePositions = [];
@@ -684,6 +813,10 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
       nodeMeta,
       radius: layout.radius,
       controls: orbitControls,
+      interactiveNodes,
+      raycaster: new THREE.Raycaster(),
+      pointerNdc: new THREE.Vector2(),
+      orbitAnchor: null,
       labelFadeScratch: {
         cameraDir: new THREE.Vector3(),
         toLabel: new THREE.Vector3(),
@@ -753,6 +886,25 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
           const scaleY = THREE.MathUtils.clamp(desiredHeight, baseScaleY * 0.9, baseScaleY * 2.4);
           meta.label.scale.set(scaleY * aspect, scaleY, 1);
         }
+      }
+
+      const isAnchor = workspaceScene.orbitAnchor === meta;
+      if (isAnchor && workspaceScene.controls?.focusTarget && meta.mesh?.position) {
+        workspaceScene.controls.focusTarget.lerp(meta.mesh.position, 0.2);
+      }
+      const baseScale = meta.baseScale ?? 1;
+      const targetScale = isAnchor ? baseScale * 1.16 : baseScale;
+      const nextScale = THREE.MathUtils.lerp(meta.mesh.scale.x, targetScale, 0.14);
+      meta.mesh.scale.setScalar(nextScale);
+
+      if (meta.core?.material) {
+        const baseEmissive = meta.baseEmissive ?? meta.core.material.emissiveIntensity ?? 1;
+        const targetEmissive = isAnchor ? baseEmissive * 1.35 : baseEmissive;
+        meta.core.material.emissiveIntensity = THREE.MathUtils.lerp(
+          meta.core.material.emissiveIntensity,
+          targetEmissive,
+          0.16,
+        );
       }
     });
 
