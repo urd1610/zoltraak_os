@@ -10,7 +10,7 @@ const getWorkspaceNodeColor = (node) => {
 };
 
 const LABEL_FONT_FAMILY = `'Atkinson Hyperlegible', 'Space Grotesk', 'Segoe UI', 'Noto Sans JP', sans-serif`;
-const LABEL_FONT_WEIGHT = 700;
+const LABEL_FONT_WEIGHT = 500;
 const LABEL_FONT_SIZE = 64;
 const LABEL_CANVAS_MAX_DPR = 3.2;
 const LABEL_TARGET_PIXEL_HEIGHT = 54;
