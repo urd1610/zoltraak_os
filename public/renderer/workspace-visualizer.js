@@ -676,6 +676,7 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
 
   const handleWorkspaceWheel = (event) => {
     if (!isWorkspaceVisualizerActive || typeof THREE === 'undefined') return;
+    hideWorkspaceContextMenu();
     const controls = getOrbitControls();
     if (!controls) return;
     const zoomFactor = Math.exp(event.deltaY * 0.0012);
