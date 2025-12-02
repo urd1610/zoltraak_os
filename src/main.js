@@ -383,6 +383,10 @@ const buildWorkspaceGraph = async () => {
       if (entry.isSymbolicLink()) {
         continue;
       }
+      // three.js の表示対象から隠しファイル・ディレクトリを除外する
+      if (entry.name.startsWith('.')) {
+        continue;
+      }
       if (GRAPH_IGNORE_NAMES.has(entry.name)) {
         continue;
       }
