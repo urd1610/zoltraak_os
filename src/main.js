@@ -23,6 +23,8 @@ const GRAPH_IGNORE_NAMES = new Set([
   'build',
   '.worktrees',
 ]);
+let workspaceWatcher = null;
+let workspaceWatcherDebounce = null;
 
 const isExistingDirectory = (dir) => {
   if (!dir) {
@@ -35,6 +37,88 @@ const isExistingDirectory = (dir) => {
     return false;
   }
 };
+
+const isIgnoredWorkspaceRelativePath = (relativePath) => {
+  if (!relativePath) {
+    return false;
+  }
+  const parts = path.normalize(relativePath).split(path.sep).filter(Boolean);
+  return parts.some((part) => GRAPH_IGNORE_NAMES.has(part));
+};
+
+const notifyWorkspaceGraphChanged = (reason = 'fs-change') => {
+  BrowserWindow.getAllWindows().forEach((win) => {
+    if (win?.isDestroyed?.() || win?.webContents?.isDestroyed?.()) {
+      return;
+    }
+    win.webContents.send('workspace:graph-updated', { reason, ts: Date.now() });
+  });
+};
+
+const scheduleWorkspaceGraphChanged = () => {
+  if (workspaceWatcherDebounce) {
+    clearTimeout(workspaceWatcherDebounce);
+  }
+  workspaceWatcherDebounce = setTimeout(() => {
+    workspaceWatcherDebounce = null;
+    notifyWorkspaceGraphChanged('fs-change');
+  }, 350);
+};
+
+const stopWorkspaceWatcher = () => {
+  if (workspaceWatcher) {
+    workspaceWatcher.close?.();
+    workspaceWatcher = null;
+  }
+  if (workspaceWatcherDebounce) {
+    clearTimeout(workspaceWatcherDebounce);
+    workspaceWatcherDebounce = null;
+  }
+};
+
+const startWorkspaceWatcher = async () => {
+  stopWorkspaceWatcher();
+  const dir = await ensureWorkspaceDirectory();
+  if (!dir) {
+    return null;
+  }
+  const handleFsEvent = (_eventType, filename) => {
+    if (!filename) {
+      scheduleWorkspaceGraphChanged();
+      return;
+    }
+    if (isIgnoredWorkspaceRelativePath(filename.toString())) {
+      return;
+    }
+    scheduleWorkspaceGraphChanged();
+  };
+  const attachWatcherHandlers = (watcher) => {
+    if (!watcher) return null;
+    watcher.on('error', (error) => {
+      console.warn('workspace watcher error', error);
+    });
+    return watcher;
+  };
+  try {
+    workspaceWatcher = attachWatcherHandlers(fs.watch(dir, { recursive: true }, handleFsEvent));
+    return workspaceWatcher;
+  } catch (error) {
+    if (error?.code === 'ERR_FEATURE_UNAVAILABLE_ON_PLATFORM') {
+      console.warn('recursive fs.watch is unavailable on this platform, falling back to non-recursive watch');
+      try {
+        workspaceWatcher = attachWatcherHandlers(fs.watch(dir, { recursive: false }, handleFsEvent));
+        return workspaceWatcher;
+      } catch (fallbackError) {
+        console.error('Failed to start non-recursive workspace watcher', fallbackError);
+      }
+    }
+    console.error('Failed to start workspace watcher', error);
+    workspaceWatcher = null;
+    return null;
+  }
+};
+
+const restartWorkspaceWatcher = async () => startWorkspaceWatcher();
 
 const getDefaultWorkspaceDirectory = () => {
   const cwd = process.cwd();
@@ -210,7 +294,10 @@ const changeWorkspaceDirectory = async () => {
   if (!selected) {
     return workspaceDirectory;
   }
-  return updateWorkspaceDirectory(selected);
+  const updated = await updateWorkspaceDirectory(selected);
+  await restartWorkspaceWatcher();
+  notifyWorkspaceGraphChanged('workspace-changed');
+  return updated;
 };
 
 const ensureWorkspaceDirectory = async () => {
@@ -475,6 +562,7 @@ app.whenReady().then(async () => {
   });
 
   createWindow();
+  await startWorkspaceWatcher();
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
@@ -487,6 +575,7 @@ app.on('window-all-closed', () => {
   if (aiMailMonitor) {
     aiMailMonitor.stop();
   }
+  stopWorkspaceWatcher();
   if (process.platform !== 'darwin') {
     app.quit();
   }
