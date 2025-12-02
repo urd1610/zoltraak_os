@@ -102,9 +102,8 @@ const buildNodeGlowSprite = (color, radius = 3, intensity = 1) => {
   canvas.height = size;
   const ctx = canvas.getContext('2d');
   const gradient = ctx.createRadialGradient(size / 2, size / 2, 4, size / 2, size / 2, size / 2);
-  gradient.addColorStop(0, `rgba(255, 255, 255, ${0.22 * intensity})`);
-  gradient.addColorStop(0.25, `rgba(255, 255, 255, ${0.14 * intensity})`);
-  gradient.addColorStop(0.45, `${color}33`);
+  gradient.addColorStop(0, `${color}45`);
+  gradient.addColorStop(0.35, `${color}26`);
   gradient.addColorStop(1, `${color}00`);
   ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, size, size);
@@ -120,7 +119,7 @@ const buildNodeGlowSprite = (color, radius = 3, intensity = 1) => {
     transparent: true,
     depthWrite: false,
     blending: THREE.AdditiveBlending,
-    opacity: 0.9,
+    opacity: 0.5 * intensity,
   });
   const sprite = new THREE.Sprite(material);
   const spriteScale = radius * 4;
