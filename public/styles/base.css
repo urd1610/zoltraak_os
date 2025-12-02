@@ -1,0 +1,42 @@
+:root {
+  --bg: #050915;
+  --panel: #0f172a;
+  --panel-strong: #0b1224;
+  --card: #111b2f;
+  --muted: #7b8aab;
+  --text: #e7edff;
+  --accent: #6ee7ff;
+  --accent-2: #a78bfa;
+  --shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+  --radius: 14px;
+  --top-bar-height: 36px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: 'Space Grotesk', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: radial-gradient(circle at 20% 20%, rgba(110, 231, 255, 0.08), transparent 30%),
+    radial-gradient(circle at 80% 10%, rgba(167, 139, 250, 0.1), transparent 28%),
+    var(--bg);
+  color: var(--text);
+  overflow: hidden;
+}
+
+.background-grid {
+  position: fixed;
+  inset: 0;
+  background-image: linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 120px 120px;
+  mask-image: radial-gradient(circle at 50% 40%, black, transparent 70%);
+  opacity: 0.35;
+  pointer-events: none;
+}
+
