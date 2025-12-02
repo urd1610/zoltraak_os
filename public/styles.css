@@ -191,6 +191,7 @@ button.chip:disabled {
   padding: 20px 24px 24px;
   height: calc(100vh - var(--top-bar-height));
   transition: gap 180ms ease;
+  position: relative;
 }
 
 .side-panel-toggle {
@@ -303,8 +304,11 @@ button.chip:disabled {
 }
 
 .workspace-visualizer {
-  position: absolute;
-  inset: 0;
+  position: fixed;
+  top: var(--top-bar-height);
+  left: 0;
+  right: 0;
+  bottom: 0;
   z-index: 0;
   overflow: hidden;
   pointer-events: none;
