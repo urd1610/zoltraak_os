@@ -522,7 +522,7 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
       preferredRadius,
       0.7,
     );
-    controls.autoSpin = true;
+    controls.autoSpin = false;
   };
 
   const handleWorkspaceTap = (event) => {
