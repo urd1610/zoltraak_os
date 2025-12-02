@@ -382,6 +382,8 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
   let workspaceScene = null;
   let workspaceSceneAnimationId = null;
   let hasWorkspaceInteractionHandlers = false;
+  let pendingWorkspaceGraphRefresh = false;
+  let unsubscribeWorkspaceGraphUpdates = null;
   const pointerState = {
     isDown: false,
     start: { x: 0, y: 0 },
@@ -1071,11 +1073,11 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
     setWorkspaceVisualizerActive(false);
   };
 
-  const startWorkspaceVisualizer = async () => {
+  const startWorkspaceVisualizer = async (message = 'workspaceを読み込み中…') => {
     if (workspaceVisualizerLoading) return;
     workspaceVisualizerLoading = true;
     setWorkspaceVisualizerActive(true);
-    setWorkspaceVisualizerMessage('workspaceを読み込み中…');
+    setWorkspaceVisualizerMessage(message);
     ensureWorkspaceInteractionHandlers();
     try {
       await ensureWorkspaceLabelFontReady();
@@ -1112,6 +1114,13 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
       setTimeout(() => stopWorkspaceVisualizer(), 1600);
     } finally {
       workspaceVisualizerLoading = false;
+      if (pendingWorkspaceGraphRefresh && isWorkspaceVisualizerActive) {
+        pendingWorkspaceGraphRefresh = false;
+        resetWorkspaceGraphCache();
+        setTimeout(() => { void startWorkspaceVisualizer('workspaceを更新中…'); }, 0);
+      } else {
+        pendingWorkspaceGraphRefresh = false;
+      }
     }
   };
 
@@ -1126,11 +1135,38 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
     void startWorkspaceVisualizer();
   };
 
+  const handleWorkspaceGraphUpdated = (payload) => {
+    resetWorkspaceGraphCache();
+    if (workspaceVisualizerLoading) {
+      pendingWorkspaceGraphRefresh = true;
+      return;
+    }
+    if (!isWorkspaceVisualizerActive) {
+      return;
+    }
+    const reason = payload?.reason ?? 'fs-change';
+    const message = reason === 'workspace-changed'
+      ? 'workspaceを更新中…'
+      : 'workspaceを更新中…';
+    void startWorkspaceVisualizer(message);
+  };
+
+  const subscribeWorkspaceGraphUpdates = () => {
+    if (unsubscribeWorkspaceGraphUpdates || !window.desktopBridge?.onWorkspaceGraphUpdated) {
+      return;
+    }
+    unsubscribeWorkspaceGraphUpdates = window.desktopBridge.onWorkspaceGraphUpdated((payload) => {
+      handleWorkspaceGraphUpdated(payload);
+    });
+  };
+
   const resetWorkspaceGraphCache = () => {
     workspaceGraphCache = null;
   };
 
   const isActive = () => isWorkspaceVisualizerActive;
+
+  subscribeWorkspaceGraphUpdates();
 
   return {
     start: startWorkspaceVisualizer,

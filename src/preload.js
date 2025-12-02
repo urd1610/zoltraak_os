@@ -101,6 +101,15 @@ const getThreeModuleUrl = () => {
   }
 };
 
+const subscribeWorkspaceGraphUpdates = (handler) => {
+  if (typeof handler !== 'function') {
+    return () => {};
+  }
+  const wrapped = (_event, payload) => handler(payload);
+  ipcRenderer.on('workspace:graph-updated', wrapped);
+  return () => ipcRenderer.removeListener('workspace:graph-updated', wrapped);
+};
+
 contextBridge.exposeInMainWorld('desktopBridge', {
   getSystemInfo: () => systemInfo,
   getNowIso: () => new Date().toISOString(),
@@ -120,4 +129,5 @@ contextBridge.exposeInMainWorld('desktopBridge', {
   getAiMailDefaultPrompt: () => ipcRenderer.invoke('ai-mail:get-default-prompt'),
   saveAiMailDefaultPrompt: (prompt) => ipcRenderer.invoke('ai-mail:save-default-prompt', prompt),
   getThreeModuleUrl: () => getThreeModuleUrl(),
+  onWorkspaceGraphUpdated: (handler) => subscribeWorkspaceGraphUpdates(handler),
 });
