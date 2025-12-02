@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AIメール監視 - 機能紹介</title>
+    <link rel="stylesheet" href="/Users/urd/workspace/zoltraak_os/.kamui/apps/kamui-os-intro-1732171200.css">
+</head>
+<body>
+    <div class="app">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-title">スライド一覧</div>
+                <div class="sidebar-actions">
+                    <button id="downloadAllBtn" aria-label="全スライドをダウンロード" title="全スライドをダウンロード" style="background: #ecf2fb; border: 1px solid #e5e7eb; color: #1f3a5f; width: 36px; height: 36px; border-radius: 10px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: background 0.2s ease, transform 0.2s ease; margin-right: 8px;">
+                        <span class="download-icon" aria-hidden="true" style="display: inline-block; width: 20px; height: 20px; background: currentColor; -webkit-mask: url('data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4\"/><polyline points=\"7 10 12 15 17 10\"/><line x1=\"12\" y1=\"15\" x2=\"12\" y2=\"3\"/></svg>') center/contain no-repeat; mask: url('data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4\"/><polyline points=\"7 10 12 15 17 10\"/><line x1=\"12\" y1=\"15\" x2=\"12\" y2=\"3\"/></svg>') center/contain no-repeat;"></span>
+                    </button>
+                    <button id="toggleSidebar" aria-label="サイドバーを折りたたむ" aria-expanded="true">
+                        <span class="chevron">◀</span>
+                    </button>
+                </div>
+            </div>
+            <p class="sidebar-caption">クリックでスライドへ移動</p>
+            <ul class="slide-list" id="slideList" aria-label="スライド一覧"></ul>
+        </aside>
+
+        <main class="slides-area">
+            <div class="progress">
+                <span id="slideNumber">1 / 6</span>
+            </div>
+
+            <div class="slide-container">
+                <!-- Slide 1: タイトル -->
+                <div class="slide active">
+                    <img src="https://v3b.fal.media/files/b/0a84b1b4/a8NCPLTcnkZLt36tjv3pu.png" alt="AIメール監視 - タイトル">
+                </div>
+
+                <!-- Slide 2: 従来の運用と課題 -->
+                <div class="slide">
+                    <img src="https://v3b.fal.media/files/b/0a84b1b4/w6GJdHTlywu6kPSNy-B7p.png" alt="従来の運用と課題">
+                </div>
+
+                <!-- Slide 3: メール送信フロー -->
+                <div class="slide">
+                    <img src="https://v3b.fal.media/files/b/0a84b1b4/tmxffbIZE8VKL8L4DSYaz.png" alt="メール送信フロー">
+                </div>
+
+                <!-- Slide 4: 現場からの返信 -->
+                <div class="slide">
+                    <img src="https://v3b.fal.media/files/b/0a84b1b4/NGLGtKps-7Kdv5_iXVFX4.png" alt="現場からの返信">
+                </div>
+
+                <!-- Slide 5: AIによる自動処理 -->
+                <div class="slide">
+                    <img src="https://v3b.fal.media/files/b/0a84b1b4/TDBNHR9F15niMDs6hmhcm.png" alt="AIによる自動処理">
+                </div>
+
+                <!-- Slide 6: 効果とまとめ -->
+                <div class="slide">
+                    <img src="https://v3b.fal.media/files/b/0a84b1b4/xPlkj24Ww1GR4IbFhVMXi.png" alt="効果とまとめ">
+                </div>
+            </div>
+
+            <div class="navigation">
+                <button class="nav-btn" id="prevBtn">◀</button>
+                <button class="nav-btn" id="nextBtn">▶</button>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <script src="/Users/urd/workspace/zoltraak_os/.kamui/apps/kamui-os-intro-1732171200.js"></script>
+    <script>
+        // ダウンロード機能の実装
+        document.getElementById('downloadAllBtn').addEventListener('click', async function() {
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF({
+                orientation: 'landscape',
+                unit: 'px',
+                format: [1400, 800]
+            });
+
+            const slides = document.querySelectorAll('.slide img');
+
+            for (let i = 0; i < slides.length; i++) {
+                if (i > 0) pdf.addPage();
+
+                try {
+                    const imgElement = slides[i];
+                    const imgData = await fetch(imgElement.src)
+                        .then(res => res.blob())
+                        .then(blob => new Promise((resolve) => {
+                            const reader = new FileReader();
+                            reader.onloadend = () => resolve(reader.result);
+                            reader.readAsDataURL(blob);
+                        }));
+
+                    pdf.addImage(imgData, 'PNG', 0, 0, 1400, 800);
+                } catch (error) {
+                    console.error(`スライド${i + 1}の追加に失敗:`, error);
+                }
+            }
+
+            pdf.save('ai-mail-monitoring-slides.pdf');
+        });
+
+        // ダウンロードボタンのホバーエフェクト
+        const downloadBtn = document.getElementById('downloadAllBtn');
+        downloadBtn.addEventListener('mouseenter', function() {
+            this.style.background = '#dfe9fb';
+            this.style.transform = 'translateY(-1px)';
+        });
+        downloadBtn.addEventListener('mouseleave', function() {
+            this.style.background = '#ecf2fb';
+            this.style.transform = 'translateY(0)';
+        });
+    </script>
+</body>
+</html>

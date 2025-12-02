@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <!-- Background -->
+  <rect width="256" height="256" rx="32" fill="#4f8de4"/>
+
+  <!-- Mail envelope body -->
+  <rect x="48" y="88" width="160" height="112" rx="8" fill="#ffffff" opacity="0.95"/>
+
+  <!-- Mail envelope flap shadow -->
+  <path d="M 48 88 L 128 148 L 208 88 L 128 120 Z" fill="#1f3a5f" opacity="0.2"/>
+
+  <!-- Mail envelope flap -->
+  <path d="M 48 88 L 128 148 L 208 88 Z" fill="#ffffff" stroke="#1f3a5f" stroke-width="3" stroke-linejoin="round"/>
+
+  <!-- Envelope outline -->
+  <rect x="48" y="88" width="160" height="112" rx="8" fill="none" stroke="#1f3a5f" stroke-width="3"/>
+
+  <!-- AI Spark/Lightning bolt (left top) -->
+  <path d="M 72 56 L 64 72 L 76 72 L 68 88 L 84 68 L 72 68 Z" fill="#ffd93d" stroke="#ff9800" stroke-width="2" stroke-linejoin="round"/>
+
+  <!-- AI Spark/Lightning bolt (right top) -->
+  <path d="M 192 56 L 184 72 L 196 72 L 188 88 L 204 68 L 192 68 Z" fill="#ffd93d" stroke="#ff9800" stroke-width="2" stroke-linejoin="round"/>
+
+  <!-- Monitoring Eye Symbol (center of envelope) -->
+  <ellipse cx="128" cy="144" rx="24" ry="18" fill="#4f8de4" opacity="0.9"/>
+  <circle cx="128" cy="144" r="10" fill="#1f3a5f"/>
+  <circle cx="130" cy="142" r="4" fill="#ffffff"/>
+
+  <!-- Mail lines (text representation) -->
+  <line x1="68" y1="168" x2="140" y2="168" stroke="#4f8de4" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
+  <line x1="68" y1="178" x2="160" y2="178" stroke="#4f8de4" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
+  <line x1="68" y1="188" x2="150" y2="188" stroke="#4f8de4" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
+
+  <!-- Small decorative dots for "hand-drawn" feel -->
+  <circle cx="220" cy="120" r="3" fill="#ffd93d" opacity="0.7"/>
+  <circle cx="230" cy="140" r="2" fill="#ffd93d" opacity="0.7"/>
+  <circle cx="36" cy="120" r="3" fill="#ffd93d" opacity="0.7"/>
+  <circle cx="26" cy="140" r="2" fill="#ffd93d" opacity="0.7"/>
+</svg>
