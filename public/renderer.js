@@ -532,13 +532,15 @@ const hydrateAiMailStatus = async () => {
 const handleWorkspaceChange = async () => {
   if (!workspaceChip || !window.desktopBridge?.changeWorkspaceDirectory) return;
   workspaceChip.disabled = true;
+  const shouldRestoreVisualizer = isWorkspaceVisualizerActive();
   try {
     const dir = await window.desktopBridge.changeWorkspaceDirectory();
     workspacePath = dir || workspacePath;
     updateWorkspaceChip(workspacePath);
     resetWorkspaceGraphCache();
-    if (workspaceVisualizerController.isActive()) {
+    if (shouldRestoreVisualizer) {
       stopWorkspaceVisualizer();
+      void startWorkspaceVisualizer();
     }
   } catch (error) {
     console.error('Failed to change workspace directory', error);
