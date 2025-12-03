@@ -216,7 +216,7 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
     const tiltSpeed = 0.0044;
     controls.target.theta -= dx * rotateSpeed;
     controls.target.phi = THREE.MathUtils.clamp(
-      controls.target.phi + dy * tiltSpeed,
+      controls.target.phi - dy * tiltSpeed,
       controls.limits.minPhi,
       controls.limits.maxPhi,
     );
