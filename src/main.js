@@ -440,6 +440,38 @@ const openWorkspaceEntry = async (entryId) => {
   };
 };
 
+const openWorkspaceEntryDirectory = async (entryId) => {
+  const targetPath = await resolveWorkspaceEntryPath(entryId);
+  let stat = null;
+  try {
+    stat = await fsp.stat(targetPath);
+  } catch (error) {
+    throw new Error('指定のパスが見つかりません');
+  }
+  const directory = stat.isDirectory() ? targetPath : path.dirname(targetPath);
+  if (stat.isDirectory()) {
+    const result = await shell.openPath(directory);
+    if (result) {
+      throw new Error(`ディレクトリを開けませんでした: ${result}`);
+    }
+  } else if (typeof shell.showItemInFolder === 'function') {
+    const revealed = shell.showItemInFolder(targetPath);
+    if (revealed === false) {
+      throw new Error('ディレクトリを開けませんでした');
+    }
+  } else {
+    const result = await shell.openPath(directory);
+    if (result) {
+      throw new Error(`ディレクトリを開けませんでした: ${result}`);
+    }
+  }
+  return {
+    directory,
+    target: targetPath,
+    type: stat.isDirectory() ? 'directory' : 'file',
+  };
+};
+
 const ensureRecordingDirectory = async () => {
   const dir = await ensureWorkspaceDirectory();
   if (!dir) {
@@ -547,6 +579,10 @@ app.whenReady().then(async () => {
   ipcMain.handle('workspace:get-stored-directory', getStoredWorkspaceDirectory);
   ipcMain.handle('workspace:open-directory', openWorkspaceDirectory);
   ipcMain.handle('workspace:open-entry', async (_event, entryId) => openWorkspaceEntry(entryId));
+  ipcMain.handle(
+    'workspace:open-entry-directory',
+    async (_event, entryId) => openWorkspaceEntryDirectory(entryId),
+  );
   ipcMain.handle('workspace:get-graph', buildWorkspaceGraph);
   ipcMain.handle('recording:save', async (_event, payload) => {
     const { buffer, mimeType } = payload ?? {};
