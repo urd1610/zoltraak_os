@@ -117,6 +117,7 @@ contextBridge.exposeInMainWorld('desktopBridge', {
   changeWorkspaceDirectory: () => ipcRenderer.invoke('workspace:change-directory'),
   openWorkspaceDirectory: () => ipcRenderer.invoke('workspace:open-directory'),
   openWorkspaceEntry: (entryId) => ipcRenderer.invoke('workspace:open-entry', entryId),
+  openWorkspaceEntryDirectory: (entryId) => ipcRenderer.invoke('workspace:open-entry-directory', entryId),
   getWorkspaceGraph: () => ipcRenderer.invoke('workspace:get-graph'),
   saveRecording: (buffer, mimeType) => ipcRenderer.invoke('recording:save', { buffer, mimeType }),
   getAiMailStatus: () => ipcRenderer.invoke('ai-mail:get-status'),

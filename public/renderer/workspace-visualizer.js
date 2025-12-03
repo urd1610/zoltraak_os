@@ -117,7 +117,18 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
       }
       hideWorkspaceContextMenu();
     });
-    menu.append(title, openButton);
+    const openDirectoryButton = document.createElement('button');
+    openDirectoryButton.type = 'button';
+    openDirectoryButton.className = 'workspace-context-menu__item';
+    openDirectoryButton.dataset.role = 'workspace-open-directory';
+    openDirectoryButton.textContent = 'ディレクトリを開く';
+    openDirectoryButton.addEventListener('click', () => {
+      if (workspaceContextMenuMeta) {
+        void openWorkspaceNodeDirectory(workspaceContextMenuMeta);
+      }
+      hideWorkspaceContextMenu();
+    });
+    menu.append(title, openButton, openDirectoryButton);
     document.body.append(menu);
     workspaceContextMenuEl = menu;
     return menu;
@@ -148,6 +159,12 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
       const typeLabel = meta?.data?.type === 'directory' ? 'ディレクトリ' : 'ファイル';
       title.textContent = `${label} を開く (${typeLabel})`;
     }
+    const openDirectoryButton = menu.querySelector('[data-role="workspace-open-directory"]');
+    if (openDirectoryButton) {
+      const isFile = meta?.data?.type === 'file';
+      openDirectoryButton.hidden = !isFile;
+      openDirectoryButton.disabled = !isFile;
+    }
     const { clientX, clientY } = event ?? { clientX: 0, clientY: 0 };
     positionWorkspaceContextMenu(menu, clientX, clientY);
   };
@@ -163,6 +180,20 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
     } catch (error) {
       console.error('Failed to open workspace entry', error);
       flashWorkspaceVisualizerMessage('ノードを開けませんでした');
+    }
+  };
+
+  const openWorkspaceNodeDirectory = async (meta) => {
+    if (!meta?.data?.id) return;
+    if (!window.desktopBridge?.openWorkspaceEntryDirectory) {
+      flashWorkspaceVisualizerMessage('ディレクトリを開けませんでした');
+      return;
+    }
+    try {
+      await window.desktopBridge.openWorkspaceEntryDirectory(meta.data.id);
+    } catch (error) {
+      console.error('Failed to open workspace entry directory', error);
+      flashWorkspaceVisualizerMessage('ディレクトリを開けませんでした');
     }
   };
 
