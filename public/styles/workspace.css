@@ -119,11 +119,8 @@
 }
 
 .workspace-visualizer {
-  position: fixed;
-  top: var(--top-bar-height);
-  left: 0;
-  right: 0;
-  bottom: 0;
+  position: absolute;
+  inset: 0;
   z-index: 0;
   overflow: hidden;
   pointer-events: none;
