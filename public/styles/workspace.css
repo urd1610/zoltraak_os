@@ -180,6 +180,9 @@
   left: -9999px;
   min-width: 220px;
   padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   border-radius: 12px;
   background: rgba(6, 10, 22, 0.94);
   border: 1px solid rgba(110, 231, 255, 0.28);
