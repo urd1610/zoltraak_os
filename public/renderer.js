@@ -43,6 +43,7 @@ let mediaStream = null;
 let recordedChunks = [];
 let isSavingRecording = false;
 let resizeTimerId = null;
+let sidePanelResizeTimerId = null;
 let quickActionsResizeObserver = null;
 let aiMailFeature = null;
 
@@ -571,12 +572,25 @@ const applySidePanelToggleMetadata = () => {
   sidePanelToggleButton.dataset.state = isSidePanelOpen ? 'open' : 'closed';
 };
 
+const scheduleWorkspaceResize = () => {
+  resizeWorkspaceScene();
+  requestAnimationFrame(() => resizeWorkspaceScene());
+  if (sidePanelResizeTimerId) {
+    clearTimeout(sidePanelResizeTimerId);
+  }
+  sidePanelResizeTimerId = setTimeout(() => {
+    resizeWorkspaceScene();
+    sidePanelResizeTimerId = null;
+  }, 260);
+};
+
 const applySidePanelState = () => {
   document.body.classList.toggle('panel-collapsed', !isSidePanelOpen);
   if (sidePanel) {
     sidePanel.setAttribute('aria-hidden', String(!isSidePanelOpen));
   }
   applySidePanelToggleMetadata();
+  scheduleWorkspaceResize();
   requestAnimationFrame(() => ensureQuickActionsVisible());
   if (!quickActionsResizeObserver) {
     setTimeout(() => ensureQuickActionsVisible(), 220);
