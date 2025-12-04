@@ -14,6 +14,7 @@ const brandButton = document.getElementById('brand-button');
 const workspaceVisualizer = document.getElementById('workspace-visualizer');
 const QUICK_ACTION_PADDING = 12;
 const QUICK_ACTION_GAP = 12;
+const SIDE_PANEL_TOGGLE_SAFE_ZONE = 72;
 const SIDE_PANEL_STATE_KEY = 'sidePanelOpen';
 
 const quickActions = [
@@ -154,7 +155,10 @@ const ensureQuickActionsVisible = () => {
     const currentX = typeof action.position?.x === 'number' ? action.position.x : QUICK_ACTION_PADDING;
     const currentY = typeof action.position?.y === 'number' ? action.position.y : QUICK_ACTION_PADDING;
     const rect = row.getBoundingClientRect();
-    const maxX = Math.max(QUICK_ACTION_PADDING, containerRect.width - rect.width - QUICK_ACTION_PADDING);
+    const maxX = Math.max(
+      QUICK_ACTION_PADDING,
+      containerRect.width - rect.width - QUICK_ACTION_PADDING - SIDE_PANEL_TOGGLE_SAFE_ZONE,
+    );
     const maxY = Math.max(QUICK_ACTION_PADDING, containerRect.height - rect.height - QUICK_ACTION_PADDING);
     const clampedX = Math.min(Math.max(currentX, QUICK_ACTION_PADDING), maxX);
     const clampedY = Math.min(Math.max(currentY, QUICK_ACTION_PADDING), maxY);
@@ -306,7 +310,10 @@ const handleGlobalMouseMove = (e) => {
   const rowRect = currentDraggingElement.getBoundingClientRect();
   const minX = QUICK_ACTION_PADDING;
   const minY = QUICK_ACTION_PADDING;
-  const maxX = Math.max(minX, containerRect.width - rowRect.width - QUICK_ACTION_PADDING);
+  const maxX = Math.max(
+    minX,
+    containerRect.width - rowRect.width - QUICK_ACTION_PADDING - SIDE_PANEL_TOGGLE_SAFE_ZONE,
+  );
   const maxY = Math.max(minY, containerRect.height - rowRect.height - QUICK_ACTION_PADDING);
   const clampedX = Math.max(minX, Math.min(newX, maxX));
   const clampedY = Math.max(minY, Math.min(newY, maxY));
