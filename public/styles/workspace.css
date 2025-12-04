@@ -16,7 +16,7 @@
   position: absolute;
   top: 18px;
   right: 18px;
-  z-index: 6;
+  z-index: 2000;
   width: 36px;
   min-width: 36px;
   height: 36px;
@@ -285,4 +285,3 @@
   color: var(--muted);
   font-size: 12px;
 }
-
