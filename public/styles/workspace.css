@@ -1,9 +1,12 @@
 .canvas {
+  --canvas-pad-x: 24px;
+  --canvas-pad-top: 20px;
+  --canvas-pad-bottom: 24px;
   display: flex;
   gap: 24px;
   justify-content: center;
   align-items: stretch;
-  padding: 20px 24px 24px;
+  padding: var(--canvas-pad-top) var(--canvas-pad-x) var(--canvas-pad-bottom);
   height: calc(100vh - var(--top-bar-height));
   transition: gap 180ms ease;
   position: relative;
@@ -13,7 +16,7 @@
   position: absolute;
   top: 18px;
   right: 18px;
-  z-index: 3;
+  z-index: 6;
   width: 36px;
   min-width: 36px;
   height: 36px;

@@ -2,13 +2,18 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  width: min(420px, 100%);
-  align-self: stretch;
-  height: 100%;
+  position: absolute;
+  top: var(--canvas-pad-top);
+  right: var(--canvas-pad-x);
+  bottom: var(--canvas-pad-bottom);
+  width: min(420px, calc(100% - (var(--canvas-pad-x) * 2)));
+  max-width: 420px;
   min-height: 0;
   min-width: 0;
-  transition: opacity 180ms ease, transform 180ms ease, max-width 200ms ease, width 200ms ease;
+  transition: opacity 180ms ease, transform 180ms ease, visibility 0s linear 0s;
   overflow: hidden;
+  z-index: 4;
+  visibility: visible;
 }
 
 .panel-card {
@@ -48,11 +53,11 @@
 }
 
 .panel-collapsed .side-panel {
-  max-width: 0;
-  width: 0;
   opacity: 0;
-  transform: translateX(24px);
+  transform: translateX(16px);
   pointer-events: none;
+  visibility: hidden;
+  transition: opacity 180ms ease, transform 180ms ease, visibility 0s linear 180ms;
 }
 
 .panel-collapsed .panel-stack {
