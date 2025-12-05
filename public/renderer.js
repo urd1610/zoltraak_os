@@ -9,7 +9,7 @@ const clockChip = document.getElementById('clock-chip');
 const quickActionsContainer = document.getElementById('quick-actions');
 const brandButton = document.getElementById('brand-button');
 const workspaceVisualizer = document.getElementById('workspace-visualizer');
-const QUICK_ACTION_PADDING = 12;
+const QUICK_ACTION_PADDING = 0;
 const QUICK_ACTION_GAP = 12;
 const QUICK_ACTION_DRAG_GUTTER = 0;
 
