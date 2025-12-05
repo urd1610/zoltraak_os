@@ -1,21 +1,3 @@
-.side-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  position: absolute;
-  top: var(--canvas-pad-top);
-  right: var(--canvas-pad-x);
-  bottom: var(--canvas-pad-bottom);
-  width: min(420px, calc(100% - (var(--canvas-pad-x) * 2)));
-  max-width: 420px;
-  min-height: 0;
-  min-width: 0;
-  transition: opacity 180ms ease, transform 180ms ease, visibility 0s linear 0s;
-  overflow: hidden;
-  z-index: 4;
-  visibility: visible;
-}
-
 .panel-card {
   background: linear-gradient(180deg, rgba(15, 23, 42, 0.85), rgba(10, 16, 32, 0.95));
   border: 1px solid rgba(255, 255, 255, 0.06);
@@ -34,34 +16,6 @@
 .panel-body {
   display: grid;
   gap: 10px;
-}
-
-.panel-stack {
-  display: grid;
-  gap: 12px;
-  align-content: start;
-  align-items: start;
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow-y: auto;
-  padding-right: 6px;
-  scrollbar-gutter: stable;
-}
-
-.panel-collapsed .canvas {
-  gap: 16px;
-}
-
-.panel-collapsed .side-panel {
-  opacity: 0;
-  transform: translateX(16px);
-  pointer-events: none;
-  visibility: hidden;
-  transition: opacity 180ms ease, transform 180ms ease, visibility 0s linear 180ms;
-}
-
-.panel-collapsed .panel-stack {
-  padding-right: 0;
 }
 
 .feature-card {

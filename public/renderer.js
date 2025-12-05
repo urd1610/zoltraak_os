@@ -7,15 +7,11 @@ const workspaceChip = document.getElementById('workspace-chip');
 const systemChip = document.getElementById('system-chip');
 const clockChip = document.getElementById('clock-chip');
 const quickActionsContainer = document.getElementById('quick-actions');
-const featureCardsContainer = document.getElementById('feature-cards');
-const sidePanel = document.getElementById('side-panel');
-const sidePanelToggleButton = document.getElementById('side-panel-toggle');
 const brandButton = document.getElementById('brand-button');
 const workspaceVisualizer = document.getElementById('workspace-visualizer');
 const QUICK_ACTION_PADDING = 12;
 const QUICK_ACTION_GAP = 12;
-const SIDE_PANEL_TOGGLE_SAFE_ZONE = 72;
-const SIDE_PANEL_STATE_KEY = 'sidePanelOpen';
+const QUICK_ACTION_DRAG_GUTTER = 0;
 
 const quickActions = [
   { id: 'record', label: 'クイック録音', detail: '音声メモ', icon: '🎙️', active: false, position: { x: 0, y: 0 } },
@@ -30,7 +26,6 @@ quickActions.forEach((action, index) => {
 });
 
 let highestZIndex = quickActions.length;
-let isSidePanelOpen = true;
 
 // グローバル変数を関数外に移動
 let currentDraggingElement = null;
@@ -44,9 +39,9 @@ let mediaStream = null;
 let recordedChunks = [];
 let isSavingRecording = false;
 let resizeTimerId = null;
-let sidePanelResizeTimerId = null;
 let quickActionsResizeObserver = null;
 let aiMailFeature = null;
+const featureWindows = new Map();
 
 const buildWorkspaceChipTitle = (dir) => {
   if (dir) {
@@ -157,7 +152,7 @@ const ensureQuickActionsVisible = () => {
     const rect = row.getBoundingClientRect();
     const maxX = Math.max(
       QUICK_ACTION_PADDING,
-      containerRect.width - rect.width - QUICK_ACTION_PADDING - SIDE_PANEL_TOGGLE_SAFE_ZONE,
+      containerRect.width - rect.width - QUICK_ACTION_PADDING - QUICK_ACTION_DRAG_GUTTER,
     );
     const maxY = Math.max(QUICK_ACTION_PADDING, containerRect.height - rect.height - QUICK_ACTION_PADDING);
     const clampedX = Math.min(Math.max(currentX, QUICK_ACTION_PADDING), maxX);
@@ -182,52 +177,102 @@ const setupQuickActionsResizeObserver = () => {
   quickActionsResizeObserver.observe(quickActionsContainer);
 };
 
-const renderFeatureCards = () => {
-  featureCardsContainer.innerHTML = '';
+const buildGenericFeatureCard = (action) => {
+  const card = document.createElement('div');
+  card.className = 'feature-card';
+
+  const header = document.createElement('div');
+  header.className = 'feature-header';
+  const title = document.createElement('div');
+  title.className = 'feature-title';
+  title.innerHTML = `<strong>${action.label}</strong><span class="feature-desc">${action.detail}</span>`;
+  const chip = document.createElement('span');
+  chip.className = 'chip tiny';
+  chip.textContent = 'RUNNING';
+  header.append(title, chip);
+
+  const desc = document.createElement('div');
+  desc.className = 'feature-desc';
+  desc.textContent = action.id === 'focus'
+    ? '集中タイマーが進行中です。通知は抑制されています。'
+    : '共有ステータスを送信しています。';
+
+  const actions = document.createElement('div');
+  actions.className = 'feature-actions';
+  const stopBtn = document.createElement('button');
+  stopBtn.className = 'ghost';
+  stopBtn.textContent = '停止';
+  stopBtn.addEventListener('click', () => toggleAction(action.id));
+  actions.append(stopBtn);
+
+  card.append(header, desc, actions);
+  return card;
+};
+
+const closeFeatureWindow = (id) => {
+  const entry = featureWindows.get(id);
+  if (!entry) return;
+  featureWindows.delete(id);
+  entry.close();
+};
+
+const handleFeatureWindowClose = (action) => {
+  if (!action) return;
+  if (action.id === 'ai-mail-monitor' && aiMailFeature?.closePanel) {
+    void aiMailFeature.closePanel();
+    return;
+  }
+  if (action.id === 'record') {
+    stopRecording();
+    return;
+  }
+  if (action.active) {
+    toggleAction(action.id);
+  } else {
+    closeFeatureWindow(action.id);
+  }
+};
+
+const renderFeatureWindows = () => {
   const activeActions = quickActions.filter((action) => action.active);
+  const activeIds = new Set(activeActions.map((action) => action.id));
+
+  Array.from(featureWindows.keys()).forEach((id) => {
+    if (!activeIds.has(id)) {
+      closeFeatureWindow(id);
+    }
+  });
 
   activeActions.forEach((action) => {
-    if (action.id === 'record') {
-      featureCardsContainer.appendChild(buildRecordingCard(action));
-      return;
-    }
-    if (action.id === 'ai-mail-monitor' && aiMailFeature) {
-      const card = aiMailFeature.buildCard();
-      if (card) {
-        featureCardsContainer.appendChild(card);
+    const card = (() => {
+      if (action.id === 'record') {
+        return buildRecordingCard(action);
       }
+      if (action.id === 'ai-mail-monitor' && aiMailFeature) {
+        return aiMailFeature.buildCard();
+      }
+      return buildGenericFeatureCard(action);
+    })();
+
+    if (!card) {
+      closeFeatureWindow(action.id);
       return;
     }
 
-    const card = document.createElement('div');
-    card.className = 'feature-card';
+    let shell = featureWindows.get(action.id);
+    if (!shell) {
+      shell = createWindowShell(`feature-${action.id}`, action.label, () => {
+        if (!featureWindows.has(action.id)) {
+          return;
+        }
+        featureWindows.delete(action.id);
+        handleFeatureWindowClose(action);
+      });
+      featureWindows.set(action.id, shell);
+    }
 
-    const header = document.createElement('div');
-    header.className = 'feature-header';
-    const title = document.createElement('div');
-    title.className = 'feature-title';
-    title.innerHTML = `<strong>${action.label}</strong><span class="feature-desc">${action.detail}</span>`;
-    const chip = document.createElement('span');
-    chip.className = 'chip tiny';
-    chip.textContent = 'RUNNING';
-    header.append(title, chip);
-
-    const desc = document.createElement('div');
-    desc.className = 'feature-desc';
-    desc.textContent = action.id === 'focus'
-      ? '集中タイマーが進行中です。通知は抑制されています。'
-      : '共有ステータスを送信しています。';
-
-    const actions = document.createElement('div');
-    actions.className = 'feature-actions';
-    const stopBtn = document.createElement('button');
-    stopBtn.className = 'ghost';
-    stopBtn.textContent = '停止';
-    stopBtn.addEventListener('click', () => toggleAction(action.id));
-    actions.append(stopBtn);
-
-    card.append(header, desc, actions);
-    featureCardsContainer.appendChild(card);
+    shell.body.innerHTML = '';
+    shell.body.append(card);
   });
 };
 
@@ -241,7 +286,7 @@ const isActionActive = (id) => quickActions.some((action) => action.id === id &&
 
 const renderUi = () => {
   renderQuickActions();
-  renderFeatureCards();
+  renderFeatureWindows();
 };
 
 const initializeAiMailFeature = () => {
@@ -312,7 +357,7 @@ const handleGlobalMouseMove = (e) => {
   const minY = QUICK_ACTION_PADDING;
   const maxX = Math.max(
     minX,
-    containerRect.width - rowRect.width - QUICK_ACTION_PADDING - SIDE_PANEL_TOGGLE_SAFE_ZONE,
+    containerRect.width - rowRect.width - QUICK_ACTION_PADDING - QUICK_ACTION_DRAG_GUTTER,
   );
   const maxY = Math.max(minY, containerRect.height - rowRect.height - QUICK_ACTION_PADDING);
   const clampedX = Math.max(minX, Math.min(newX, maxX));
@@ -369,7 +414,7 @@ const finalizeRecordingStop = () => {
   recordingStartedAt = null;
   setActionActive('record', false);
   renderQuickActions();
-  renderFeatureCards();
+  renderFeatureWindows();
 };
 
 const saveRecordingBlob = async (blob) => {
@@ -387,7 +432,7 @@ const handleRecorderStop = async () => {
   recordedChunks = [];
   mediaRecorder = null;
   isSavingRecording = true;
-  renderFeatureCards();
+  renderFeatureWindows();
 
   try {
     await saveRecordingBlob(blob);
@@ -426,7 +471,7 @@ const startRecording = async () => {
     recordingStartedAt = Date.now();
     setActionActive('record', true);
     renderQuickActions();
-    renderFeatureCards();
+    renderFeatureWindows();
     updateRecordingTimer();
     cleanupRecordingTimer();
     recordingTimerId = setInterval(updateRecordingTimer, 500);
@@ -492,7 +537,7 @@ const toggleAction = (id) => {
   }
   action.active = !action.active;
   renderQuickActions();
-  renderFeatureCards();
+  renderFeatureWindows();
 };
 
 const handleActionDoubleClick = (action) => {
@@ -533,7 +578,7 @@ const hydrateAiMailStatus = async () => {
   } catch (error) {
     console.error('Failed to hydrate ai mail status', error);
     updateAiMailStatus({ lastError: 'AIメール監視の状態取得に失敗しました' });
-    renderFeatureCards();
+    renderFeatureWindows();
   }
 };
 
@@ -566,79 +611,6 @@ const hydrateSystemInfo = () => {
     return;
   }
   systemChip.textContent = `${info.user} · ${info.platform} ${info.release}`;
-};
-
-const getSidePanelToggleLabel = (open) => (open ? 'サイドパネルを閉じる' : 'サイドパネルを開く');
-
-const applySidePanelToggleMetadata = () => {
-  if (!sidePanelToggleButton) return;
-  const label = getSidePanelToggleLabel(isSidePanelOpen);
-  sidePanelToggleButton.setAttribute('aria-expanded', isSidePanelOpen ? 'true' : 'false');
-  sidePanelToggleButton.setAttribute('aria-label', label);
-  sidePanelToggleButton.title = label;
-  sidePanelToggleButton.dataset.state = isSidePanelOpen ? 'open' : 'closed';
-};
-
-const scheduleWorkspaceResize = () => {
-  resizeWorkspaceScene();
-  requestAnimationFrame(() => resizeWorkspaceScene());
-  if (sidePanelResizeTimerId) {
-    clearTimeout(sidePanelResizeTimerId);
-  }
-  sidePanelResizeTimerId = setTimeout(() => {
-    resizeWorkspaceScene();
-    sidePanelResizeTimerId = null;
-  }, 260);
-};
-
-const applySidePanelState = () => {
-  document.body.classList.toggle('panel-collapsed', !isSidePanelOpen);
-  if (sidePanel) {
-    sidePanel.setAttribute('aria-hidden', String(!isSidePanelOpen));
-  }
-  applySidePanelToggleMetadata();
-  scheduleWorkspaceResize();
-  requestAnimationFrame(() => ensureQuickActionsVisible());
-  if (!quickActionsResizeObserver) {
-    setTimeout(() => ensureQuickActionsVisible(), 220);
-  }
-};
-
-const persistSidePanelState = () => {
-  try {
-    localStorage.setItem(SIDE_PANEL_STATE_KEY, isSidePanelOpen ? 'open' : 'closed');
-  } catch (error) {
-    console.warn('サイドパネル状態の保存に失敗しました', error);
-  }
-};
-
-const setSidePanelOpen = (open) => {
-  const next = Boolean(open);
-  const prev = isSidePanelOpen;
-  isSidePanelOpen = next;
-  applySidePanelState();
-  if (prev !== next) {
-    persistSidePanelState();
-  }
-};
-
-const toggleSidePanel = () => {
-  setSidePanelOpen(!isSidePanelOpen);
-};
-
-const hydrateSidePanelState = () => {
-  let savedState = isSidePanelOpen;
-  try {
-    const stored = localStorage.getItem(SIDE_PANEL_STATE_KEY);
-    if (stored === 'open') {
-      savedState = true;
-    } else if (stored === 'closed') {
-      savedState = false;
-    }
-  } catch (error) {
-    console.warn('サイドパネル状態の読み込みに失敗しました', error);
-  }
-  setSidePanelOpen(savedState);
 };
 
 const savePositions = () => {
@@ -691,11 +663,10 @@ const loadPositions = () => {
 };
 
 const boot = () => {
-  hydrateSidePanelState();
   loadPositions();
   initializeAiMailFeature();
   renderQuickActions();
-  renderFeatureCards();
+  renderFeatureWindows();
   setupQuickActionsResizeObserver();
   void startWorkspaceVisualizer();
   void hydrateWorkspaceChip();
@@ -703,7 +674,6 @@ const boot = () => {
   updateClock();
   setInterval(updateClock, 30000);
   workspaceChip?.addEventListener('click', () => void handleWorkspaceChange());
-  sidePanelToggleButton?.addEventListener('click', toggleSidePanel);
   brandButton?.addEventListener('dblclick', () => {
     if (isWorkspaceVisualizerActive()) {
       stopWorkspaceVisualizer();
