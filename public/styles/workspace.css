@@ -1,13 +1,14 @@
 .canvas {
-  --canvas-pad-x: 24px;
-  --canvas-pad-top: 20px;
-  --canvas-pad-bottom: 24px;
+  --canvas-pad-x: 0px;
+  --canvas-pad-top: 0px;
+  --canvas-pad-bottom: 0px;
   display: flex;
-  gap: 24px;
+  gap: 0;
   justify-content: center;
   align-items: stretch;
-  padding: var(--canvas-pad-top) var(--canvas-pad-x) var(--canvas-pad-bottom);
+  padding: 0;
   height: calc(100vh - var(--top-bar-height));
+  width: 100vw;
   transition: gap 180ms ease;
   position: relative;
 }
@@ -15,8 +16,8 @@
 .desktop-surface {
   flex: 1;
   position: relative;
-  min-height: calc(100vh - 160px);
-  border-radius: var(--radius);
+  height: 100%;
+  border-radius: 0;
   border: 1px solid rgba(255, 255, 255, 0.04);
   background: linear-gradient(160deg, rgba(17, 27, 47, 0.65), rgba(6, 10, 22, 0.9));
   box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.35);
