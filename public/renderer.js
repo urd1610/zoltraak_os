@@ -15,10 +15,8 @@ const QUICK_ACTION_DRAG_GUTTER = 0;
 
 const quickActions = [
   { id: 'record', label: 'クイック録音', detail: '音声メモ', icon: '🎙️', active: false, position: { x: 0, y: 0 } },
-  { id: 'focus', label: 'フォーカス 25:00', detail: '集中モード', icon: '⏱️', active: false, position: { x: 150, y: 0 } },
-  { id: 'share', label: 'ステータス共有', detail: 'チームに公開', icon: '📡', active: false, position: { x: 300, y: 0 } },
-  { id: 'workspace-open', label: 'ディレクトリ', detail: '作業フォルダを開く', icon: '📁', active: false, position: { x: 450, y: 0 } },
-  { id: 'ai-mail-monitor', label: 'AIメール監視', detail: '受信→転送', icon: 'AI', active: false, position: { x: 600, y: 0 } },
+  { id: 'workspace-open', label: 'ディレクトリ', detail: '作業フォルダを開く', icon: '📁', active: false, position: { x: 150, y: 0 } },
+  { id: 'ai-mail-monitor', label: 'AIメール監視', detail: '受信→転送', icon: 'AI', active: false, position: { x: 300, y: 0 } },
 ];
 
 quickActions.forEach((action, index) => {
@@ -193,9 +191,7 @@ const buildGenericFeatureCard = (action) => {
 
   const desc = document.createElement('div');
   desc.className = 'feature-desc';
-  desc.textContent = action.id === 'focus'
-    ? '集中タイマーが進行中です。通知は抑制されています。'
-    : '共有ステータスを送信しています。';
+  desc.textContent = action.detail ?? 'この機能が実行中です。';
 
   const actions = document.createElement('div');
   actions.className = 'feature-actions';
