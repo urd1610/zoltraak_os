@@ -3,6 +3,7 @@ const path = require('path');
 const { app, BrowserWindow, dialog, nativeTheme, ipcMain, shell } = require('electron');
 const { AiMailMonitor } = require('./aiMailMonitor');
 const { AiFormatter, DEFAULT_PROMPT: DEFAULT_FORMATTING_PROMPT } = require('./aiFormatter');
+const { createSwMenuService } = require('./swMenuService');
 
 const fsp = fs.promises;
 const SETTINGS_FILE_NAME = 'settings.json';
@@ -12,6 +13,7 @@ const DEFAULT_PROMPT_FILE_NAME = 'default.txt';
 const RECORDING_DIR_NAME = 'Recording';
 let workspaceDirectory = null;
 let aiMailMonitor = null;
+let swMenuService = null;
 const MAX_GRAPH_NODES = 180;
 const MAX_GRAPH_DEPTH = 4;
 const GRAPH_IGNORE_NAMES = new Set([
@@ -567,6 +569,12 @@ app.whenReady().then(async () => {
     return;
   }
   const monitor = await buildAiMailMonitor();
+  swMenuService = createSwMenuService();
+  try {
+    await swMenuService.ensureSchema();
+  } catch (error) {
+    console.error('Failed to initialize SW menu database', error);
+  }
 
   ipcMain.handle('workspace:get-directory', async () => {
     const ensured = await ensureWorkspaceDirectory();
@@ -600,6 +608,12 @@ app.whenReady().then(async () => {
     const { prompt: saved } = await registerDefaultFormattingPrompt(prompt);
     return saved;
   });
+  ipcMain.handle('sw-menu:init', async () => swMenuService?.ensureSchema());
+  ipcMain.handle('sw-menu:status', async () => swMenuService?.getStatus());
+  ipcMain.handle('sw-menu:overview', async () => swMenuService?.getOverview());
+  ipcMain.handle('sw-menu:upsert-component', async (_event, payload) => swMenuService?.upsertComponent(payload));
+  ipcMain.handle('sw-menu:record-flow', async (_event, payload) => swMenuService?.recordFlow(payload));
+  ipcMain.handle('sw-menu:upsert-bom', async (_event, payload) => swMenuService?.upsertBomLink(payload));
 
   createWindow();
   await startWorkspaceWatcher();
@@ -614,6 +628,9 @@ app.whenReady().then(async () => {
 app.on('window-all-closed', () => {
   if (aiMailMonitor) {
     aiMailMonitor.stop();
+  }
+  if (swMenuService) {
+    swMenuService.dispose();
   }
   stopWorkspaceWatcher();
   if (process.platform !== 'darwin') {

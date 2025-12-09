@@ -2,6 +2,7 @@ import { createWindowShell } from './renderer/window-layer.js';
 import { createWorkspaceVisualizer } from './renderer/workspace-visualizer.js';
 import { formatDuration } from './renderer/utils/time.js';
 import { createAiMailFeature } from './renderer/ai-mail.js';
+import { createSwMenuFeature } from './renderer/sw-menu.js';
 
 const workspaceChip = document.getElementById('workspace-chip');
 const systemChip = document.getElementById('system-chip');
@@ -18,6 +19,7 @@ const QUICK_ACTION_VISIBILITY_KEY = 'quickActionsVisibility';
 const quickActions = [
   { id: 'record', label: 'クイック録音', detail: '音声メモ', icon: '🎙️', active: false, position: { x: 0, y: 0 } },
   { id: 'ai-mail-monitor', label: 'AIメール監視', detail: '受信→転送', icon: 'AI', active: false, position: { x: 150, y: 0 } },
+  { id: 'sw-menu', label: 'SWメニュー', detail: '構成・流動管理', icon: 'SW', active: false, position: { x: 300, y: 0 } },
 ];
 
 quickActions.forEach((action, index) => {
@@ -40,6 +42,7 @@ let isSavingRecording = false;
 let resizeTimerId = null;
 let quickActionsResizeObserver = null;
 let aiMailFeature = null;
+let swMenuFeature = null;
 const featureWindows = new Map();
 let quickActionsVisible = true;
 
@@ -102,6 +105,17 @@ const toggleQuickActionsVisibility = () => {
   setQuickActionsVisibility(!quickActionsVisible);
 };
 
+const isActionWarning = (action) => {
+  if (!action) return false;
+  if (action.id === 'ai-mail-monitor' && typeof aiMailFeature?.isWarning === 'function') {
+    return aiMailFeature.isWarning(action.active);
+  }
+  if (action.id === 'sw-menu' && typeof swMenuFeature?.isWarning === 'function') {
+    return swMenuFeature.isWarning(action.active);
+  }
+  return false;
+};
+
 const renderQuickActions = () => {
   if (!quickActionsContainer) return;
   quickActionsContainer.classList.toggle('is-hidden', !quickActionsVisible);
@@ -113,13 +127,12 @@ const renderQuickActions = () => {
     return;
   }
   quickActions.forEach((action) => {
-    const isAiMailWarning = action.id === 'ai-mail-monitor'
-      && aiMailFeature?.isWarning(action.active);
+    const actionWarning = isActionWarning(action);
 
     const row = document.createElement('div');
     row.className = 'quick-action';
     row.classList.toggle('active', action.active);
-    row.classList.toggle('warning', isAiMailWarning);
+    row.classList.toggle('warning', actionWarning);
     row.dataset.action = action.id;
     row.style.left = `${action.position.x}px`;
     row.style.top = `${action.position.y}px`;
@@ -265,6 +278,10 @@ const handleFeatureWindowClose = (action) => {
     void aiMailFeature.closePanel();
     return;
   }
+  if (action.id === 'sw-menu' && swMenuFeature?.closePanel) {
+    swMenuFeature.closePanel();
+    return;
+  }
   if (action.id === 'record') {
     stopRecording();
     return;
@@ -293,6 +310,9 @@ const renderFeatureWindows = () => {
       }
       if (action.id === 'ai-mail-monitor' && aiMailFeature) {
         return aiMailFeature.buildCard();
+      }
+      if (action.id === 'sw-menu' && swMenuFeature) {
+        return swMenuFeature.buildCard();
       }
       return buildGenericFeatureCard(action);
     })();
@@ -340,6 +360,15 @@ const initializeAiMailFeature = () => {
     renderUi,
   });
   void aiMailFeature.hydrate();
+};
+
+const initializeSwMenuFeature = () => {
+  swMenuFeature = createSwMenuFeature({
+    createWindowShell,
+    setActionActive,
+    isActionActive,
+    renderUi,
+  });
 };
 
 const buildRecordingCard = (action) => {
@@ -550,6 +579,16 @@ const toggleAction = (id) => {
     }
     return;
   }
+  if (id === 'sw-menu') {
+    const nextActive = !action.active;
+    setActionActive(id, nextActive);
+    renderQuickActions();
+    renderFeatureWindows();
+    if (nextActive) {
+      void swMenuFeature?.hydrate?.().then(() => renderFeatureWindows());
+    }
+    return;
+  }
   if (id === 'record') {
     if (isSavingRecording) {
       return;
@@ -687,6 +726,7 @@ const loadPositions = () => {
 const boot = () => {
   loadPositions();
   initializeAiMailFeature();
+  initializeSwMenuFeature();
   setQuickActionsVisibility(loadQuickActionsVisibility(), { skipSave: true });
   renderFeatureWindows();
   setupQuickActionsResizeObserver();
