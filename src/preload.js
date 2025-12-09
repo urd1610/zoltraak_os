@@ -129,6 +129,11 @@ contextBridge.exposeInMainWorld('desktopBridge', {
   updateAiMailFormatting: (formatting) => ipcRenderer.invoke('ai-mail:update-formatting', formatting),
   getAiMailDefaultPrompt: () => ipcRenderer.invoke('ai-mail:get-default-prompt'),
   saveAiMailDefaultPrompt: (prompt) => ipcRenderer.invoke('ai-mail:save-default-prompt', prompt),
+  ensureSwMenuSetup: () => ipcRenderer.invoke('sw-menu:init'),
+  getSwMenuStatus: () => ipcRenderer.invoke('sw-menu:status'),
+  getSwMenuOverview: () => ipcRenderer.invoke('sw-menu:overview'),
+  upsertSwComponent: (component) => ipcRenderer.invoke('sw-menu:upsert-component', component),
+  recordSwFlow: (flow) => ipcRenderer.invoke('sw-menu:record-flow', flow),
   getThreeModuleUrl: () => getThreeModuleUrl(),
   onWorkspaceGraphUpdated: (handler) => subscribeWorkspaceGraphUpdates(handler),
 });
