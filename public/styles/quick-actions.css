@@ -5,6 +5,10 @@
   pointer-events: none;
 }
 
+.quick-actions.is-hidden {
+  display: none;
+}
+
 .quick-actions.workspace-draggable {
   cursor: grab;
 }
