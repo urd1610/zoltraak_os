@@ -15,8 +15,7 @@ const QUICK_ACTION_DRAG_GUTTER = 0;
 
 const quickActions = [
   { id: 'record', label: 'クイック録音', detail: '音声メモ', icon: '🎙️', active: false, position: { x: 0, y: 0 } },
-  { id: 'workspace-open', label: 'ディレクトリ', detail: '作業フォルダを開く', icon: '📁', active: false, position: { x: 150, y: 0 } },
-  { id: 'ai-mail-monitor', label: 'AIメール監視', detail: '受信→転送', icon: 'AI', active: false, position: { x: 300, y: 0 } },
+  { id: 'ai-mail-monitor', label: 'AIメール監視', detail: '受信→転送', icon: 'AI', active: false, position: { x: 150, y: 0 } },
 ];
 
 quickActions.forEach((action, index) => {
@@ -491,23 +490,6 @@ const stopRecording = () => {
   finalizeRecordingStop();
 };
 
-const openWorkspaceDirectoryFromIcon = async () => {
-  if (!window.desktopBridge?.openWorkspaceDirectory) {
-    alert('作業ディレクトリを開けませんでした。設定を確認してください。');
-    return;
-  }
-  try {
-    const opened = await window.desktopBridge.openWorkspaceDirectory();
-    if (opened) {
-      workspacePath = opened;
-      updateWorkspaceChip(opened);
-    }
-  } catch (error) {
-    console.error('Failed to open workspace directory', error);
-    alert('作業ディレクトリを開けませんでした。設定を確認してください。');
-  }
-};
-
 const toggleAction = (id) => {
   const action = quickActions.find((a) => a.id === id);
   if (!action) return;
@@ -538,10 +520,6 @@ const toggleAction = (id) => {
 
 const handleActionDoubleClick = (action) => {
   if (!action) return;
-  if (action.id === 'workspace-open') {
-    void openWorkspaceDirectoryFromIcon();
-    return;
-  }
   toggleAction(action.id);
 };
 
