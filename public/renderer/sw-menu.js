@@ -458,33 +458,12 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     return form;
   };
 
-  const buildCard = () => {
-    const card = document.createElement('div');
-    card.className = 'feature-card';
-
-    const header = document.createElement('div');
-    header.className = 'feature-header';
-    const title = document.createElement('div');
-    title.className = 'feature-title';
-    title.innerHTML = '<strong>SWメニュー</strong><span class="feature-desc">部品構成と流動数を管理</span>';
-    const headerControls = document.createElement('div');
-    headerControls.className = 'feature-header-controls';
-    const statusChip = document.createElement('span');
-    statusChip.className = 'chip tiny';
-    const ready = state.status.ready && !state.status.lastError;
-    statusChip.textContent = ready ? 'READY' : 'SETUP REQUIRED';
-    statusChip.classList.toggle('muted', !ready);
-    const closeBtn = document.createElement('button');
-    closeBtn.type = 'button';
-    closeBtn.className = 'panel-close';
-    closeBtn.textContent = '×';
-    closeBtn.setAttribute('aria-label', 'SWメニューを閉じる');
-    closeBtn.addEventListener('click', closePanel);
-    headerControls.append(statusChip, closeBtn);
-    header.append(title, headerControls);
-
+  const buildControlActions = (variant = 'card') => {
     const actions = document.createElement('div');
     actions.className = 'feature-actions';
+    if (variant === 'surface') {
+      actions.classList.add('sw-menu-surface__actions');
+    }
     const initButton = document.createElement('button');
     initButton.type = 'button';
     initButton.className = 'ghost';
@@ -500,7 +479,10 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     refreshButton.addEventListener('click', () => { void hydrateOverview(); });
 
     actions.append(initButton, refreshButton);
+    return actions;
+  };
 
+  const buildSwMenuGrid = () => {
     const layout = document.createElement('div');
     layout.className = 'sw-grid';
 
@@ -584,15 +566,111 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     );
 
     layout.append(leftColumn, rightColumn);
+    return layout;
+  };
+
+  const buildCard = () => {
+    const card = document.createElement('div');
+    card.className = 'feature-card';
+
+    const header = document.createElement('div');
+    header.className = 'feature-header';
+    const title = document.createElement('div');
+    title.className = 'feature-title';
+    title.innerHTML = '<strong>SWメニュー</strong><span class="feature-desc">部品構成と流動数を管理</span>';
+    const headerControls = document.createElement('div');
+    headerControls.className = 'feature-header-controls';
+    const statusChip = document.createElement('span');
+    statusChip.className = 'chip tiny';
+    const ready = state.status.ready && !state.status.lastError;
+    statusChip.textContent = ready ? 'READY' : 'SETUP REQUIRED';
+    statusChip.classList.toggle('muted', !ready);
+    const closeBtn = document.createElement('button');
+    closeBtn.type = 'button';
+    closeBtn.className = 'panel-close';
+    closeBtn.textContent = '×';
+    closeBtn.setAttribute('aria-label', 'SWメニューを閉じる');
+    closeBtn.addEventListener('click', closePanel);
+    headerControls.append(statusChip, closeBtn);
+    header.append(title, headerControls);
+
+    const actions = buildControlActions();
+    const layout = buildSwMenuGrid();
 
     card.append(header, actions, layout);
     return card;
+  };
+
+  const buildSurface = () => {
+    const ready = state.status.ready && !state.status.lastError;
+    const surface = document.createElement('div');
+    surface.className = 'sw-menu-surface__inner';
+
+    const header = document.createElement('div');
+    header.className = 'sw-menu-surface__header';
+
+    const lead = document.createElement('div');
+    lead.className = 'sw-menu-surface__lead';
+
+    const eyebrow = document.createElement('p');
+    eyebrow.className = 'sw-menu-surface__eyebrow';
+    eyebrow.textContent = 'SW MENU';
+
+    const title = document.createElement('div');
+    title.className = 'sw-menu-surface__title';
+    const titleText = document.createElement('span');
+    titleText.textContent = 'SWメニュー';
+    const statusChip = document.createElement('span');
+    statusChip.className = 'chip tiny';
+    statusChip.textContent = ready ? 'READY' : 'SETUP REQUIRED';
+    statusChip.classList.toggle('muted', !ready);
+    title.append(titleText, statusChip);
+
+    const subtitle = document.createElement('p');
+    subtitle.className = 'sw-menu-surface__subtitle';
+    subtitle.textContent = 'three.jsの背景を止めて構成/流動の管理ビューを全面表示します。';
+
+    const meta = document.createElement('div');
+    meta.className = 'sw-menu-surface__meta';
+    const hostChip = document.createElement('span');
+    hostChip.className = 'chip tiny';
+    hostChip.textContent = `Host: ${state.status.host ?? DEFAULT_STATUS.host}:${state.status.port ?? DEFAULT_STATUS.port}`;
+    const dbChip = document.createElement('span');
+    dbChip.className = 'chip tiny';
+    dbChip.textContent = `DB: ${state.status.database || DEFAULT_STATUS.database}`;
+    const userChip = document.createElement('span');
+    userChip.className = 'chip tiny';
+    userChip.textContent = `User: ${state.status.user || DEFAULT_STATUS.user}`;
+    meta.append(hostChip, dbChip, userChip);
+
+    lead.append(eyebrow, title, subtitle, meta);
+
+    const headerControls = document.createElement('div');
+    headerControls.className = 'sw-menu-surface__actions';
+    const closeBtn = document.createElement('button');
+    closeBtn.type = 'button';
+    closeBtn.className = 'panel-close';
+    closeBtn.textContent = '×';
+    closeBtn.setAttribute('aria-label', 'SWメニューを閉じる');
+    closeBtn.addEventListener('click', closePanel);
+    headerControls.append(closeBtn);
+
+    header.append(lead, headerControls);
+
+    const actions = buildControlActions('surface');
+    const grid = document.createElement('div');
+    grid.className = 'sw-menu-surface__grid';
+    grid.append(buildSwMenuGrid());
+
+    surface.append(header, actions, grid);
+    return surface;
   };
 
   const isWarning = (actionActive) => actionActive && (!state.status.ready || Boolean(state.status.lastError));
 
   return {
     buildCard,
+    buildSurface,
     hydrate,
     isWarning,
     closePanel,
