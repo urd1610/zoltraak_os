@@ -7,11 +7,13 @@ const workspaceChip = document.getElementById('workspace-chip');
 const systemChip = document.getElementById('system-chip');
 const clockChip = document.getElementById('clock-chip');
 const quickActionsContainer = document.getElementById('quick-actions');
+const quickActionsToggle = document.getElementById('quick-actions-toggle');
 const brandButton = document.getElementById('brand-button');
 const workspaceVisualizer = document.getElementById('workspace-visualizer');
 const QUICK_ACTION_PADDING = 0;
 const QUICK_ACTION_GAP = 12;
 const QUICK_ACTION_DRAG_GUTTER = 0;
+const QUICK_ACTION_VISIBILITY_KEY = 'quickActionsVisibility';
 
 const quickActions = [
   { id: 'record', label: 'クイック録音', detail: '音声メモ', icon: '🎙️', active: false, position: { x: 0, y: 0 } },
@@ -39,6 +41,7 @@ let resizeTimerId = null;
 let quickActionsResizeObserver = null;
 let aiMailFeature = null;
 const featureWindows = new Map();
+let quickActionsVisible = true;
 
 const buildWorkspaceChipTitle = (dir) => {
   if (dir) {
@@ -62,8 +65,53 @@ const resizeWorkspaceScene = () => workspaceVisualizerController.resize();
 const resetWorkspaceGraphCache = () => workspaceVisualizerController.resetGraphCache();
 const isWorkspaceVisualizerActive = () => workspaceVisualizerController.isActive();
 
+const loadQuickActionsVisibility = () => {
+  const saved = localStorage.getItem(QUICK_ACTION_VISIBILITY_KEY);
+  if (!saved) {
+    return true;
+  }
+  return saved !== 'hidden';
+};
+
+const saveQuickActionsVisibility = () => {
+  localStorage.setItem(QUICK_ACTION_VISIBILITY_KEY, quickActionsVisible ? 'visible' : 'hidden');
+};
+
+const updateQuickActionsToggleUi = () => {
+  if (!quickActionsToggle) return;
+  const label = quickActionsVisible ? 'クイック: 表示' : 'クイック: 非表示';
+  const title = quickActionsVisible
+    ? 'クイックアクションを非表示にする'
+    : 'クイックアクションを表示する';
+  quickActionsToggle.textContent = label;
+  quickActionsToggle.title = title;
+  quickActionsToggle.setAttribute('aria-pressed', quickActionsVisible ? 'true' : 'false');
+  quickActionsToggle.setAttribute('aria-label', title);
+  quickActionsToggle.classList.toggle('muted', !quickActionsVisible);
+};
+
+const setQuickActionsVisibility = (visible, { skipSave } = {}) => {
+  quickActionsVisible = Boolean(visible);
+  if (!skipSave) {
+    saveQuickActionsVisibility();
+  }
+  renderQuickActions();
+};
+
+const toggleQuickActionsVisibility = () => {
+  setQuickActionsVisibility(!quickActionsVisible);
+};
+
 const renderQuickActions = () => {
+  if (!quickActionsContainer) return;
+  quickActionsContainer.classList.toggle('is-hidden', !quickActionsVisible);
+  quickActionsContainer.setAttribute('aria-hidden', quickActionsVisible ? 'false' : 'true');
+  updateQuickActionsToggleUi();
+
   quickActionsContainer.innerHTML = '';
+  if (!quickActionsVisible) {
+    return;
+  }
   quickActions.forEach((action) => {
     const isAiMailWarning = action.id === 'ai-mail-monitor'
       && aiMailFeature?.isWarning(action.active);
@@ -137,7 +185,7 @@ const getQuickActionNodes = () => {
 };
 
 const ensureQuickActionsVisible = () => {
-  if (!quickActionsContainer) return;
+  if (!quickActionsContainer || !quickActionsVisible) return;
   const items = getQuickActionNodes();
   if (!items.length) return;
   const containerRect = quickActionsContainer.getBoundingClientRect();
@@ -639,7 +687,7 @@ const loadPositions = () => {
 const boot = () => {
   loadPositions();
   initializeAiMailFeature();
-  renderQuickActions();
+  setQuickActionsVisibility(loadQuickActionsVisibility(), { skipSave: true });
   renderFeatureWindows();
   setupQuickActionsResizeObserver();
   void startWorkspaceVisualizer();
@@ -648,6 +696,7 @@ const boot = () => {
   updateClock();
   setInterval(updateClock, 30000);
   workspaceChip?.addEventListener('click', () => void handleWorkspaceChange());
+  quickActionsToggle?.addEventListener('click', toggleQuickActionsVisibility);
   brandButton?.addEventListener('dblclick', () => {
     if (isWorkspaceVisualizerActive()) {
       stopWorkspaceVisualizer();
