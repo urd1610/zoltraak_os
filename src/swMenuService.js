@@ -96,6 +96,21 @@ const normalizeFlowPayload = (payload = {}) => {
   };
 };
 
+const normalizeBomPayload = (payload = {}) => {
+  const parentCode = (payload.parentCode ?? '').trim();
+  const childCode = (payload.childCode ?? '').trim();
+  if (!parentCode || !childCode) {
+    throw new Error('親部品コードと子部品コードは必須です');
+  }
+  const quantity = Number(payload.quantity);
+  return {
+    parentCode,
+    childCode,
+    quantity: Number.isFinite(quantity) && quantity > 0 ? quantity : 1,
+    note: (payload.note ?? '').trim(),
+  };
+};
+
 const createSwMenuService = (options = {}) => {
   const dbConfig = { ...DEFAULT_DB_CONFIG, ...(options.db ?? {}) };
   let pool = null;
@@ -219,7 +234,7 @@ const createSwMenuService = (options = {}) => {
             'SELECT code, name, version, description, updated_at FROM sw_components ORDER BY updated_at DESC LIMIT 6',
           ),
           conn.query(
-            'SELECT parent_code, child_code, quantity, updated_at FROM sw_boms ORDER BY updated_at DESC LIMIT 6',
+            'SELECT parent_code, child_code, quantity, note, updated_at FROM sw_boms ORDER BY updated_at DESC LIMIT 6',
           ),
           conn.query(
             'SELECT component_code, location, quantity, status, updated_at, updated_by FROM sw_flow_counts ORDER BY updated_at DESC LIMIT 8',
@@ -275,6 +290,24 @@ const createSwMenuService = (options = {}) => {
     }
   };
 
+  const upsertBomLink = async (payload) => {
+    try {
+      const normalized = normalizeBomPayload(payload);
+      await withConnection(async (conn) => {
+        await conn.query(
+          `INSERT INTO sw_boms (parent_code, child_code, quantity, note)
+            VALUES (?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE quantity = VALUES(quantity), note = VALUES(note)`,
+          [normalized.parentCode, normalized.childCode, normalized.quantity, normalized.note],
+        );
+      });
+      return { ok: true, bom: normalized };
+    } catch (error) {
+      lastError = error?.message ?? 'BOM登録に失敗しました';
+      return normalizeError(error, 'upsert-bom');
+    }
+  };
+
   const getStatus = () => ({
     ok: schemaReady && !lastError,
     ready: schemaReady,
@@ -301,6 +334,7 @@ const createSwMenuService = (options = {}) => {
     getOverview,
     upsertComponent,
     recordFlow,
+    upsertBomLink,
     dispose,
     config: { ...dbConfig },
   };
