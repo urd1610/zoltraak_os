@@ -186,7 +186,7 @@ const getQuickActionNodes = () => {
 };
 
 const ensureQuickActionsVisible = () => {
-  if (!quickActionsContainer) return;
+  if (!quickActionsContainer || !quickActionsVisible) return;
   const items = getQuickActionNodes();
   if (!items.length) return;
   const containerRect = quickActionsContainer.getBoundingClientRect();
