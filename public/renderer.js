@@ -104,7 +104,15 @@ const toggleQuickActionsVisibility = () => {
 };
 
 const renderQuickActions = () => {
+  if (!quickActionsContainer) return;
+  quickActionsContainer.classList.toggle('is-hidden', !quickActionsVisible);
+  quickActionsContainer.setAttribute('aria-hidden', quickActionsVisible ? 'false' : 'true');
+  updateQuickActionsToggleUi();
+
   quickActionsContainer.innerHTML = '';
+  if (!quickActionsVisible) {
+    return;
+  }
   quickActions.forEach((action) => {
     const isAiMailWarning = action.id === 'ai-mail-monitor'
       && aiMailFeature?.isWarning(action.active);
