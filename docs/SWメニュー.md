@@ -15,6 +15,7 @@ SWメニューは、SW（ソフトウェア）関連の**部品構成管理**お
 | 構成表の確認 | 部品構成データの閲覧・検索 |
 | 構成表の登録 | 新規部品構成データの追加・編集 |
 | 流動数管理 | 在庫や流動数の確認・更新 |
+| 品番管理 | 品番マスタの閲覧・検索・追加・編集 |
 
 ### UI/UX 仕様
 
@@ -39,6 +40,31 @@ SWメニューは、SW（ソフトウェア）関連の**部品構成管理**お
 | データベース | （未指定） |
 
 > ⚠️ **セキュリティ注意**: 接続パスワードは環境変数または設定ファイル（`.env`）で管理してください。
+
+### 品番マスタ（テーブル設計案）
+
+| カラム名 | 型 | 説明 |
+|---------|-----|------|
+| `part_id` | INT (PK) | 品番ID（自動採番） |
+| `line` | VARCHAR(100) | ライン
+| `part_number` | VARCHAR(50) | 品番コード（ユニーク） |
+| `category` | VARCHAR(50) | カテゴリ / 分類 |
+| `supplier` | VARCHAR(100) | 仕入先 |
+| `remarks` | TEXT | 備考 |
+| `created_at` | DATETIME | 登録日時 |
+| `updated_at` | DATETIME | 更新日時 |
+
+### 構成データ（テーブル設計案）
+
+| カラム名 | 型 | 説明 |
+|---------|-----|------|
+| `id` | INT (PK) | レコードID（自動採番） |
+| `parent_part_number` | VARCHAR(50) | 親品番（品番マスタの`part_number`を参照） |
+| `child_part_number` | VARCHAR(50) | 構成品番（品番マスタの`part_number`を参照） |
+| `quantity` | DECIMAL(10,3) | 使用量 |
+| `remarks` | TEXT | 備考 |
+| `created_at` | DATETIME | 登録日時 |
+| `updated_at` | DATETIME | 更新日時 |
 
 ---
 
