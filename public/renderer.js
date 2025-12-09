@@ -686,9 +686,8 @@ const loadPositions = () => {
 
 const boot = () => {
   loadPositions();
-  quickActionsVisible = loadQuickActionsVisibility();
   initializeAiMailFeature();
-  renderQuickActions();
+  setQuickActionsVisibility(loadQuickActionsVisibility(), { skipSave: true });
   renderFeatureWindows();
   setupQuickActionsResizeObserver();
   void startWorkspaceVisualizer();
