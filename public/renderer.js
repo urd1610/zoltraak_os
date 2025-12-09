@@ -11,6 +11,7 @@ const quickActionsContainer = document.getElementById('quick-actions');
 const quickActionsToggle = document.getElementById('quick-actions-toggle');
 const brandButton = document.getElementById('brand-button');
 const workspaceVisualizer = document.getElementById('workspace-visualizer');
+const swMenuSurface = document.getElementById('sw-menu-surface');
 const QUICK_ACTION_PADDING = 0;
 const QUICK_ACTION_GAP = 12;
 const QUICK_ACTION_DRAG_GUTTER = 0;
@@ -43,6 +44,8 @@ let resizeTimerId = null;
 let quickActionsResizeObserver = null;
 let aiMailFeature = null;
 let swMenuFeature = null;
+let swMenuSurfaceActive = false;
+let wasWorkspaceVisualizerActiveForSwMenu = false;
 const featureWindows = new Map();
 let quickActionsVisible = true;
 
@@ -294,7 +297,8 @@ const handleFeatureWindowClose = (action) => {
 };
 
 const renderFeatureWindows = () => {
-  const activeActions = quickActions.filter((action) => action.active);
+  closeFeatureWindow('sw-menu');
+  const activeActions = quickActions.filter((action) => action.active && action.id !== 'sw-menu');
   const activeIds = new Set(activeActions.map((action) => action.id));
 
   Array.from(featureWindows.keys()).forEach((id) => {
@@ -347,9 +351,51 @@ const setActionActive = (id, active) => {
 
 const isActionActive = (id) => quickActions.some((action) => action.id === id && action.active);
 
+const teardownSwMenuSurface = () => {
+  if (!swMenuSurface) return;
+  swMenuSurface.innerHTML = '';
+  swMenuSurface.classList.remove('is-active');
+  swMenuSurface.setAttribute('aria-hidden', 'true');
+};
+
+const setSwMenuSurfaceActiveState = (active) => {
+  const next = Boolean(active);
+  if (next === swMenuSurfaceActive) {
+    return;
+  }
+  swMenuSurfaceActive = next;
+  if (next) {
+    wasWorkspaceVisualizerActiveForSwMenu = isWorkspaceVisualizerActive();
+    stopWorkspaceVisualizer();
+  } else if (wasWorkspaceVisualizerActiveForSwMenu) {
+    wasWorkspaceVisualizerActiveForSwMenu = false;
+    void startWorkspaceVisualizer();
+  }
+};
+
+const renderSwMenuSurface = () => {
+  if (!swMenuSurface) return;
+  const active = isActionActive('sw-menu');
+  setSwMenuSurfaceActiveState(active);
+  if (!active || !swMenuFeature?.buildSurface) {
+    teardownSwMenuSurface();
+    return;
+  }
+  const surface = swMenuFeature.buildSurface();
+  if (!surface) {
+    teardownSwMenuSurface();
+    return;
+  }
+  swMenuSurface.innerHTML = '';
+  swMenuSurface.append(surface);
+  swMenuSurface.classList.add('is-active');
+  swMenuSurface.setAttribute('aria-hidden', 'false');
+};
+
 const renderUi = () => {
   renderQuickActions();
   renderFeatureWindows();
+  renderSwMenuSurface();
 };
 
 const initializeAiMailFeature = () => {
@@ -582,10 +628,9 @@ const toggleAction = (id) => {
   if (id === 'sw-menu') {
     const nextActive = !action.active;
     setActionActive(id, nextActive);
-    renderQuickActions();
-    renderFeatureWindows();
+    renderUi();
     if (nextActive) {
-      void swMenuFeature?.hydrate?.().then(() => renderFeatureWindows());
+      void swMenuFeature?.hydrate?.().then(() => renderUi());
     }
     return;
   }
@@ -738,6 +783,9 @@ const boot = () => {
   workspaceChip?.addEventListener('click', () => void handleWorkspaceChange());
   quickActionsToggle?.addEventListener('click', toggleQuickActionsVisibility);
   brandButton?.addEventListener('dblclick', () => {
+    if (isActionActive('sw-menu')) {
+      return;
+    }
     if (isWorkspaceVisualizerActive()) {
       stopWorkspaceVisualizer();
       return;
