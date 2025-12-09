@@ -95,12 +95,11 @@ const setQuickActionsVisibility = (visible, { skipSave } = {}) => {
   if (!skipSave) {
     saveQuickActionsVisibility();
   }
-  updateQuickActionsToggleUi();
+  renderQuickActions();
 };
 
 const toggleQuickActionsVisibility = () => {
   setQuickActionsVisibility(!quickActionsVisible);
-  renderQuickActions();
 };
 
 const renderQuickActions = () => {
