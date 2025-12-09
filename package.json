@@ -4,7 +4,8 @@
   "description": "Electron-based desktop-style launcher mock",
   "main": "src/main.js",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "init-sw-db": "node scripts/init-sw-db.js"
   },
   "keywords": [
     "electron",
@@ -19,6 +20,7 @@
   },
   "dependencies": {
     "mailparser": "^3.9.0",
+    "mariadb": "^3.4.5",
     "nodemailer": "^7.0.10",
     "poplib": "^0.1.7",
     "three": "^0.181.2"
