@@ -490,23 +490,6 @@ const stopRecording = () => {
   finalizeRecordingStop();
 };
 
-const openWorkspaceDirectoryFromIcon = async () => {
-  if (!window.desktopBridge?.openWorkspaceDirectory) {
-    alert('作業ディレクトリを開けませんでした。設定を確認してください。');
-    return;
-  }
-  try {
-    const opened = await window.desktopBridge.openWorkspaceDirectory();
-    if (opened) {
-      workspacePath = opened;
-      updateWorkspaceChip(opened);
-    }
-  } catch (error) {
-    console.error('Failed to open workspace directory', error);
-    alert('作業ディレクトリを開けませんでした。設定を確認してください。');
-  }
-};
-
 const toggleAction = (id) => {
   const action = quickActions.find((a) => a.id === id);
   if (!action) return;
@@ -537,10 +520,6 @@ const toggleAction = (id) => {
 
 const handleActionDoubleClick = (action) => {
   if (!action) return;
-  if (action.id === 'workspace-open') {
-    void openWorkspaceDirectoryFromIcon();
-    return;
-  }
   toggleAction(action.id);
 };
 
