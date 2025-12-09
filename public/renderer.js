@@ -686,6 +686,7 @@ const loadPositions = () => {
 
 const boot = () => {
   loadPositions();
+  quickActionsVisible = loadQuickActionsVisibility();
   initializeAiMailFeature();
   renderQuickActions();
   renderFeatureWindows();
@@ -696,6 +697,7 @@ const boot = () => {
   updateClock();
   setInterval(updateClock, 30000);
   workspaceChip?.addEventListener('click', () => void handleWorkspaceChange());
+  quickActionsToggle?.addEventListener('click', toggleQuickActionsVisibility);
   brandButton?.addEventListener('dblclick', () => {
     if (isWorkspaceVisualizerActive()) {
       stopWorkspaceVisualizer();
