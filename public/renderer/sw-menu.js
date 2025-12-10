@@ -733,7 +733,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
         '参照用: 構成（最新）',
         (state.overview.components ?? []).slice(0, 5),
         buildComponentRow,
-        '構成データが必要です',
+        '品番データが必要です',
       ),
     );
 
