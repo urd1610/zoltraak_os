@@ -12,10 +12,15 @@ const quickActionsToggle = document.getElementById('quick-actions-toggle');
 const brandButton = document.getElementById('brand-button');
 const workspaceVisualizer = document.getElementById('workspace-visualizer');
 const swMenuSurface = document.getElementById('sw-menu-surface');
+const dock = document.getElementById('dock');
+const dockActions = document.getElementById('dock-actions');
+const dockQuickToggle = document.getElementById('dock-quick-toggle');
 const QUICK_ACTION_PADDING = 0;
 const QUICK_ACTION_GAP = 12;
 const QUICK_ACTION_DRAG_GUTTER = 0;
 const QUICK_ACTION_VISIBILITY_KEY = 'quickActionsVisibility';
+const DOCK_REVEAL_ZONE_PX = 82;
+const DOCK_HIDE_DELAY_MS = 1400;
 
 const quickActions = [
   { id: 'record', label: 'クイック録音', detail: '音声メモ', icon: '🎙️', active: false, position: { x: 0, y: 0 } },
@@ -48,6 +53,9 @@ let swMenuSurfaceActive = false;
 let wasWorkspaceVisualizerActiveForSwMenu = false;
 const featureWindows = new Map();
 let quickActionsVisible = true;
+let dockVisible = false;
+let dockHovering = false;
+let dockHideTimerId = null;
 
 const buildWorkspaceChipTitle = (dir) => {
   if (dir) {
@@ -458,8 +466,61 @@ const buildRecordingCard = (action) => {
   return card;
 };
 
+const clearDockHideTimer = () => {
+  if (!dockHideTimerId) return;
+  clearTimeout(dockHideTimerId);
+  dockHideTimerId = null;
+};
+
+const showDock = () => {
+  if (!dock || dockVisible) return;
+  dockVisible = true;
+  dock.classList.add('is-visible');
+  dock.setAttribute('aria-hidden', 'false');
+};
+
+const hideDock = () => {
+  if (!dock || !dockVisible) return;
+  dockVisible = false;
+  dock.classList.remove('is-visible');
+  dock.setAttribute('aria-hidden', 'true');
+};
+
+const scheduleDockHide = () => {
+  if (!dock || dockHovering) return;
+  clearDockHideTimer();
+  dockHideTimerId = setTimeout(() => {
+    dockHideTimerId = null;
+    if (dockHovering) return;
+    hideDock();
+  }, DOCK_HIDE_DELAY_MS);
+};
+
+const handleDockProximity = (clientY) => {
+  if (!dock || typeof clientY !== 'number') return;
+  const distanceFromBottom = window.innerHeight - clientY;
+  if (distanceFromBottom <= DOCK_REVEAL_ZONE_PX) {
+    showDock();
+    clearDockHideTimer();
+    return;
+  }
+  scheduleDockHide();
+};
+
+const handleDockMouseEnter = () => {
+  dockHovering = true;
+  showDock();
+  clearDockHideTimer();
+};
+
+const handleDockMouseLeave = () => {
+  dockHovering = false;
+  scheduleDockHide();
+};
+
 // グローバルイベントリスナーは一度だけ設定
 const handleGlobalMouseMove = (e) => {
+  handleDockProximity(e?.clientY);
   if (!quickActionsContainer) return;
   if (!currentDraggingElement || !currentDraggingAction) return;
   
@@ -792,6 +853,8 @@ const boot = () => {
     }
     startWorkspaceVisualizer();
   });
+  dock?.addEventListener('mouseenter', handleDockMouseEnter);
+  dock?.addEventListener('mouseleave', handleDockMouseLeave);
   
   // グローバルイベントリスナーは一度だけ登録
   document.addEventListener('mousemove', handleGlobalMouseMove);
