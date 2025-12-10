@@ -12,15 +12,20 @@ const quickActionsToggle = document.getElementById('quick-actions-toggle');
 const brandButton = document.getElementById('brand-button');
 const workspaceVisualizer = document.getElementById('workspace-visualizer');
 const swMenuSurface = document.getElementById('sw-menu-surface');
+const dock = document.getElementById('dock');
+const dockActions = document.getElementById('dock-actions');
+const dockQuickToggle = document.getElementById('dock-quick-toggle');
 const QUICK_ACTION_PADDING = 0;
 const QUICK_ACTION_GAP = 12;
 const QUICK_ACTION_DRAG_GUTTER = 0;
 const QUICK_ACTION_VISIBILITY_KEY = 'quickActionsVisibility';
+const DOCK_REVEAL_ZONE_PX = 82;
+const DOCK_HIDE_DELAY_MS = 1400;
 
 const quickActions = [
   { id: 'record', label: 'クイック録音', detail: '音声メモ', icon: '🎙️', active: false, position: { x: 0, y: 0 } },
-  { id: 'ai-mail-monitor', label: 'AIメール監視', detail: '受信→転送', icon: 'AI', active: false, position: { x: 150, y: 0 } },
-  { id: 'sw-menu', label: 'SWメニュー', detail: '構成・流動管理', icon: 'SW', active: false, position: { x: 300, y: 0 } },
+  { id: 'ai-mail-monitor', label: 'AIメール監視', detail: '受信→転送', icon: '✉', active: false, position: { x: 150, y: 0 } },
+  { id: 'sw-menu', label: 'SWメニュー', detail: '構成・流動管理', icon: '🧭', active: false, position: { x: 300, y: 0 } },
 ];
 
 quickActions.forEach((action, index) => {
@@ -48,6 +53,9 @@ let swMenuSurfaceActive = false;
 let wasWorkspaceVisualizerActiveForSwMenu = false;
 const featureWindows = new Map();
 let quickActionsVisible = true;
+let dockVisible = false;
+let dockHovering = false;
+let dockHideTimerId = null;
 
 const buildWorkspaceChipTitle = (dir) => {
   if (dir) {
@@ -83,7 +91,17 @@ const saveQuickActionsVisibility = () => {
   localStorage.setItem(QUICK_ACTION_VISIBILITY_KEY, quickActionsVisible ? 'visible' : 'hidden');
 };
 
+const updateDockQuickToggleUi = () => {
+  if (!dockQuickToggle) return;
+  const title = quickActionsVisible ? 'クイックアクションを隠す' : 'クイックアクションを表示する';
+  dockQuickToggle.textContent = quickActionsVisible ? 'クイック表示中' : 'クイック表示';
+  dockQuickToggle.title = title;
+  dockQuickToggle.setAttribute('aria-pressed', quickActionsVisible ? 'true' : 'false');
+  dockQuickToggle.classList.toggle('is-muted', !quickActionsVisible);
+};
+
 const updateQuickActionsToggleUi = () => {
+  updateDockQuickToggleUi();
   if (!quickActionsToggle) return;
   const label = quickActionsVisible ? 'クイック: 表示' : 'クイック: 非表示';
   const title = quickActionsVisible
@@ -126,6 +144,7 @@ const renderQuickActions = () => {
   updateQuickActionsToggleUi();
 
   quickActionsContainer.innerHTML = '';
+  renderDockActions();
   if (!quickActionsVisible) {
     return;
   }
@@ -186,6 +205,27 @@ const renderQuickActions = () => {
   });
 
   requestAnimationFrame(() => ensureQuickActionsVisible());
+};
+
+const renderDockActions = () => {
+  if (!dockActions) return;
+  dockActions.innerHTML = '';
+  quickActions.forEach((action) => {
+    const actionWarning = isActionWarning(action);
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'dock-action';
+    btn.classList.toggle('is-active', Boolean(action.active));
+    btn.classList.toggle('is-warning', actionWarning);
+    btn.title = action.label;
+    const ariaLabel = action.detail ? `${action.label}: ${action.detail}` : action.label;
+    btn.setAttribute('aria-label', ariaLabel);
+    btn.setAttribute('aria-pressed', action.active ? 'true' : 'false');
+    btn.setAttribute('role', 'listitem');
+    btn.textContent = action.icon;
+    btn.addEventListener('click', () => toggleAction(action.id));
+    dockActions.append(btn);
+  });
 };
 
 const getQuickActionNodes = () => {
@@ -458,8 +498,61 @@ const buildRecordingCard = (action) => {
   return card;
 };
 
+const clearDockHideTimer = () => {
+  if (!dockHideTimerId) return;
+  clearTimeout(dockHideTimerId);
+  dockHideTimerId = null;
+};
+
+const showDock = () => {
+  if (!dock || dockVisible) return;
+  dockVisible = true;
+  dock.classList.add('is-visible');
+  dock.setAttribute('aria-hidden', 'false');
+};
+
+const hideDock = () => {
+  if (!dock || !dockVisible) return;
+  dockVisible = false;
+  dock.classList.remove('is-visible');
+  dock.setAttribute('aria-hidden', 'true');
+};
+
+const scheduleDockHide = () => {
+  if (!dock || dockHovering) return;
+  clearDockHideTimer();
+  dockHideTimerId = setTimeout(() => {
+    dockHideTimerId = null;
+    if (dockHovering) return;
+    hideDock();
+  }, DOCK_HIDE_DELAY_MS);
+};
+
+const handleDockProximity = (clientY) => {
+  if (!dock || typeof clientY !== 'number') return;
+  const distanceFromBottom = window.innerHeight - clientY;
+  if (distanceFromBottom <= DOCK_REVEAL_ZONE_PX) {
+    showDock();
+    clearDockHideTimer();
+    return;
+  }
+  scheduleDockHide();
+};
+
+const handleDockMouseEnter = () => {
+  dockHovering = true;
+  showDock();
+  clearDockHideTimer();
+};
+
+const handleDockMouseLeave = () => {
+  dockHovering = false;
+  scheduleDockHide();
+};
+
 // グローバルイベントリスナーは一度だけ設定
 const handleGlobalMouseMove = (e) => {
+  handleDockProximity(e?.clientY);
   if (!quickActionsContainer) return;
   if (!currentDraggingElement || !currentDraggingAction) return;
   
@@ -782,6 +875,7 @@ const boot = () => {
   setInterval(updateClock, 30000);
   workspaceChip?.addEventListener('click', () => void handleWorkspaceChange());
   quickActionsToggle?.addEventListener('click', toggleQuickActionsVisibility);
+  dockQuickToggle?.addEventListener('click', toggleQuickActionsVisibility);
   brandButton?.addEventListener('dblclick', () => {
     if (isActionActive('sw-menu')) {
       return;
@@ -792,6 +886,8 @@ const boot = () => {
     }
     startWorkspaceVisualizer();
   });
+  dock?.addEventListener('mouseenter', handleDockMouseEnter);
+  dock?.addEventListener('mouseleave', handleDockMouseLeave);
   
   // グローバルイベントリスナーは一度だけ登録
   document.addEventListener('mousemove', handleGlobalMouseMove);
