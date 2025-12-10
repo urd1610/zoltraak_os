@@ -10,7 +10,7 @@ const DEFAULT_STATUS = {
 
 const VIEW_DEFINITIONS = [
   { id: 'dashboard', label: 'ダッシュボード' },
-  { id: 'components', label: '構成データ' },
+  { id: 'components', label: '品番データ' },
   { id: 'bom', label: 'BOMリンク' },
   { id: 'flows', label: '流動数' },
 ];
