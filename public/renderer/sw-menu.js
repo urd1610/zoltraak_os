@@ -16,6 +16,13 @@ const VIEW_DEFINITIONS = [
 ];
 
 const DEFAULT_VIEW = VIEW_DEFINITIONS[0].id;
+const buildDefaultComponentDraft = () => ({
+  code: '',
+  name: '',
+  version: '',
+  location: '',
+  description: '',
+});
 
 const buildStatusRow = (label, value, type) => {
   const row = document.createElement('div');
@@ -86,9 +93,12 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     },
     view: DEFAULT_VIEW,
     drafts: {
-      component: { code: '', name: '', version: '', location: '', description: '' },
+      component: buildDefaultComponentDraft(),
       bom: { parentCode: '', childCode: '', quantity: '1', note: '' },
       flow: { componentCode: '', quantity: '', status: 'in-stock', updatedBy: 'operator' },
+    },
+    editing: {
+      componentCode: null,
     },
     flags: {
       isInitializing: false,
@@ -104,6 +114,34 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
       renderUi();
     }
   };
+
+  const isEditingComponent = () => Boolean(state.editing.componentCode);
+
+  const resetComponentDraft = ({ keepRender } = {}) => {
+    state.drafts.component = buildDefaultComponentDraft();
+    state.editing.componentCode = null;
+    if (!keepRender) {
+      render();
+    }
+  };
+
+  const startComponentEdit = (component) => {
+    if (!component?.code) {
+      return;
+    }
+    state.view = 'components';
+    state.editing.componentCode = component.code;
+    state.drafts.component = {
+      code: component.code ?? '',
+      name: component.name ?? '',
+      version: component.version ?? '',
+      location: component.location ?? '',
+      description: component.description ?? '',
+    };
+    render();
+  };
+
+  const cancelComponentEdit = () => resetComponentDraft();
 
   const setView = (viewId) => {
     const found = VIEW_DEFINITIONS.some((view) => view.id === viewId);
@@ -197,6 +235,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
 
   const hydrate = async () => {
     state.view = DEFAULT_VIEW;
+    resetComponentDraft({ keepRender: true });
     render();
     await ensureSetup();
     await hydrateStatus();
@@ -210,11 +249,14 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     render();
     try {
       const payload = { ...state.drafts.component };
+      if (state.editing.componentCode) {
+        payload.code = state.editing.componentCode;
+      }
       const result = await window.desktopBridge.upsertSwComponent(payload);
       if (!result?.ok) {
         throw new Error(result?.error || '登録に失敗しました');
       }
-      state.drafts.component = { code: '', name: '', version: '', location: '', description: '' };
+      resetComponentDraft({ keepRender: true });
       await hydrateOverview();
     } catch (error) {
       applyStatus({ lastError: error?.message || '部品登録に失敗しました' });
@@ -364,9 +406,15 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     return form;
   };
 
-  const buildComponentRow = (item) => {
+  const buildComponentRow = (item, options = {}) => {
     const row = document.createElement('div');
     row.className = 'sw-list-item';
+    const { onEdit, activeCode } = options;
+    const isActive = activeCode && item.code === activeCode;
+    if (isActive) {
+      row.classList.add('is-editing');
+    }
+
     const titleEl = document.createElement('div');
     titleEl.className = 'sw-list-title';
     titleEl.textContent = `${item.code} / ${item.name}`;
@@ -381,6 +429,25 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     } else {
       row.append(titleEl, meta);
     }
+
+    if (typeof onEdit === 'function') {
+      const actions = document.createElement('div');
+      actions.className = 'sw-list-actions';
+      const editButton = document.createElement('button');
+      editButton.type = 'button';
+      editButton.className = 'sw-list-action-button';
+      if (isActive) {
+        editButton.classList.add('is-active');
+        editButton.textContent = '編集中';
+      } else {
+        editButton.textContent = '編集';
+      }
+      editButton.addEventListener('click', () => onEdit(item));
+      row.addEventListener('dblclick', () => onEdit(item));
+      actions.append(editButton);
+      row.append(actions);
+    }
+
     return row;
   };
 
@@ -421,6 +488,23 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     const form = document.createElement('form');
     form.className = 'sw-form';
     form.addEventListener('submit', submitComponent);
+    const editing = isEditingComponent();
+
+    if (editing) {
+      const editingNotice = document.createElement('div');
+      editingNotice.className = 'sw-editing-notice';
+      const label = document.createElement('div');
+      label.className = 'sw-editing-notice__label';
+      label.textContent = `${state.editing.componentCode} を編集中`;
+      const resetButton = document.createElement('button');
+      resetButton.type = 'button';
+      resetButton.className = 'ghost sw-editing-notice__reset';
+      resetButton.textContent = '新規登録に戻る';
+      resetButton.disabled = state.flags.isSavingComponent;
+      resetButton.addEventListener('click', cancelComponentEdit);
+      editingNotice.append(label, resetButton);
+      form.append(editingNotice);
+    }
 
     const fields = [
       { key: 'code', label: '部品コード', placeholder: 'SW-001', required: true },
@@ -433,16 +517,27 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
       const row = document.createElement('label');
       row.className = 'sw-field';
       const name = document.createElement('span');
-      name.textContent = field.label;
+      name.textContent = editing && field.key === 'code' ? `${field.label}（変更不可）` : field.label;
       const input = document.createElement('input');
       input.type = 'text';
       input.required = Boolean(field.required);
       input.placeholder = field.placeholder || '';
       input.value = state.drafts.component[field.key] ?? '';
+      if (editing && field.key === 'code') {
+        row.classList.add('sw-field--locked');
+        input.readOnly = true;
+        input.title = '登録済みの品番コードは変更できません';
+      }
       input.addEventListener('input', (event) => {
         state.drafts.component[field.key] = event.target.value;
       });
       row.append(name, input);
+      if (editing && field.key === 'code') {
+        const hint = document.createElement('div');
+        hint.className = 'sw-field-hint';
+        hint.textContent = 'コードを除き、内容を更新して保存してください';
+        row.append(hint);
+      }
       form.append(row);
     });
 
@@ -462,11 +557,21 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
 
     const actions = document.createElement('div');
     actions.className = 'feature-actions';
+    if (editing) {
+      const cancelButton = document.createElement('button');
+      cancelButton.type = 'button';
+      cancelButton.className = 'ghost';
+      cancelButton.disabled = state.flags.isSavingComponent;
+      cancelButton.textContent = '新規登録に戻る';
+      cancelButton.addEventListener('click', cancelComponentEdit);
+      actions.append(cancelButton);
+    }
     const submitButton = document.createElement('button');
     submitButton.type = 'submit';
     submitButton.className = 'primary';
     submitButton.disabled = state.flags.isSavingComponent;
-    submitButton.textContent = state.flags.isSavingComponent ? '保存中…' : '品番を登録';
+    const submitLabel = editing ? '変更を保存' : '品番を登録';
+    submitButton.textContent = state.flags.isSavingComponent ? '保存中…' : submitLabel;
     actions.append(submitButton);
     form.append(actions);
 
@@ -647,7 +752,10 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
       buildList(
         '最新の構成',
         (state.overview.components ?? []).slice(0, surfaceLimit),
-        buildComponentRow,
+        (item) => buildComponentRow(item, {
+          onEdit: startComponentEdit,
+          activeCode: state.editing.componentCode,
+        }),
         '構成がありません',
       ),
       buildList(
@@ -676,12 +784,23 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     leftColumn.className = 'sw-column';
     leftColumn.append(
       buildSection('接続ステータス', buildStatusGrid()),
-      buildList('品番一覧', state.overview.components, buildComponentRow, 'まだ構成が登録されていません'),
+      buildList(
+        '品番一覧',
+        state.overview.components,
+        (item) => buildComponentRow(item, {
+          onEdit: startComponentEdit,
+          activeCode: state.editing.componentCode,
+        }),
+        'まだ構成が登録されていません',
+      ),
     );
 
     const rightColumn = document.createElement('div');
     rightColumn.className = 'sw-column';
-    rightColumn.append(buildSection('品番を登録', buildComponentForm()));
+    rightColumn.append(buildSection(
+      isEditingComponent() ? '品番を編集' : '品番を登録',
+      buildComponentForm(),
+    ));
 
     layout.append(leftColumn, rightColumn);
     return layout;
@@ -705,7 +824,10 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
       buildList(
         '参照用: 構成（最新）',
         (state.overview.components ?? []).slice(0, 5),
-        buildComponentRow,
+        (item) => buildComponentRow(item, {
+          onEdit: startComponentEdit,
+          activeCode: state.editing.componentCode,
+        }),
         '品番データが必要です',
       ),
     );
@@ -732,7 +854,10 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
       buildList(
         '参照用: 構成（最新）',
         (state.overview.components ?? []).slice(0, 5),
-        buildComponentRow,
+        (item) => buildComponentRow(item, {
+          onEdit: startComponentEdit,
+          activeCode: state.editing.componentCode,
+        }),
         '品番データが必要です',
       ),
     );

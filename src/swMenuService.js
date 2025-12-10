@@ -55,6 +55,10 @@ const TABLE_DEFINITIONS = [
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci`,
 ];
 
+const COMPONENT_OVERVIEW_LIMIT = 30;
+const BOM_OVERVIEW_LIMIT = 12;
+const FLOW_OVERVIEW_LIMIT = 20;
+
 const normalizeError = (error, context = 'unknown') => {
   const message = error?.message || '不明なエラーが発生しました';
   return {
@@ -242,13 +246,22 @@ const createSwMenuService = (options = {}) => {
       const data = await withConnection(async (conn) => {
         const [components, boms, flows] = await Promise.all([
           conn.query(
-            'SELECT code, name, version, location, description, updated_at FROM sw_components ORDER BY updated_at DESC LIMIT 6',
+            `SELECT code, name, version, location, description, updated_at
+              FROM sw_components
+              ORDER BY updated_at DESC
+              LIMIT ${COMPONENT_OVERVIEW_LIMIT}`,
           ),
           conn.query(
-            'SELECT parent_code, child_code, quantity, note, updated_at FROM sw_boms ORDER BY updated_at DESC LIMIT 6',
+            `SELECT parent_code, child_code, quantity, note, updated_at
+              FROM sw_boms
+              ORDER BY updated_at DESC
+              LIMIT ${BOM_OVERVIEW_LIMIT}`,
           ),
           conn.query(
-            'SELECT component_code, quantity, status, updated_at, updated_by FROM sw_flow_counts ORDER BY updated_at DESC LIMIT 8',
+            `SELECT component_code, quantity, status, updated_at, updated_by
+              FROM sw_flow_counts
+              ORDER BY updated_at DESC
+              LIMIT ${FLOW_OVERVIEW_LIMIT}`,
           ),
         ]);
         return { components, boms, flows };
