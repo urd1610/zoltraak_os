@@ -144,6 +144,7 @@ const renderQuickActions = () => {
   updateQuickActionsToggleUi();
 
   quickActionsContainer.innerHTML = '';
+  renderDockActions();
   if (!quickActionsVisible) {
     return;
   }
@@ -204,6 +205,27 @@ const renderQuickActions = () => {
   });
 
   requestAnimationFrame(() => ensureQuickActionsVisible());
+};
+
+const renderDockActions = () => {
+  if (!dockActions) return;
+  dockActions.innerHTML = '';
+  quickActions.forEach((action) => {
+    const actionWarning = isActionWarning(action);
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'dock-action';
+    btn.classList.toggle('is-active', Boolean(action.active));
+    btn.classList.toggle('is-warning', actionWarning);
+    btn.title = action.label;
+    const ariaLabel = action.detail ? `${action.label}: ${action.detail}` : action.label;
+    btn.setAttribute('aria-label', ariaLabel);
+    btn.setAttribute('aria-pressed', action.active ? 'true' : 'false');
+    btn.setAttribute('role', 'listitem');
+    btn.textContent = action.icon;
+    btn.addEventListener('click', () => toggleAction(action.id));
+    dockActions.append(btn);
+  });
 };
 
 const getQuickActionNodes = () => {
