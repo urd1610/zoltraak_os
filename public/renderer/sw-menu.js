@@ -415,20 +415,22 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
       row.classList.add('is-editing');
     }
 
+    const content = document.createElement('div');
+    content.className = 'sw-list-content';
     const titleEl = document.createElement('div');
     titleEl.className = 'sw-list-title';
     titleEl.textContent = `${item.code} / ${item.name}`;
     const meta = document.createElement('div');
     meta.className = 'sw-list-meta';
     meta.textContent = `版: ${item.version || '-'} / 場所: ${item.location || '-'} / 更新: ${item.updated_at || '-'}`;
+    content.append(titleEl, meta);
     if (item.description) {
       const desc = document.createElement('div');
       desc.className = 'sw-list-desc';
       desc.textContent = item.description;
-      row.append(titleEl, meta, desc);
-    } else {
-      row.append(titleEl, meta);
+      content.append(desc);
     }
+    row.append(content);
 
     if (typeof onEdit === 'function') {
       const actions = document.createElement('div');
@@ -454,25 +456,30 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
   const buildBomRow = (item) => {
     const row = document.createElement('div');
     row.className = 'sw-list-item';
+    const content = document.createElement('div');
+    content.className = 'sw-list-content';
     const titleEl = document.createElement('div');
     titleEl.className = 'sw-list-title';
     titleEl.textContent = `${item.parent_code} → ${item.child_code}`;
     const meta = document.createElement('div');
     meta.className = 'sw-list-meta';
     meta.textContent = `数量: ${item.quantity} / 更新: ${item.updated_at || '-'}`;
-    row.append(titleEl, meta);
+    content.append(titleEl, meta);
     if (item.note) {
       const note = document.createElement('div');
       note.className = 'sw-list-desc';
       note.textContent = item.note;
-      row.append(note);
+      content.append(note);
     }
+    row.append(content);
     return row;
   };
 
   const buildFlowRow = (item) => {
     const row = document.createElement('div');
     row.className = 'sw-list-item';
+    const content = document.createElement('div');
+    content.className = 'sw-list-content';
     const titleEl = document.createElement('div');
     titleEl.className = 'sw-list-title';
     titleEl.textContent = `${item.component_code}`;
@@ -480,7 +487,8 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     meta.className = 'sw-list-meta';
     const updatedBy = item.updated_by || item.updatedBy || '-';
     meta.textContent = `数量: ${item.quantity} / 状態: ${item.status} / 更新: ${item.updated_at || '-'} / 入力: ${updatedBy}`;
-    row.append(titleEl, meta);
+    content.append(titleEl, meta);
+    row.append(content);
     return row;
   };
 

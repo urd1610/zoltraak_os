@@ -349,10 +349,20 @@
 }
 
 .sw-list-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
   padding: 10px 12px;
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(110, 231, 255, 0.08);
+}
+
+.sw-list-content {
+  display: grid;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
 }
 
 .sw-list-item.is-editing {
@@ -365,7 +375,9 @@
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
-  margin-top: 8px;
+  margin-top: 0;
+  align-self: flex-start;
+  margin-left: auto;
 }
 
 .sw-list-action-button {
