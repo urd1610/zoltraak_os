@@ -2886,7 +2886,9 @@
     "aiCompetitionMonitor": false,
     "monitorTargets": null,
     "scoringConfig": null,
-    "worktreePath": ".worktrees\\task-1765334341079-dcfaf1"
+    "worktreePath": ".worktrees\\task-1765334341079-dcfaf1",
+    "medal": "bronze",
+    "aiCompetitionScore": 80
   },
   {
     "id": "task-1765334340877-198ff3",
@@ -2910,7 +2912,9 @@
     "aiCompetitionMonitor": false,
     "monitorTargets": null,
     "scoringConfig": null,
-    "worktreePath": ".worktrees\\task-1765334340877-198ff3"
+    "worktreePath": ".worktrees\\task-1765334340877-198ff3",
+    "medal": "silver",
+    "aiCompetitionScore": 83
   },
   {
     "id": "task-1765334340677-78543a",
@@ -2934,7 +2938,9 @@
     "aiCompetitionMonitor": false,
     "monitorTargets": null,
     "scoringConfig": null,
-    "worktreePath": ".worktrees\\task-1765334340677-78543a"
+    "worktreePath": ".worktrees\\task-1765334340677-78543a",
+    "medal": "gold",
+    "aiCompetitionScore": 86
   },
   {
     "id": "task-1765334344837-4343b9",
@@ -2980,7 +2986,7 @@
     "importance": "medium",
     "urgency": "medium",
     "createdAt": "2025-12-10T02:53:26.739Z",
-    "updatedAt": "2025-12-10T02:53:26.739Z",
+    "updatedAt": "2025-12-10T03:11:56.955Z",
     "requiresTerminal": true,
     "createWorktree": true,
     "branchName": "task/task-1765335206739-1dcc35",
@@ -2994,7 +3000,9 @@
     "aiCompetitionMonitor": false,
     "monitorTargets": null,
     "scoringConfig": null,
-    "worktreePath": ".worktrees\\task-1765335206739-1dcc35"
+    "worktreePath": ".worktrees\\task-1765335206739-1dcc35",
+    "medal": "bronze",
+    "aiCompetitionScore": 82
   },
   {
     "id": "task-1765335206541-bbe041",
@@ -3004,7 +3012,7 @@
     "importance": "medium",
     "urgency": "medium",
     "createdAt": "2025-12-10T02:53:26.541Z",
-    "updatedAt": "2025-12-10T02:53:26.541Z",
+    "updatedAt": "2025-12-10T03:24:10.600Z",
     "requiresTerminal": true,
     "createWorktree": true,
     "branchName": "task/task-1765335206541-bbe041",
@@ -3018,7 +3026,9 @@
     "aiCompetitionMonitor": false,
     "monitorTargets": null,
     "scoringConfig": null,
-    "worktreePath": ".worktrees\\task-1765335206541-bbe041"
+    "worktreePath": ".worktrees\\task-1765335206541-bbe041",
+    "medal": "gold",
+    "aiCompetitionScore": 88
   },
   {
     "id": "task-1765335206340-6665d2",
@@ -3028,7 +3038,7 @@
     "importance": "medium",
     "urgency": "medium",
     "createdAt": "2025-12-10T02:53:26.340Z",
-    "updatedAt": "2025-12-10T02:53:26.340Z",
+    "updatedAt": "2025-12-10T03:08:58.912Z",
     "requiresTerminal": true,
     "createWorktree": true,
     "branchName": "task/task-1765335206340-6665d2",
@@ -3042,7 +3052,9 @@
     "aiCompetitionMonitor": false,
     "monitorTargets": null,
     "scoringConfig": null,
-    "worktreePath": ".worktrees\\task-1765335206340-6665d2"
+    "worktreePath": ".worktrees\\task-1765335206340-6665d2",
+    "medal": "silver",
+    "aiCompetitionScore": 85
   },
   {
     "id": "task-1765335210214-1b8401",
