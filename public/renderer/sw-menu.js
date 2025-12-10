@@ -622,7 +622,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     statsRow.className = 'sw-dashboard__stats';
     statsRow.append(
       buildStatCard({
-        title: '構成データ',
+        title: '品番データ',
         value: `${state.overview.components.length}`,
         meta: latestComponent ? `最新: ${latestComponent.code} (${latestComponent.updated_at || '-'})` : 'まだ登録がありません',
         view: 'components',
