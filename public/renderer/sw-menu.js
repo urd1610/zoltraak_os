@@ -507,7 +507,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
       const resetButton = document.createElement('button');
       resetButton.type = 'button';
       resetButton.className = 'ghost sw-editing-notice__reset';
-      resetButton.textContent = '新規登録に戻る';
+      resetButton.textContent = 'キャンセル';
       resetButton.disabled = state.flags.isSavingComponent;
       resetButton.addEventListener('click', cancelComponentEdit);
       editingNotice.append(label, resetButton);
@@ -570,7 +570,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
       cancelButton.type = 'button';
       cancelButton.className = 'ghost';
       cancelButton.disabled = state.flags.isSavingComponent;
-      cancelButton.textContent = '新規登録に戻る';
+      cancelButton.textContent = 'キャンセル';
       cancelButton.addEventListener('click', cancelComponentEdit);
       actions.append(cancelButton);
     }
