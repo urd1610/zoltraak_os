@@ -73,6 +73,16 @@ npm start
 
 - クイックアクション「SWメニュー」をダブルクリックすると、Three.js 背景領域に構成・流動管理パネルを表示
 - データベース: MariaDB/MySQL `zoltraak`（デフォルト: host `192.168.0.156`, port `3306`, user `alluser`、パスワードは環境変数 `MARIADB_PASSWORD` から読み込み）
+- 接続設定: プロジェクト直下の `sw-menu.env` が自動で読み込まれ、`npm start` / `npm run init-sw-db` どちらでも同じ値を参照します（デフォルトで `MARIADB_PASSWORD=wew111589` を設定済み）
+- サンプル (`sw-menu.env`):
+
+```
+MARIADB_HOST=192.168.0.156
+MARIADB_PORT=3306
+MARIADB_USER=alluser
+MARIADB_PASSWORD=wew111589
+SW_DB_NAME=zoltraak
+```
 - 初期化: 接続情報を設定した上で `npm run init-sw-db` を実行すると `sw_components` / `sw_boms` / `sw_flow_counts` テーブルを作成
 - 機能: 部品コード登録、BOM親子リンク登録、流動数の登録・更新と最新履歴の確認
 
