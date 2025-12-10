@@ -676,7 +676,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     leftColumn.className = 'sw-column';
     leftColumn.append(
       buildSection('接続ステータス', buildStatusGrid()),
-      buildList('構成表（最新）', state.overview.components, buildComponentRow, 'まだ構成が登録されていません'),
+      buildList('品番一覧', state.overview.components, buildComponentRow, 'まだ構成が登録されていません'),
     );
 
     const rightColumn = document.createElement('div');
