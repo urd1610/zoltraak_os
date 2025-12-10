@@ -48,6 +48,22 @@
       </section>
     </main>
 
+    <div id="dock" class="dock" aria-hidden="true">
+      <div class="dock-inner">
+        <div class="dock-grip" aria-hidden="true"></div>
+        <div class="dock-actions" id="dock-actions" role="list"></div>
+        <button
+          id="dock-quick-toggle"
+          class="dock-pill"
+          type="button"
+          title="クイックアクションの表示/非表示を切り替え"
+          aria-pressed="false"
+        >
+          クイック表示
+        </button>
+      </div>
+    </div>
+
     <script type="module" src="renderer.js"></script>
   </body>
 </html>
