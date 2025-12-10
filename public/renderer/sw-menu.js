@@ -16,6 +16,13 @@ const VIEW_DEFINITIONS = [
 ];
 
 const DEFAULT_VIEW = VIEW_DEFINITIONS[0].id;
+const buildDefaultComponentDraft = () => ({
+  code: '',
+  name: '',
+  version: '',
+  location: '',
+  description: '',
+});
 
 const buildStatusRow = (label, value, type) => {
   const row = document.createElement('div');
@@ -86,9 +93,12 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     },
     view: DEFAULT_VIEW,
     drafts: {
-      component: { code: '', name: '', version: '', location: '', description: '' },
+      component: buildDefaultComponentDraft(),
       bom: { parentCode: '', childCode: '', quantity: '1', note: '' },
       flow: { componentCode: '', quantity: '', status: 'in-stock', updatedBy: 'operator' },
+    },
+    editing: {
+      componentCode: null,
     },
     flags: {
       isInitializing: false,
@@ -104,6 +114,33 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
       renderUi();
     }
   };
+
+  const isEditingComponent = () => Boolean(state.editing.componentCode);
+
+  const resetComponentDraft = ({ keepRender } = {}) => {
+    state.drafts.component = buildDefaultComponentDraft();
+    state.editing.componentCode = null;
+    if (!keepRender) {
+      render();
+    }
+  };
+
+  const startComponentEdit = (component) => {
+    if (!component?.code) {
+      return;
+    }
+    state.editing.componentCode = component.code;
+    state.drafts.component = {
+      code: component.code ?? '',
+      name: component.name ?? '',
+      version: component.version ?? '',
+      location: component.location ?? '',
+      description: component.description ?? '',
+    };
+    render();
+  };
+
+  const cancelComponentEdit = () => resetComponentDraft();
 
   const setView = (viewId) => {
     const found = VIEW_DEFINITIONS.some((view) => view.id === viewId);
@@ -197,6 +234,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
 
   const hydrate = async () => {
     state.view = DEFAULT_VIEW;
+    resetComponentDraft({ keepRender: true });
     render();
     await ensureSetup();
     await hydrateStatus();
@@ -210,11 +248,14 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     render();
     try {
       const payload = { ...state.drafts.component };
+      if (state.editing.componentCode) {
+        payload.code = state.editing.componentCode;
+      }
       const result = await window.desktopBridge.upsertSwComponent(payload);
       if (!result?.ok) {
         throw new Error(result?.error || '登録に失敗しました');
       }
-      state.drafts.component = { code: '', name: '', version: '', location: '', description: '' };
+      resetComponentDraft({ keepRender: true });
       await hydrateOverview();
     } catch (error) {
       applyStatus({ lastError: error?.message || '部品登録に失敗しました' });
