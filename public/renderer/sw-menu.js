@@ -8,6 +8,15 @@ const DEFAULT_STATUS = {
   lastError: null,
 };
 
+const VIEW_DEFINITIONS = [
+  { id: 'dashboard', label: 'ダッシュボード' },
+  { id: 'components', label: '構成データ' },
+  { id: 'bom', label: 'BOMリンク' },
+  { id: 'flows', label: '流動数' },
+];
+
+const DEFAULT_VIEW = VIEW_DEFINITIONS[0].id;
+
 const buildStatusRow = (label, value, type) => {
   const row = document.createElement('div');
   row.className = 'status-row';
@@ -75,6 +84,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
       boms: [],
       flows: [],
     },
+    view: DEFAULT_VIEW,
     drafts: {
       component: { code: '', name: '', version: '', description: '' },
       bom: { parentCode: '', childCode: '', quantity: '1', note: '' },
@@ -93,6 +103,18 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     if (typeof renderUi === 'function') {
       renderUi();
     }
+  };
+
+  const setView = (viewId) => {
+    const found = VIEW_DEFINITIONS.some((view) => view.id === viewId);
+    if (!found) {
+      return;
+    }
+    if (state.view === viewId) {
+      return;
+    }
+    state.view = viewId;
+    render();
   };
 
   const applyStatus = (payload = {}) => {
@@ -174,6 +196,8 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
   };
 
   const hydrate = async () => {
+    state.view = DEFAULT_VIEW;
+    render();
     await ensureSetup();
     await hydrateStatus();
     await hydrateOverview();
@@ -340,6 +364,59 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     return form;
   };
 
+  const buildComponentRow = (item) => {
+    const row = document.createElement('div');
+    row.className = 'sw-list-item';
+    const titleEl = document.createElement('div');
+    titleEl.className = 'sw-list-title';
+    titleEl.textContent = `${item.code} / ${item.name}`;
+    const meta = document.createElement('div');
+    meta.className = 'sw-list-meta';
+    meta.textContent = `版: ${item.version || '-'} / 更新: ${item.updated_at || '-'}`;
+    if (item.description) {
+      const desc = document.createElement('div');
+      desc.className = 'sw-list-desc';
+      desc.textContent = item.description;
+      row.append(titleEl, meta, desc);
+    } else {
+      row.append(titleEl, meta);
+    }
+    return row;
+  };
+
+  const buildBomRow = (item) => {
+    const row = document.createElement('div');
+    row.className = 'sw-list-item';
+    const titleEl = document.createElement('div');
+    titleEl.className = 'sw-list-title';
+    titleEl.textContent = `${item.parent_code} → ${item.child_code}`;
+    const meta = document.createElement('div');
+    meta.className = 'sw-list-meta';
+    meta.textContent = `数量: ${item.quantity} / 更新: ${item.updated_at || '-'}`;
+    row.append(titleEl, meta);
+    if (item.note) {
+      const note = document.createElement('div');
+      note.className = 'sw-list-desc';
+      note.textContent = item.note;
+      row.append(note);
+    }
+    return row;
+  };
+
+  const buildFlowRow = (item) => {
+    const row = document.createElement('div');
+    row.className = 'sw-list-item';
+    const titleEl = document.createElement('div');
+    titleEl.className = 'sw-list-title';
+    titleEl.textContent = `${item.component_code}`;
+    const meta = document.createElement('div');
+    meta.className = 'sw-list-meta';
+    const updatedBy = item.updated_by || item.updatedBy || '-';
+    meta.textContent = `数量: ${item.quantity} / 状態: ${item.status} / 更新: ${item.updated_at || '-'} / 入力: ${updatedBy}`;
+    row.append(titleEl, meta);
+    return row;
+  };
+
   const buildComponentForm = () => {
     const form = document.createElement('form');
     form.className = 'sw-form';
@@ -481,91 +558,200 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     return actions;
   };
 
-  const buildSwMenuGrid = () => {
+  const buildViewSwitcher = () => {
+    const nav = document.createElement('div');
+    nav.className = 'sw-view-nav';
+    VIEW_DEFINITIONS.forEach((view) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'chip chip-action tiny sw-view-nav__button';
+      const active = state.view === view.id;
+      button.classList.toggle('is-active', active);
+      button.setAttribute('aria-pressed', active ? 'true' : 'false');
+      button.textContent = view.label;
+      button.addEventListener('click', () => setView(view.id));
+      nav.append(button);
+    });
+    return nav;
+  };
+
+  const buildStatCard = ({ title, value, meta, view }) => {
+    const card = document.createElement('div');
+    card.className = 'sw-stat-card';
+
+    const label = document.createElement('div');
+    label.className = 'sw-stat-card__label';
+    label.textContent = title;
+
+    const val = document.createElement('div');
+    val.className = 'sw-stat-card__value';
+    val.textContent = value;
+
+    const metaEl = document.createElement('div');
+    metaEl.className = 'sw-stat-card__meta';
+    metaEl.textContent = meta;
+
+    card.append(label, val, metaEl);
+
+    if (view) {
+      const actionButton = document.createElement('button');
+      actionButton.type = 'button';
+      actionButton.className = 'ghost sw-stat-card__action';
+      actionButton.textContent = '詳細を見る';
+      actionButton.addEventListener('click', () => setView(view));
+      card.append(actionButton);
+    }
+
+    return card;
+  };
+
+  const buildDashboardView = (variant = 'surface') => {
+    const surfaceLimit = variant === 'card' ? 2 : 3;
+    const container = document.createElement('div');
+    container.className = 'sw-dashboard';
+
+    const statusSection = buildSection('接続ステータス', buildStatusGrid());
+    statusSection.classList.add('sw-dashboard__section');
+
+    const latestComponent = state.overview.components?.[0];
+    const latestBom = state.overview.boms?.[0];
+    const latestFlow = state.overview.flows?.[0];
+
+    const statsRow = document.createElement('div');
+    statsRow.className = 'sw-dashboard__stats';
+    statsRow.append(
+      buildStatCard({
+        title: '構成データ',
+        value: `${state.overview.components.length}`,
+        meta: latestComponent ? `最新: ${latestComponent.code} (${latestComponent.updated_at || '-'})` : 'まだ登録がありません',
+        view: 'components',
+      }),
+      buildStatCard({
+        title: 'BOMリンク',
+        value: `${state.overview.boms.length}`,
+        meta: latestBom ? `最新: ${latestBom.parent_code} → ${latestBom.child_code}` : 'まだ登録がありません',
+        view: 'bom',
+      }),
+      buildStatCard({
+        title: '流動数',
+        value: `${state.overview.flows.length}`,
+        meta: latestFlow ? `最新: ${latestFlow.component_code} / ${latestFlow.status}` : 'まだ登録がありません',
+        view: 'flows',
+      }),
+    );
+
+    const peekGrid = document.createElement('div');
+    peekGrid.className = 'sw-dashboard__peek-grid';
+    peekGrid.append(
+      buildList(
+        '最新の構成',
+        (state.overview.components ?? []).slice(0, surfaceLimit),
+        buildComponentRow,
+        '構成がありません',
+      ),
+      buildList(
+        '最新のBOMリンク',
+        (state.overview.boms ?? []).slice(0, surfaceLimit),
+        buildBomRow,
+        'BOMリンクがありません',
+      ),
+      buildList(
+        '最新の流動数',
+        (state.overview.flows ?? []).slice(0, surfaceLimit),
+        buildFlowRow,
+        '流動数がありません',
+      ),
+    );
+
+    container.append(statusSection, statsRow, peekGrid);
+    return container;
+  };
+
+  const buildComponentsView = () => {
     const layout = document.createElement('div');
     layout.className = 'sw-grid';
 
     const leftColumn = document.createElement('div');
     leftColumn.className = 'sw-column';
     leftColumn.append(
-      buildStatusGrid(),
-      buildList(
-        '構成表（最新）',
-        state.overview.components,
-        (item) => {
-          const row = document.createElement('div');
-          row.className = 'sw-list-item';
-          const titleEl = document.createElement('div');
-          titleEl.className = 'sw-list-title';
-          titleEl.textContent = `${item.code} / ${item.name}`;
-          const meta = document.createElement('div');
-          meta.className = 'sw-list-meta';
-          meta.textContent = `版: ${item.version || '-'} / 更新: ${item.updated_at || '-'}`;
-          if (item.description) {
-            const desc = document.createElement('div');
-            desc.className = 'sw-list-desc';
-            desc.textContent = item.description;
-            row.append(titleEl, meta, desc);
-          } else {
-            row.append(titleEl, meta);
-          }
-          return row;
-        },
-        'まだ構成が登録されていません',
-      ),
-      buildList(
-        'BOMリンク（最新）',
-        state.overview.boms,
-        (item) => {
-          const row = document.createElement('div');
-          row.className = 'sw-list-item';
-          const titleEl = document.createElement('div');
-          titleEl.className = 'sw-list-title';
-          titleEl.textContent = `${item.parent_code} → ${item.child_code}`;
-          const meta = document.createElement('div');
-          meta.className = 'sw-list-meta';
-          meta.textContent = `数量: ${item.quantity} / 更新: ${item.updated_at || '-'}`;
-          row.append(titleEl, meta);
-          if (item.note) {
-            const note = document.createElement('div');
-            note.className = 'sw-list-desc';
-            note.textContent = item.note;
-            row.append(note);
-          }
-          return row;
-        },
-        'BOMリンクはまだ登録されていません',
-      ),
-      buildSection('BOMを登録', buildBomForm()),
+      buildSection('接続ステータス', buildStatusGrid()),
+      buildList('構成表（最新）', state.overview.components, buildComponentRow, 'まだ構成が登録されていません'),
+    );
+
+    const rightColumn = document.createElement('div');
+    rightColumn.className = 'sw-column';
+    rightColumn.append(buildSection('品番を登録', buildComponentForm()));
+
+    layout.append(leftColumn, rightColumn);
+    return layout;
+  };
+
+  const buildBomView = () => {
+    const layout = document.createElement('div');
+    layout.className = 'sw-grid';
+
+    const leftColumn = document.createElement('div');
+    leftColumn.className = 'sw-column';
+    leftColumn.append(
+      buildSection('接続ステータス', buildStatusGrid()),
+      buildList('BOMリンク（最新）', state.overview.boms, buildBomRow, 'BOMリンクはまだ登録されていません'),
     );
 
     const rightColumn = document.createElement('div');
     rightColumn.className = 'sw-column';
     rightColumn.append(
+      buildSection('BOMを登録', buildBomForm()),
       buildList(
-        '流動数（最新）',
-        state.overview.flows,
-        (item) => {
-          const row = document.createElement('div');
-          row.className = 'sw-list-item';
-          const titleEl = document.createElement('div');
-          titleEl.className = 'sw-list-title';
-          titleEl.textContent = `${item.component_code}`;
-          const meta = document.createElement('div');
-          meta.className = 'sw-list-meta';
-          const updatedBy = item.updated_by || item.updatedBy || '-';
-          meta.textContent = `数量: ${item.quantity} / 状態: ${item.status} / 更新: ${item.updated_at || '-'} / 入力: ${updatedBy}`;
-          row.append(titleEl, meta);
-          return row;
-        },
-        '流動数はまだ登録されていません',
+        '参照用: 構成（最新）',
+        (state.overview.components ?? []).slice(0, 5),
+        buildComponentRow,
+        '構成データが必要です',
       ),
-      buildSection('品番を登録', buildComponentForm()),
-      buildSection('流動数を登録', buildFlowForm()),
     );
 
     layout.append(leftColumn, rightColumn);
     return layout;
+  };
+
+  const buildFlowsView = () => {
+    const layout = document.createElement('div');
+    layout.className = 'sw-grid';
+
+    const leftColumn = document.createElement('div');
+    leftColumn.className = 'sw-column';
+    leftColumn.append(
+      buildSection('接続ステータス', buildStatusGrid()),
+      buildList('流動数（最新）', state.overview.flows, buildFlowRow, '流動数はまだ登録されていません'),
+    );
+
+    const rightColumn = document.createElement('div');
+    rightColumn.className = 'sw-column';
+    rightColumn.append(
+      buildSection('流動数を登録', buildFlowForm()),
+      buildList(
+        '参照用: 構成（最新）',
+        (state.overview.components ?? []).slice(0, 5),
+        buildComponentRow,
+        '構成データが必要です',
+      ),
+    );
+
+    layout.append(leftColumn, rightColumn);
+    return layout;
+  };
+
+  const buildViewContent = (variant = 'surface') => {
+    switch (state.view) {
+      case 'components':
+        return buildComponentsView();
+      case 'bom':
+        return buildBomView();
+      case 'flows':
+        return buildFlowsView();
+      case 'dashboard':
+      default:
+        return buildDashboardView(variant);
+    }
   };
 
   const buildCard = () => {
@@ -594,9 +780,10 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     header.append(title, headerControls);
 
     const actions = buildControlActions();
-    const layout = buildSwMenuGrid();
+    const nav = buildViewSwitcher();
+    const layout = buildViewContent('card');
 
-    card.append(header, actions, layout);
+    card.append(header, actions, nav, layout);
     return card;
   };
 
@@ -659,7 +846,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     const actions = buildControlActions('surface');
     const grid = document.createElement('div');
     grid.className = 'sw-menu-surface__grid';
-    grid.append(buildSwMenuGrid());
+    grid.append(buildViewSwitcher(), buildViewContent());
 
     surface.append(header, actions, grid);
     return surface;
