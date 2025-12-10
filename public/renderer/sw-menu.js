@@ -136,6 +136,9 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     editing: {
       componentCode: null,
     },
+    search: {
+      component: '',
+    },
     flags: {
       isInitializing: false,
       isRefreshing: false,
@@ -928,9 +931,32 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     return container;
   };
 
+  const hasComponentQuery = () => Boolean((state.search.component || '').trim());
+
+  const getFilteredComponents = () => {
+    const allComponents = Array.isArray(state.overview.components) ? state.overview.components : [];
+    const query = (state.search.component || '').trim().toLowerCase();
+    if (!query) {
+      return allComponents;
+    }
+    return allComponents.filter((item) => {
+      const targetValues = [
+        item.code,
+        item.name,
+        item.version,
+        item.location,
+        item.description,
+      ];
+      return targetValues.some((value) => (value ?? '').toString().toLowerCase().includes(query));
+    });
+  };
+
   const buildComponentsView = () => {
     const layout = document.createElement('div');
     layout.className = 'sw-grid';
+
+    const filteredComponents = getFilteredComponents();
+    const emptyText = hasComponentQuery() ? '条件に一致する品番が見つかりません' : 'まだ構成が登録されていません';
 
     const leftColumn = document.createElement('div');
     leftColumn.className = 'sw-column';
@@ -938,13 +964,13 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
       buildSection('接続ステータス', buildStatusGrid()),
       buildList(
         '品番一覧',
-        state.overview.components,
+        filteredComponents,
         (item) => buildComponentRow(item, {
           onEdit: startComponentEdit,
           onDelete: deleteComponent,
           activeCode: state.editing.componentCode,
         }),
-        'まだ構成が登録されていません',
+        emptyText,
       ),
     );
 
