@@ -86,7 +86,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     },
     view: DEFAULT_VIEW,
     drafts: {
-      component: { code: '', name: '', version: '', description: '' },
+      component: { code: '', name: '', version: '', location: '', description: '' },
       bom: { parentCode: '', childCode: '', quantity: '1', note: '' },
       flow: { componentCode: '', quantity: '', status: 'in-stock', updatedBy: 'operator' },
     },
@@ -214,7 +214,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
       if (!result?.ok) {
         throw new Error(result?.error || '登録に失敗しました');
       }
-      state.drafts.component = { code: '', name: '', version: '', description: '' };
+      state.drafts.component = { code: '', name: '', version: '', location: '', description: '' };
       await hydrateOverview();
     } catch (error) {
       applyStatus({ lastError: error?.message || '部品登録に失敗しました' });
@@ -372,7 +372,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     titleEl.textContent = `${item.code} / ${item.name}`;
     const meta = document.createElement('div');
     meta.className = 'sw-list-meta';
-    meta.textContent = `版: ${item.version || '-'} / 更新: ${item.updated_at || '-'}`;
+    meta.textContent = `版: ${item.version || '-'} / 場所: ${item.location || '-'} / 更新: ${item.updated_at || '-'}`;
     if (item.description) {
       const desc = document.createElement('div');
       desc.className = 'sw-list-desc';
@@ -426,6 +426,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
       { key: 'code', label: '部品コード', placeholder: 'SW-001', required: true },
       { key: 'name', label: '名称', placeholder: 'メインモジュール', required: true },
       { key: 'version', label: '版数', placeholder: 'v1.0.0' },
+      { key: 'location', label: '場所/ライン', placeholder: 'Aライン' },
     ];
 
     fields.forEach((field) => {

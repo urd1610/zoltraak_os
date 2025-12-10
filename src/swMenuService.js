@@ -22,6 +22,7 @@ const TABLE_DEFINITIONS = [
     code VARCHAR(64) NOT NULL,
     name VARCHAR(255) NOT NULL,
     version VARCHAR(64) DEFAULT '',
+    location VARCHAR(100) DEFAULT '',
     description TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -76,6 +77,7 @@ const normalizeComponentPayload = (payload = {}) => {
     code,
     name,
     version: (payload.version ?? '').trim(),
+    location: (payload.location ?? '').trim(),
     description: (payload.description ?? '').trim(),
   };
 };
@@ -229,7 +231,7 @@ const createSwMenuService = (options = {}) => {
       const data = await withConnection(async (conn) => {
         const [components, boms, flows] = await Promise.all([
           conn.query(
-            'SELECT code, name, version, description, updated_at FROM sw_components ORDER BY updated_at DESC LIMIT 6',
+            'SELECT code, name, version, location, description, updated_at FROM sw_components ORDER BY updated_at DESC LIMIT 6',
           ),
           conn.query(
             'SELECT parent_code, child_code, quantity, note, updated_at FROM sw_boms ORDER BY updated_at DESC LIMIT 6',
@@ -257,10 +259,10 @@ const createSwMenuService = (options = {}) => {
       const normalized = normalizeComponentPayload(payload);
       await withConnection(async (conn) => {
         await conn.query(
-          `INSERT INTO sw_components (code, name, version, description)
-            VALUES (?, ?, ?, ?)
-            ON DUPLICATE KEY UPDATE name = VALUES(name), version = VALUES(version), description = VALUES(description)`,
-          [normalized.code, normalized.name, normalized.version, normalized.description],
+          `INSERT INTO sw_components (code, name, version, location, description)
+            VALUES (?, ?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE name = VALUES(name), version = VALUES(version), location = VALUES(location), description = VALUES(description)`,
+          [normalized.code, normalized.name, normalized.version, normalized.location, normalized.description],
         );
       });
       return { ok: true, component: normalized };
