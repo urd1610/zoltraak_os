@@ -83,6 +83,33 @@ const buildSection = (title, content) => {
   return section;
 };
 
+const buildSuggestionChips = (label, items, onSelect) => {
+  if (!items?.length || typeof onSelect !== 'function') {
+    return null;
+  }
+  const unique = Array.from(new Set(items)).filter(Boolean);
+  if (!unique.length) {
+    return null;
+  }
+  const wrapper = document.createElement('div');
+  wrapper.className = 'sw-suggestions';
+  const title = document.createElement('div');
+  title.className = 'sw-suggestions__label';
+  title.textContent = label;
+  const list = document.createElement('div');
+  list.className = 'sw-suggestions__chips';
+  unique.slice(0, 8).forEach((text) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'sw-suggestion-chip';
+    button.textContent = text;
+    button.addEventListener('click', () => onSelect(text));
+    list.append(button);
+  });
+  wrapper.append(title, list);
+  return wrapper;
+};
+
 export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActionActive, renderUi }) => {
   const state = {
     status: { ...DEFAULT_STATUS },
@@ -90,6 +117,10 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
       components: [],
       boms: [],
       flows: [],
+    },
+    suggestions: {
+      names: [],
+      locations: [],
     },
     view: DEFAULT_VIEW,
     drafts: {
@@ -163,6 +194,13 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     };
   };
 
+  const applySuggestions = (payload = {}) => {
+    state.suggestions = {
+      names: Array.isArray(payload.names) ? payload.names : [],
+      locations: Array.isArray(payload.locations) ? payload.locations : [],
+    };
+  };
+
   const ensureBridge = (method) => {
     if (!window.desktopBridge || typeof window.desktopBridge[method] !== 'function') {
       applyStatus({ lastError: `SWメニューのブリッジ(${method})が見つかりません` });
@@ -233,6 +271,23 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     }
   };
 
+  const hydrateComponentSuggestions = async () => {
+    if (!ensureBridge('getSwMenuComponentSuggestions')) return;
+    try {
+      const result = await window.desktopBridge.getSwMenuComponentSuggestions();
+      if (result?.ok) {
+        applySuggestions(result.suggestions ?? {});
+        applyStatus({ lastError: null });
+      } else if (result?.error) {
+        applyStatus({ lastError: result.error });
+      }
+    } catch (error) {
+      applyStatus({ lastError: error?.message || '候補の取得に失敗しました' });
+    } finally {
+      render();
+    }
+  };
+
   const hydrate = async () => {
     state.view = DEFAULT_VIEW;
     resetComponentDraft({ keepRender: true });
@@ -240,6 +295,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     await ensureSetup();
     await hydrateStatus();
     await hydrateOverview();
+    await hydrateComponentSuggestions();
   };
 
   const submitComponent = async (event) => {
@@ -258,6 +314,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
       }
       resetComponentDraft({ keepRender: true });
       await hydrateOverview();
+      await hydrateComponentSuggestions();
     } catch (error) {
       applyStatus({ lastError: error?.message || '部品登録に失敗しました' });
     } finally {
@@ -531,6 +588,26 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
       input.required = Boolean(field.required);
       input.placeholder = field.placeholder || '';
       input.value = state.drafts.component[field.key] ?? '';
+      let suggestionList = null;
+      let suggestionLabel = '';
+      if (field.key === 'name') {
+        suggestionList = state.suggestions.names;
+        suggestionLabel = '最近使った名称';
+      } else if (field.key === 'location') {
+        suggestionList = state.suggestions.locations;
+        suggestionLabel = '最近使った場所/ライン';
+      }
+      let datalist = null;
+      if (suggestionList?.length) {
+        datalist = document.createElement('datalist');
+        datalist.id = `sw-${field.key}-suggestions`;
+        suggestionList.forEach((value) => {
+          const option = document.createElement('option');
+          option.value = value;
+          datalist.append(option);
+        });
+        input.setAttribute('list', datalist.id);
+      }
       if (editing && field.key === 'code') {
         row.classList.add('sw-field--locked');
         input.readOnly = true;
@@ -540,6 +617,17 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
         state.drafts.component[field.key] = event.target.value;
       });
       row.append(name, input);
+      if (datalist) {
+        row.append(datalist);
+        const chips = buildSuggestionChips(suggestionLabel, suggestionList, (value) => {
+          state.drafts.component[field.key] = value;
+          input.value = value;
+          input.focus();
+        });
+        if (chips) {
+          row.append(chips);
+        }
+      }
       if (editing && field.key === 'code') {
         const hint = document.createElement('div');
         hint.className = 'sw-field-hint';
@@ -666,7 +754,9 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     refreshButton.className = 'ghost';
     refreshButton.disabled = state.flags.isRefreshing;
     refreshButton.textContent = state.flags.isRefreshing ? '更新中…' : '最新情報を取得';
-    refreshButton.addEventListener('click', () => { void hydrateOverview(); });
+    refreshButton.addEventListener('click', () => {
+      void Promise.all([hydrateOverview(), hydrateComponentSuggestions()]);
+    });
 
     actions.append(initButton, refreshButton);
     return actions;

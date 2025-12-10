@@ -487,6 +487,43 @@
   color: var(--muted);
 }
 
+.sw-suggestions {
+  display: grid;
+  gap: 4px;
+}
+
+.sw-suggestions__label {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.sw-suggestions__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.sw-suggestion-chip {
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(110, 231, 255, 0.18);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
+  font-size: 12px;
+  cursor: pointer;
+  transition: border-color 120ms ease, background 120ms ease, transform 120ms ease;
+}
+
+.sw-suggestion-chip:hover {
+  border-color: rgba(110, 231, 255, 0.32);
+  background: rgba(110, 231, 255, 0.12);
+  transform: translateY(-1px);
+}
+
+.sw-suggestion-chip:active {
+  transform: translateY(0);
+}
+
 .sw-field textarea {
   min-height: 96px;
   resize: vertical;
