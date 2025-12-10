@@ -43,14 +43,13 @@ const TABLE_DEFINITIONS = [
   `CREATE TABLE IF NOT EXISTS sw_flow_counts (
     id INT UNSIGNED NOT NULL AUTO_INCREMENT,
     component_code VARCHAR(64) NOT NULL,
-    location VARCHAR(128) NOT NULL DEFAULT 'default',
     quantity DECIMAL(14,3) NOT NULL DEFAULT 0,
     status ENUM('in-stock', 'wip', 'backlog') NOT NULL DEFAULT 'in-stock',
     updated_by VARCHAR(64) DEFAULT 'system',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
-    UNIQUE KEY uniq_component_location (component_code, location),
+    UNIQUE KEY uniq_component_code (component_code),
     KEY idx_status (status)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci`,
 ];
@@ -89,7 +88,6 @@ const normalizeFlowPayload = (payload = {}) => {
   const quantity = Number(payload.quantity);
   return {
     componentCode,
-    location: (payload.location ?? 'default').trim() || 'default',
     quantity: Number.isFinite(quantity) ? quantity : 0,
     status: ['in-stock', 'wip', 'backlog'].includes(payload.status) ? payload.status : 'in-stock',
     updatedBy: (payload.updatedBy ?? 'operator').trim() || 'operator',
@@ -237,7 +235,7 @@ const createSwMenuService = (options = {}) => {
             'SELECT parent_code, child_code, quantity, note, updated_at FROM sw_boms ORDER BY updated_at DESC LIMIT 6',
           ),
           conn.query(
-            'SELECT component_code, location, quantity, status, updated_at, updated_by FROM sw_flow_counts ORDER BY updated_at DESC LIMIT 8',
+            'SELECT component_code, quantity, status, updated_at, updated_by FROM sw_flow_counts ORDER BY updated_at DESC LIMIT 8',
           ),
         ]);
         return { components, boms, flows };
@@ -277,10 +275,10 @@ const createSwMenuService = (options = {}) => {
       const normalized = normalizeFlowPayload(payload);
       await withConnection(async (conn) => {
         await conn.query(
-          `INSERT INTO sw_flow_counts (component_code, location, quantity, status, updated_by)
-            VALUES (?, ?, ?, ?, ?)
+          `INSERT INTO sw_flow_counts (component_code, quantity, status, updated_by)
+            VALUES (?, ?, ?, ?)
             ON DUPLICATE KEY UPDATE quantity = VALUES(quantity), status = VALUES(status), updated_by = VALUES(updated_by)`,
-          [normalized.componentCode, normalized.location, normalized.quantity, normalized.status, normalized.updatedBy],
+          [normalized.componentCode, normalized.quantity, normalized.status, normalized.updatedBy],
         );
       });
       return { ok: true, flow: normalized };

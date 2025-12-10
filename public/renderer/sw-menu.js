@@ -78,7 +78,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     drafts: {
       component: { code: '', name: '', version: '', description: '' },
       bom: { parentCode: '', childCode: '', quantity: '1', note: '' },
-      flow: { componentCode: '', location: 'default', quantity: '', status: 'in-stock', updatedBy: 'operator' },
+      flow: { componentCode: '', quantity: '', status: 'in-stock', updatedBy: 'operator' },
     },
     flags: {
       isInitializing: false,
@@ -235,7 +235,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
       if (!result?.ok) {
         throw new Error(result?.error || '流動数の登録に失敗しました');
       }
-      state.drafts.flow = { componentCode: '', location: 'default', quantity: '', status: 'in-stock', updatedBy: 'operator' };
+      state.drafts.flow = { componentCode: '', quantity: '', status: 'in-stock', updatedBy: 'operator' };
       await hydrateOverview();
     } catch (error) {
       applyStatus({ lastError: error?.message || '流動数登録に失敗しました' });
@@ -388,7 +388,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     submitButton.type = 'submit';
     submitButton.className = 'primary';
     submitButton.disabled = state.flags.isSavingComponent;
-    submitButton.textContent = state.flags.isSavingComponent ? '保存中…' : '構成を登録';
+    submitButton.textContent = state.flags.isSavingComponent ? '保存中…' : '品番を登録';
     actions.append(submitButton);
     form.append(actions);
 
@@ -402,7 +402,6 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
 
     const fields = [
       { key: 'componentCode', label: '部品コード', placeholder: 'SW-001', required: true },
-      { key: 'location', label: '場所/ライン', placeholder: 'ラインA' },
       { key: 'quantity', label: '数量', placeholder: '0', type: 'number', step: '0.001', required: true },
       { key: 'updatedBy', label: '更新者', placeholder: 'operator' },
     ];
@@ -551,7 +550,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
           row.className = 'sw-list-item';
           const titleEl = document.createElement('div');
           titleEl.className = 'sw-list-title';
-          titleEl.textContent = `${item.component_code} @ ${item.location}`;
+          titleEl.textContent = `${item.component_code}`;
           const meta = document.createElement('div');
           meta.className = 'sw-list-meta';
           const updatedBy = item.updated_by || item.updatedBy || '-';
@@ -561,7 +560,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
         },
         '流動数はまだ登録されていません',
       ),
-      buildSection('構成を登録', buildComponentForm()),
+      buildSection('品番を登録', buildComponentForm()),
       buildSection('流動数を登録', buildFlowForm()),
     );
 
