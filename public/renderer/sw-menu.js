@@ -106,6 +106,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
       isSavingComponent: false,
       isSavingBom: false,
       isSavingFlow: false,
+      isDeletingComponent: false,
     },
   };
 
@@ -311,6 +312,39 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     }
   };
 
+  const deleteComponent = async (component) => {
+    if (!component?.code) {
+      return;
+    }
+    
+    const confirmed = confirm(`品番 ${component.code} を削除しますか？\nこの操作は取り消せません。`);
+    if (!confirmed) {
+      return;
+    }
+    
+    if (!ensureBridge('deleteSwComponent')) return;
+    state.flags.isDeletingComponent = true;
+    render();
+    
+    try {
+      const result = await window.desktopBridge.deleteSwComponent({ code: component.code });
+      if (!result?.ok) {
+        throw new Error(result?.error || '削除に失敗しました');
+      }
+      
+      if (state.editing.componentCode === component.code) {
+        resetComponentDraft({ keepRender: true });
+      }
+      
+      await hydrateOverview();
+    } catch (error) {
+      applyStatus({ lastError: error?.message || '品番削除に失敗しました' });
+    } finally {
+      state.flags.isDeletingComponent = false;
+      render();
+    }
+  };
+
   const closePanel = () => {
     if (typeof setActionActive === 'function') {
       setActionActive('sw-menu', false);
@@ -409,7 +443,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
   const buildComponentRow = (item, options = {}) => {
     const row = document.createElement('div');
     row.className = 'sw-list-item';
-    const { onEdit, activeCode } = options;
+    const { onEdit, onDelete, activeCode } = options;
     const isActive = activeCode && item.code === activeCode;
     if (isActive) {
       row.classList.add('is-editing');
@@ -432,21 +466,35 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     }
     row.append(content);
 
-    if (typeof onEdit === 'function') {
+    if (typeof onEdit === 'function' || typeof onDelete === 'function') {
       const actions = document.createElement('div');
       actions.className = 'sw-list-actions';
-      const editButton = document.createElement('button');
-      editButton.type = 'button';
-      editButton.className = 'sw-list-action-button';
-      if (isActive) {
-        editButton.classList.add('is-active');
-        editButton.textContent = '編集中';
-      } else {
-        editButton.textContent = '編集';
+      
+      if (typeof onEdit === 'function') {
+        const editButton = document.createElement('button');
+        editButton.type = 'button';
+        editButton.className = 'sw-list-action-button';
+        if (isActive) {
+          editButton.classList.add('is-active');
+          editButton.textContent = '編集中';
+        } else {
+          editButton.textContent = '編集';
+        }
+        editButton.addEventListener('click', () => onEdit(item));
+        row.addEventListener('dblclick', () => onEdit(item));
+        actions.append(editButton);
       }
-      editButton.addEventListener('click', () => onEdit(item));
-      row.addEventListener('dblclick', () => onEdit(item));
-      actions.append(editButton);
+      
+      if (typeof onDelete === 'function') {
+        const deleteButton = document.createElement('button');
+        deleteButton.type = 'button';
+        deleteButton.className = 'sw-list-action-button sw-list-action-button--danger';
+        deleteButton.textContent = state.flags.isDeletingComponent ? '削除中...' : '削除';
+        deleteButton.disabled = state.flags.isDeletingComponent;
+        deleteButton.addEventListener('click', () => onDelete(item));
+        actions.append(deleteButton);
+      }
+      
       row.append(actions);
     }
 
@@ -762,6 +810,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
         (state.overview.components ?? []).slice(0, surfaceLimit),
         (item) => buildComponentRow(item, {
           onEdit: startComponentEdit,
+          onDelete: deleteComponent,
           activeCode: state.editing.componentCode,
         }),
         '構成がありません',
@@ -797,6 +846,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
         state.overview.components,
         (item) => buildComponentRow(item, {
           onEdit: startComponentEdit,
+          onDelete: deleteComponent,
           activeCode: state.editing.componentCode,
         }),
         'まだ構成が登録されていません',
@@ -834,6 +884,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
         (state.overview.components ?? []).slice(0, 5),
         (item) => buildComponentRow(item, {
           onEdit: startComponentEdit,
+          onDelete: deleteComponent,
           activeCode: state.editing.componentCode,
         }),
         '品番データが必要です',
@@ -864,6 +915,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
         (state.overview.components ?? []).slice(0, 5),
         (item) => buildComponentRow(item, {
           onEdit: startComponentEdit,
+          onDelete: deleteComponent,
           activeCode: state.editing.componentCode,
         }),
         '品番データが必要です',
