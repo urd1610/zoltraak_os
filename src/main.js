@@ -4,6 +4,7 @@ const { app, BrowserWindow, dialog, nativeTheme, ipcMain, shell } = require('ele
 const { AiMailMonitor } = require('./aiMailMonitor');
 const { AiFormatter, DEFAULT_PROMPT: DEFAULT_FORMATTING_PROMPT } = require('./aiFormatter');
 const { createSwMenuService } = require('./swMenuService');
+const { loadSwMenuEnv } = require('./envLoader');
 
 const fsp = fs.promises;
 const SETTINGS_FILE_NAME = 'settings.json';
@@ -11,6 +12,7 @@ const MAIL_DIR_NAME = 'Mail';
 const PROMPT_DIR_NAME = 'Prompt';
 const DEFAULT_PROMPT_FILE_NAME = 'default.txt';
 const RECORDING_DIR_NAME = 'Recording';
+loadSwMenuEnv({ baseDir: path.resolve(__dirname, '..') });
 let workspaceDirectory = null;
 let aiMailMonitor = null;
 let swMenuService = null;

@@ -1,6 +1,10 @@
 #!/usr/bin/env node
 /* eslint-disable no-console */
+const path = require('path');
 const { createSwMenuService } = require('../src/swMenuService');
+const { loadSwMenuEnv } = require('../src/envLoader');
+
+loadSwMenuEnv({ baseDir: path.resolve(__dirname, '..') });
 
 const run = async () => {
   const service = createSwMenuService();
