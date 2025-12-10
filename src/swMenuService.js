@@ -58,6 +58,7 @@ const TABLE_DEFINITIONS = [
 const COMPONENT_OVERVIEW_LIMIT = 30;
 const BOM_OVERVIEW_LIMIT = 12;
 const FLOW_OVERVIEW_LIMIT = 20;
+const COMPONENT_SUGGESTION_LIMIT = 20;
 
 const normalizeError = (error, context = 'unknown') => {
   const message = error?.message || '不明なエラーが発生しました';
@@ -278,6 +279,42 @@ const createSwMenuService = (options = {}) => {
     }
   };
 
+  const getComponentSuggestions = async () => {
+    try {
+      const suggestionData = await withConnection(async (conn) => {
+        const [names, locations] = await Promise.all([
+          conn.query(
+            `SELECT name, COUNT(*) AS cnt, MAX(updated_at) AS last_updated
+              FROM sw_components
+              WHERE name <> ''
+              GROUP BY name
+              ORDER BY last_updated DESC, cnt DESC
+              LIMIT ${COMPONENT_SUGGESTION_LIMIT}`,
+          ),
+          conn.query(
+            `SELECT location, COUNT(*) AS cnt, MAX(updated_at) AS last_updated
+              FROM sw_components
+              WHERE location <> ''
+              GROUP BY location
+              ORDER BY last_updated DESC, cnt DESC
+              LIMIT ${COMPONENT_SUGGESTION_LIMIT}`,
+          ),
+        ]);
+        const normalize = (items, key) => items
+          .map((item) => (item?.[key] ?? '').trim())
+          .filter(Boolean);
+        return {
+          names: normalize(names, 'name'),
+          locations: normalize(locations, 'location'),
+        };
+      });
+      return { ok: true, suggestions: suggestionData };
+    } catch (error) {
+      lastError = error?.message ?? '候補の取得に失敗しました';
+      return normalizeError(error, 'get-component-suggestions');
+    }
+  };
+
   const upsertComponent = async (payload) => {
     try {
       const normalized = normalizeComponentPayload(payload);
@@ -356,6 +393,7 @@ const createSwMenuService = (options = {}) => {
     ensureSchema,
     getStatus,
     getOverview,
+    getComponentSuggestions,
     upsertComponent,
     recordFlow,
     upsertBomLink,

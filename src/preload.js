@@ -132,6 +132,7 @@ contextBridge.exposeInMainWorld('desktopBridge', {
   ensureSwMenuSetup: () => ipcRenderer.invoke('sw-menu:init'),
   getSwMenuStatus: () => ipcRenderer.invoke('sw-menu:status'),
   getSwMenuOverview: () => ipcRenderer.invoke('sw-menu:overview'),
+  getSwMenuComponentSuggestions: () => ipcRenderer.invoke('sw-menu:suggestions'),
   upsertSwComponent: (component) => ipcRenderer.invoke('sw-menu:upsert-component', component),
   upsertSwBom: (bom) => ipcRenderer.invoke('sw-menu:upsert-bom', bom),
   recordSwFlow: (flow) => ipcRenderer.invoke('sw-menu:record-flow', flow),
