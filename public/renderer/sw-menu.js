@@ -23,6 +23,12 @@ const buildDefaultComponentDraft = () => ({
   location: '',
   description: '',
 });
+const buildDefaultComponentSearch = () => ({
+  keyword: '',
+  code: '',
+  name: '',
+  location: '',
+});
 
 const buildStatusRow = (label, value, type) => {
   const row = document.createElement('div');
@@ -137,7 +143,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
       componentCode: null,
     },
     search: {
-      component: '',
+      component: buildDefaultComponentSearch(),
     },
     flags: {
       isInitializing: false,
@@ -931,40 +937,92 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     return container;
   };
 
-  const hasComponentQuery = () => Boolean((state.search.component || '').trim());
+  const getComponentSearch = () => state.search.component ?? buildDefaultComponentSearch();
+
+  const normalizeQuery = (value) => (value ?? '').toString().trim().toLowerCase();
+
+  const hasComponentQuery = () => {
+    const search = getComponentSearch();
+    return ['keyword', 'code', 'name', 'location'].some((key) => Boolean(normalizeQuery(search[key])));
+  };
+
+  const resetComponentSearch = () => {
+    state.search.component = buildDefaultComponentSearch();
+  };
+
+  const applyComponentSearchField = (key, value) => {
+    state.search.component = { ...getComponentSearch(), [key]: value };
+  };
 
   const getFilteredComponents = () => {
     const allComponents = Array.isArray(state.overview.components) ? state.overview.components : [];
-    const query = (state.search.component || '').trim().toLowerCase();
-    if (!query) {
+    const search = getComponentSearch();
+    const keyword = normalizeQuery(search.keyword);
+    const code = normalizeQuery(search.code);
+    const name = normalizeQuery(search.name);
+    const location = normalizeQuery(search.location);
+
+    if (!keyword && !code && !name && !location) {
       return allComponents;
     }
+
+    const includesQuery = (value, query) => !query || normalizeQuery(value).includes(query);
+
     return allComponents.filter((item) => {
-      const targetValues = [
-        item.code,
-        item.name,
-        item.version,
-        item.location,
-        item.description,
-      ];
-      return targetValues.some((value) => (value ?? '').toString().toLowerCase().includes(query));
+      if (keyword) {
+        const matchesKeyword = [item.code, item.name, item.version, item.location, item.description].some(
+          (value) => normalizeQuery(value).includes(keyword),
+        );
+        if (!matchesKeyword) {
+          return false;
+        }
+      }
+      if (!includesQuery(item.code, code)) return false;
+      if (!includesQuery(item.name, name)) return false;
+      if (!includesQuery(item.location, location)) return false;
+      return true;
     });
   };
 
   const buildComponentSearch = (filteredCount, totalCount) => {
     const wrapper = document.createElement('div');
-    wrapper.className = 'sw-search';
+    wrapper.className = 'sw-search sw-search--stacked';
 
-    const input = document.createElement('input');
-    input.type = 'search';
-    input.className = 'sw-search__input';
-    input.placeholder = 'コード・名称・場所・説明で検索';
-    input.value = state.search.component;
-    input.addEventListener('input', (event) => {
-      state.search.component = event.target.value;
-      render();
-    });
+    const search = getComponentSearch();
 
+    const buildField = (key, label, placeholder) => {
+      const field = document.createElement('label');
+      field.className = 'sw-search__field';
+      const caption = document.createElement('span');
+      caption.className = 'sw-search__label';
+      caption.textContent = label;
+      const input = document.createElement('input');
+      input.type = 'search';
+      input.className = 'sw-search__input';
+      input.placeholder = placeholder;
+      input.value = search[key] ?? '';
+      input.addEventListener('input', (event) => {
+        applyComponentSearchField(key, event.target.value);
+        render();
+      });
+      field.append(caption, input);
+      return field;
+    };
+
+    const keywordRow = document.createElement('div');
+    keywordRow.className = 'sw-search__row';
+    keywordRow.append(buildField('keyword', 'キーワード', '品番コード・名称・場所・説明を横断検索'));
+
+    const fieldRow = document.createElement('div');
+    fieldRow.className = 'sw-search__row sw-search__row--multi';
+    fieldRow.append(
+      buildField('code', '品番', 'SW-001'),
+      buildField('name', '名称', '例: インバータ'),
+      buildField('location', '場所/ライン', '例: L1'),
+    );
+
+    const metaRow = document.createElement('div');
+    metaRow.className = 'sw-search__meta-row';
     const meta = document.createElement('span');
     meta.className = 'sw-search__meta';
     meta.textContent = hasComponentQuery() ? `${filteredCount} / ${totalCount} 件` : `${totalCount}件`;
@@ -976,22 +1034,23 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     clear.disabled = !hasComponentQuery();
     clear.addEventListener('click', () => {
       if (!hasComponentQuery()) return;
-      state.search.component = '';
+      resetComponentSearch();
       render();
     });
 
-    wrapper.append(input, meta, clear);
+    metaRow.append(meta, clear);
+    wrapper.append(keywordRow, fieldRow, metaRow);
     return wrapper;
   };
 
   const buildComponentSearchHints = () => {
     const chips = [];
     const names = buildSuggestionChips('名称で絞り込み', state.suggestions.names, (value) => {
-      state.search.component = value;
+      applyComponentSearchField('name', value);
       render();
     });
     const locations = buildSuggestionChips('場所/ラインで絞り込み', state.suggestions.locations, (value) => {
-      state.search.component = value;
+      applyComponentSearchField('location', value);
       render();
     });
     if (names) chips.push(names);
