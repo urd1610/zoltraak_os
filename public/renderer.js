@@ -91,7 +91,17 @@ const saveQuickActionsVisibility = () => {
   localStorage.setItem(QUICK_ACTION_VISIBILITY_KEY, quickActionsVisible ? 'visible' : 'hidden');
 };
 
+const updateDockQuickToggleUi = () => {
+  if (!dockQuickToggle) return;
+  const title = quickActionsVisible ? 'クイックアクションを隠す' : 'クイックアクションを表示する';
+  dockQuickToggle.textContent = quickActionsVisible ? 'クイック表示中' : 'クイック表示';
+  dockQuickToggle.title = title;
+  dockQuickToggle.setAttribute('aria-pressed', quickActionsVisible ? 'true' : 'false');
+  dockQuickToggle.classList.toggle('is-muted', !quickActionsVisible);
+};
+
 const updateQuickActionsToggleUi = () => {
+  updateDockQuickToggleUi();
   if (!quickActionsToggle) return;
   const label = quickActionsVisible ? 'クイック: 表示' : 'クイック: 非表示';
   const title = quickActionsVisible
@@ -843,6 +853,7 @@ const boot = () => {
   setInterval(updateClock, 30000);
   workspaceChip?.addEventListener('click', () => void handleWorkspaceChange());
   quickActionsToggle?.addEventListener('click', toggleQuickActionsVisibility);
+  dockQuickToggle?.addEventListener('click', toggleQuickActionsVisibility);
   brandButton?.addEventListener('dblclick', () => {
     if (isActionActive('sw-menu')) {
       return;
