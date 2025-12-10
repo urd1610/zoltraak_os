@@ -2840,5 +2840,28 @@
     "worktreePath": ".worktrees\\task-1765327673734-489d9d",
     "medal": "silver",
     "aiCompetitionScore": 82
+  },
+  {
+    "id": "task-1765333763926-1fdff1",
+    "name": "SWメニューのページの構成データのボタンの名称を品番データに変更してください",
+    "model": "Claude Code",
+    "status": "running",
+    "importance": "medium",
+    "urgency": "medium",
+    "createdAt": "2025-12-10T02:29:23.926Z",
+    "updatedAt": "2025-12-10T02:29:23.926Z",
+    "requiresTerminal": true,
+    "createWorktree": false,
+    "branchName": null,
+    "baseBranch": null,
+    "useTmux": false,
+    "singleMode": true,
+    "aiCompetitionEntry": false,
+    "aiCompetitionResult": null,
+    "aiCompetitionGroupId": null,
+    "aiCompetitionGroupName": null,
+    "aiCompetitionMonitor": false,
+    "monitorTargets": null,
+    "scoringConfig": null
   }
 ]
