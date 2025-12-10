@@ -2950,7 +2950,7 @@
     "importance": "medium",
     "urgency": "medium",
     "createdAt": "2025-12-10T06:41:29.855Z",
-    "updatedAt": "2025-12-10T06:41:29.855Z",
+    "updatedAt": "2025-12-10T07:02:35.175Z",
     "requiresTerminal": true,
     "createWorktree": true,
     "branchName": "task/task-1765348889855-7c9085",
@@ -2964,7 +2964,9 @@
     "aiCompetitionMonitor": false,
     "monitorTargets": null,
     "scoringConfig": null,
-    "worktreePath": ".worktrees\\task-1765348889855-7c9085"
+    "worktreePath": ".worktrees\\task-1765348889855-7c9085",
+    "medal": "gold",
+    "aiCompetitionScore": 91
   },
   {
     "id": "task-1765348889653-02341b",
@@ -2974,7 +2976,7 @@
     "importance": "medium",
     "urgency": "medium",
     "createdAt": "2025-12-10T06:41:29.653Z",
-    "updatedAt": "2025-12-10T06:41:29.653Z",
+    "updatedAt": "2025-12-10T07:04:10.540Z",
     "requiresTerminal": true,
     "createWorktree": true,
     "branchName": "task/task-1765348889653-02341b",
@@ -2988,7 +2990,9 @@
     "aiCompetitionMonitor": false,
     "monitorTargets": null,
     "scoringConfig": null,
-    "worktreePath": ".worktrees\\task-1765348889653-02341b"
+    "worktreePath": ".worktrees\\task-1765348889653-02341b",
+    "medal": "silver",
+    "aiCompetitionScore": 90
   },
   {
     "id": "task-1765348889454-a11bec",
@@ -3012,7 +3016,9 @@
     "aiCompetitionMonitor": false,
     "monitorTargets": null,
     "scoringConfig": null,
-    "worktreePath": ".worktrees\\task-1765348889454-a11bec"
+    "worktreePath": ".worktrees\\task-1765348889454-a11bec",
+    "medal": "bronze",
+    "aiCompetitionScore": 80
   },
   {
     "id": "task-1765348892646-2b39f6",
@@ -3095,7 +3101,9 @@
     "aiCompetitionMonitor": false,
     "monitorTargets": null,
     "scoringConfig": null,
-    "worktreePath": ".worktrees\\task-1765348937261-f9cd0e"
+    "worktreePath": ".worktrees\\task-1765348937261-f9cd0e",
+    "medal": "silver",
+    "aiCompetitionScore": 80
   },
   {
     "id": "task-1765348937054-c5c051",
@@ -3119,17 +3127,19 @@
     "aiCompetitionMonitor": false,
     "monitorTargets": null,
     "scoringConfig": null,
-    "worktreePath": ".worktrees\\task-1765348937054-c5c051"
+    "worktreePath": ".worktrees\\task-1765348937054-c5c051",
+    "medal": "bronze",
+    "aiCompetitionScore": 74
   },
   {
     "id": "task-1765348937457-69939e",
     "name": "CodexCLI3: SWメニューの品番一覧の検索機能をいい感じに実装してほしい",
     "model": "Codex CLI",
-    "status": "working",
+    "status": "running",
     "importance": "medium",
     "urgency": "medium",
     "createdAt": "2025-12-10T06:42:17.457Z",
-    "updatedAt": "2025-12-10T06:42:17.457Z",
+    "updatedAt": "2025-12-10T07:04:33.845Z",
     "requiresTerminal": true,
     "createWorktree": true,
     "branchName": "task/task-1765348937457-69939e",
@@ -3143,7 +3153,9 @@
     "aiCompetitionMonitor": false,
     "monitorTargets": null,
     "scoringConfig": null,
-    "worktreePath": ".worktrees\\task-1765348937457-69939e"
+    "worktreePath": ".worktrees\\task-1765348937457-69939e",
+    "medal": "gold",
+    "aiCompetitionScore": 91
   },
   {
     "id": "task-1765348942421-db65c6",
@@ -3203,7 +3215,9 @@
     "aiCompetitionMonitor": false,
     "monitorTargets": null,
     "scoringConfig": null,
-    "worktreePath": ".worktrees\\task-1765349174478-d4e7e6"
+    "worktreePath": ".worktrees\\task-1765349174478-d4e7e6",
+    "medal": "gold",
+    "aiCompetitionScore": 88
   },
   {
     "id": "task-1765349174274-5ff64e",
@@ -3227,7 +3241,9 @@
     "aiCompetitionMonitor": false,
     "monitorTargets": null,
     "scoringConfig": null,
-    "worktreePath": ".worktrees\\task-1765349174274-5ff64e"
+    "worktreePath": ".worktrees\\task-1765349174274-5ff64e",
+    "medal": "silver",
+    "aiCompetitionScore": 72
   },
   {
     "id": "task-1765349174080-91fd5e",
@@ -3251,7 +3267,9 @@
     "aiCompetitionMonitor": false,
     "monitorTargets": null,
     "scoringConfig": null,
-    "worktreePath": ".worktrees\\task-1765349174080-91fd5e"
+    "worktreePath": ".worktrees\\task-1765349174080-91fd5e",
+    "medal": "bronze",
+    "aiCompetitionScore": 52
   },
   {
     "id": "task-1765349178376-c60ad8",
