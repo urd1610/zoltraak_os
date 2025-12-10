@@ -951,12 +951,68 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     });
   };
 
+  const buildComponentSearch = (filteredCount, totalCount) => {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'sw-search';
+
+    const input = document.createElement('input');
+    input.type = 'search';
+    input.className = 'sw-search__input';
+    input.placeholder = 'コード・名称・場所・説明で検索';
+    input.value = state.search.component;
+    input.addEventListener('input', (event) => {
+      state.search.component = event.target.value;
+      render();
+    });
+
+    const meta = document.createElement('span');
+    meta.className = 'sw-search__meta';
+    meta.textContent = hasComponentQuery() ? `${filteredCount} / ${totalCount} 件` : `${totalCount}件`;
+
+    const clear = document.createElement('button');
+    clear.type = 'button';
+    clear.className = 'ghost sw-search__clear';
+    clear.textContent = 'クリア';
+    clear.disabled = !hasComponentQuery();
+    clear.addEventListener('click', () => {
+      if (!hasComponentQuery()) return;
+      state.search.component = '';
+      render();
+    });
+
+    wrapper.append(input, meta, clear);
+    return wrapper;
+  };
+
+  const buildComponentSearchHints = () => {
+    const chips = [];
+    const names = buildSuggestionChips('名称で絞り込み', state.suggestions.names, (value) => {
+      state.search.component = value;
+      render();
+    });
+    const locations = buildSuggestionChips('場所/ラインで絞り込み', state.suggestions.locations, (value) => {
+      state.search.component = value;
+      render();
+    });
+    if (names) chips.push(names);
+    if (locations) chips.push(locations);
+    if (!chips.length) {
+      return null;
+    }
+    const wrapper = document.createElement('div');
+    wrapper.className = 'sw-search-hints';
+    chips.forEach((chip) => wrapper.append(chip));
+    return wrapper;
+  };
+
   const buildComponentsView = () => {
     const layout = document.createElement('div');
     layout.className = 'sw-grid';
 
+    const allComponents = Array.isArray(state.overview.components) ? state.overview.components : [];
     const filteredComponents = getFilteredComponents();
     const emptyText = hasComponentQuery() ? '条件に一致する品番が見つかりません' : 'まだ構成が登録されていません';
+    const searchHints = buildComponentSearchHints();
 
     const leftColumn = document.createElement('div');
     leftColumn.className = 'sw-column';
@@ -971,6 +1027,10 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
           activeCode: state.editing.componentCode,
         }),
         emptyText,
+        {
+          headerContent: buildComponentSearch(filteredComponents.length, allComponents.length),
+          beforeList: searchHints,
+        },
       ),
     );
 
