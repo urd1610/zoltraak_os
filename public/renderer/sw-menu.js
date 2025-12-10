@@ -40,9 +40,10 @@ const buildStatusRow = (label, value, type) => {
   return row;
 };
 
-const buildList = (title, items, renderItem, emptyText = 'データがありません') => {
+const buildList = (title, items, renderItem, emptyText = 'データがありません', options = {}) => {
   const section = document.createElement('div');
   section.className = 'sw-section';
+  const { headerContent = null, beforeList = null } = options || {};
 
   const header = document.createElement('div');
   header.className = 'sw-section-header';
@@ -50,6 +51,9 @@ const buildList = (title, items, renderItem, emptyText = 'データがありま�
   heading.className = 'forward-label';
   heading.textContent = title;
   header.append(heading);
+  if (headerContent) {
+    header.append(headerContent);
+  }
 
   const list = document.createElement('div');
   list.className = 'sw-list';
@@ -66,7 +70,8 @@ const buildList = (title, items, renderItem, emptyText = 'データがありま�
     list.append(empty);
   }
 
-  section.append(header, list);
+  const beforeItems = Array.isArray(beforeList) ? beforeList.filter(Boolean) : beforeList ? [beforeList] : [];
+  section.append(header, ...beforeItems, list);
   return section;
 };
 
