@@ -169,6 +169,17 @@ const createSwMenuService = (options = {}) => {
         // eslint-disable-next-line no-await-in-loop
         await connection.query(ddl);
       }
+      // マイグレーション: sw_components に location カラムがなければ追加
+      const columns = await connection.query(
+        "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'sw_components'",
+        [dbConfig.database],
+      );
+      const columnNames = columns.map((c) => c.COLUMN_NAME);
+      if (!columnNames.includes('location')) {
+        await connection.query(
+          "ALTER TABLE sw_components ADD COLUMN location VARCHAR(100) DEFAULT '' AFTER version",
+        );
+      }
       return { ok: true };
     } finally {
       if (connection) {
