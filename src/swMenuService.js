@@ -59,6 +59,7 @@ const TABLE_DEFINITIONS = [
 ];
 
 const COMPONENT_OVERVIEW_LIMIT = 1000;
+const COMPONENT_SEARCH_LIMIT = 500;
 const BOM_OVERVIEW_LIMIT = 12;
 const FLOW_OVERVIEW_LIMIT = 20;
 const COMPONENT_SUGGESTION_LIMIT = 50;
@@ -661,6 +662,74 @@ const createSwMenuService = (options = {}) => {
     }
   };
 
+  const searchComponents = async (query = {}) => {
+    try {
+      const keyword = (query.keyword ?? '').toString().trim();
+      const code = (query.code ?? '').toString().trim();
+      const name = (query.name ?? '').toString().trim();
+      const location = (query.location ?? '').toString().trim();
+
+      const hasQuery = Boolean(keyword || code || name || location);
+      if (!hasQuery) {
+        return { ok: true, components: [], total: 0, hasQuery: false };
+      }
+
+      const data = await withConnection(async (conn) => {
+        const conditions = [];
+        const params = [];
+
+        if (keyword) {
+          const likeKeyword = `%${keyword}%`;
+          conditions.push('(code LIKE ? OR name LIKE ? OR version LIKE ? OR location LIKE ? OR description LIKE ?)');
+          params.push(likeKeyword, likeKeyword, likeKeyword, likeKeyword, likeKeyword);
+        }
+        if (code) {
+          conditions.push('code LIKE ?');
+          params.push(`%${code}%`);
+        }
+        if (name) {
+          conditions.push('name LIKE ?');
+          params.push(`%${name}%`);
+        }
+        if (location) {
+          conditions.push('location LIKE ?');
+          params.push(`%${location}%`);
+        }
+
+        const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+
+        const [countResult, components] = await Promise.all([
+          conn.query(
+            `SELECT COUNT(*) AS total FROM sw_components ${whereClause}`,
+            params,
+          ),
+          conn.query(
+            `SELECT code, name, version, location, description, updated_at
+              FROM sw_components
+              ${whereClause}
+              ORDER BY code ASC
+              LIMIT ${COMPONENT_SEARCH_LIMIT}`,
+            params,
+          ),
+        ]);
+
+        const total = Number(countResult?.[0]?.total ?? 0);
+        return { components, total };
+      });
+
+      return {
+        ok: true,
+        components: data.components,
+        total: data.total,
+        hasQuery: true,
+        limit: COMPONENT_SEARCH_LIMIT,
+      };
+    } catch (error) {
+      lastError = error?.message ?? '品番検索に失敗しました';
+      return normalizeError(error, 'search-components');
+    }
+  };
+
   const getStatus = () => ({
     ok: schemaReady && !lastError,
     ready: schemaReady,
@@ -685,6 +754,7 @@ const createSwMenuService = (options = {}) => {
     ensureSchema,
     getStatus,
     getOverview,
+    searchComponents,
     getComponentSuggestions,
     upsertComponent,
     upsertComponentsBulk,

@@ -619,6 +619,7 @@ app.whenReady().then(async () => {
   ipcMain.handle('sw-menu:record-flow', async (_event, payload) => swMenuService?.recordFlow(payload));
   ipcMain.handle('sw-menu:upsert-bom-batch', async (_event, payload) => swMenuService?.upsertBomLinks(payload));
   ipcMain.handle('sw-menu:upsert-bom', async (_event, payload) => swMenuService?.upsertBomLink(payload));
+  ipcMain.handle('sw-menu:search-components', async (_event, query) => swMenuService?.searchComponents(query));
 
   createWindow();
   await startWorkspaceWatcher();

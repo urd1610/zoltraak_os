@@ -222,6 +222,8 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     },
     search: {
       component: buildDefaultComponentSearch(),
+      componentResults: null,
+      isSearching: false,
     },
     importResult: null,
     flags: {
@@ -233,6 +235,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
       isDeletingComponent: false,
       isNameHintsOpen: false,
       isImportingComponents: false,
+      isSearchingComponents: false,
     },
   };
 
@@ -1752,42 +1755,64 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
 
   const resetComponentSearch = () => {
     state.search.component = buildDefaultComponentSearch();
+    state.search.componentResults = null;
   };
+
+  let searchDebounceTimer = null;
 
   const applyComponentSearchField = (key, value) => {
     state.search.component = { ...getComponentSearch(), [key]: value };
+    if (searchDebounceTimer) {
+      clearTimeout(searchDebounceTimer);
+    }
+    searchDebounceTimer = setTimeout(() => {
+      searchDebounceTimer = null;
+      searchComponentsFromServer();
+    }, 300);
+  };
+
+  const searchComponentsFromServer = async () => {
+    if (!hasComponentQuery()) {
+      state.search.componentResults = null;
+      render();
+      return;
+    }
+    if (!ensureBridge('searchSwComponents')) return;
+    state.flags.isSearchingComponents = true;
+    render();
+    try {
+      const search = getComponentSearch();
+      const result = await window.desktopBridge.searchSwComponents({
+        keyword: search.keyword,
+        code: search.code,
+        name: search.name,
+        location: search.location,
+      });
+      if (result?.ok) {
+        state.search.componentResults = {
+          components: result.components ?? [],
+          total: result.total ?? 0,
+          limit: result.limit ?? 500,
+        };
+      } else {
+        state.search.componentResults = null;
+        applyStatus({ lastError: result?.error || '品番検索に失敗しました' });
+      }
+    } catch (error) {
+      state.search.componentResults = null;
+      applyStatus({ lastError: error?.message || '品番検索中にエラーが発生しました' });
+    } finally {
+      state.flags.isSearchingComponents = false;
+      render();
+    }
   };
 
   const getFilteredComponents = () => {
-    const allComponents = Array.isArray(state.overview.components) ? state.overview.components : [];
-    const search = getComponentSearch();
-    const keyword = normalizeQuery(search.keyword);
-    const code = normalizeQuery(search.code);
-    const name = normalizeQuery(search.name);
-    const location = normalizeQuery(search.location);
-
-    if (!keyword && !code && !name && !location) {
-      return sortComponentsByCodeAsc(allComponents);
+    if (hasComponentQuery() && state.search.componentResults) {
+      return state.search.componentResults.components;
     }
-
-    const includesQuery = (value, query) => !query || normalizeQuery(value).includes(query);
-
-    const filtered = allComponents.filter((item) => {
-      if (keyword) {
-        const matchesKeyword = [item.code, item.name, item.version, item.location, item.description].some(
-          (value) => normalizeQuery(value).includes(keyword),
-        );
-        if (!matchesKeyword) {
-          return false;
-        }
-      }
-      if (!includesQuery(item.code, code)) return false;
-      if (!includesQuery(item.name, name)) return false;
-      if (!includesQuery(item.location, location)) return false;
-      return true;
-    });
-
-    return sortComponentsByCodeAsc(filtered);
+    const allComponents = Array.isArray(state.overview.components) ? state.overview.components : [];
+    return sortComponentsByCodeAsc(allComponents);
   };
 
   const buildComponentSearch = (filteredCount, totalCount) => {
@@ -1832,7 +1857,19 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     metaRow.className = 'sw-search__meta-row';
     const meta = document.createElement('span');
     meta.className = 'sw-search__meta';
-    meta.textContent = hasComponentQuery() ? `${filteredCount} / ${totalCount} 件` : `${totalCount}件`;
+    if (state.flags.isSearchingComponents) {
+      meta.textContent = '検索中...';
+    } else if (hasComponentQuery() && state.search.componentResults) {
+      const serverTotal = state.search.componentResults.total ?? 0;
+      const limit = state.search.componentResults.limit ?? 500;
+      if (serverTotal > limit) {
+        meta.textContent = `${filteredCount}件表示 / ${serverTotal}件ヒット (上限${limit}件)`;
+      } else {
+        meta.textContent = `${filteredCount} / ${serverTotal} 件`;
+      }
+    } else {
+      meta.textContent = `${totalCount}件`;
+    }
 
     const clear = document.createElement('button');
     clear.type = 'button';

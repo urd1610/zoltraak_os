@@ -138,6 +138,7 @@ contextBridge.exposeInMainWorld('desktopBridge', {
   upsertSwBomBatch: (boms) => ipcRenderer.invoke('sw-menu:upsert-bom-batch', boms),
   upsertSwBom: (bom) => ipcRenderer.invoke('sw-menu:upsert-bom', bom),
   recordSwFlow: (flow) => ipcRenderer.invoke('sw-menu:record-flow', flow),
+  searchSwComponents: (query) => ipcRenderer.invoke('sw-menu:search-components', query),
   getThreeModuleUrl: () => getThreeModuleUrl(),
   onWorkspaceGraphUpdated: (handler) => subscribeWorkspaceGraphUpdates(handler),
 });
