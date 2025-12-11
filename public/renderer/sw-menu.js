@@ -697,7 +697,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
           ].filter(Boolean);
           return {
             parentCode,
-            childCode: resolveComponentCode(slot.childCode, state.drafts.bom.formatLocation),
+            childCode: resolveComponentCode(slot.childCode, state.drafts.bom.parentLocation),
             quantity: Number(slot.quantity) > 0 ? Number(slot.quantity) : 1,
             note: noteParts.join(' / ') || normalizeSlotLabel(slot.label),
           };
