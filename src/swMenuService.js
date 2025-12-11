@@ -90,7 +90,7 @@ const normalizeComponentPayload = (payload = {}) => {
 };
 
 const normalizeFlowPayload = (payload = {}) => {
-  const componentCode = (payload.componentCode ?? payload.code ?? '').trim();
+  const componentCode = normalizeComponentCode(payload.componentCode ?? payload.code);
   if (!componentCode) {
     throw new Error('流動数を登録する部品コードを入力してください');
   }
