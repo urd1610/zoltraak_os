@@ -18,6 +18,10 @@ const VIEW_DEFINITIONS = [
 const DEFAULT_VIEW = VIEW_DEFINITIONS[0].id;
 const MAX_SUGGESTION_ITEMS = 20;
 const BOM_CODE_SUGGESTION_LIMIT = MAX_SUGGESTION_ITEMS;
+const DEFAULT_BOM_FORMAT_KEY = '汎用';
+const BOM_FORMAT_STORAGE_KEY = 'sw-menu:bom-formats';
+const DEFAULT_BOM_FORMAT = ['メイン', 'サブ', 'アクセサリ', '補助'];
+const MAX_BOM_SLOTS = 12;
 const buildDefaultComponentDraft = () => ({
   code: '',
   name: '',
@@ -31,6 +35,61 @@ const buildDefaultComponentSearch = () => ({
   name: '',
   location: '',
 });
+const normalizeSlotLabel = (value) => (value ?? '').toString().trim();
+const normalizeBomFormatLabels = (labels = []) => {
+  const normalized = (Array.isArray(labels) ? labels : [])
+    .map((label) => normalizeSlotLabel(label))
+    .filter(Boolean);
+  return Array.from(new Set(normalized)).slice(0, MAX_BOM_SLOTS);
+};
+const normalizeBomFormats = (formats) => {
+  const source = formats && typeof formats === 'object' ? formats : {};
+  const result = Object.entries(source).reduce((acc, [location, labels]) => {
+    const key = normalizeSlotLabel(location) || DEFAULT_BOM_FORMAT_KEY;
+    const normalizedLabels = normalizeBomFormatLabels(labels);
+    if (normalizedLabels.length) {
+      acc[key] = normalizedLabels;
+    }
+    return acc;
+  }, {});
+  if (!result[DEFAULT_BOM_FORMAT_KEY]) {
+    result[DEFAULT_BOM_FORMAT_KEY] = DEFAULT_BOM_FORMAT;
+  }
+  return result;
+};
+const loadBomFormatsFromStorage = () => {
+  if (typeof localStorage === 'undefined') {
+    return null;
+  }
+  try {
+    const raw = localStorage.getItem(BOM_FORMAT_STORAGE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch (error) {
+    console.warn('BOMフォーマットの読み込みに失敗しました', error);
+    return null;
+  }
+};
+const persistBomFormatsToStorage = (formats) => {
+  if (typeof localStorage === 'undefined') {
+    return;
+  }
+  try {
+    localStorage.setItem(BOM_FORMAT_STORAGE_KEY, JSON.stringify(formats));
+  } catch (error) {
+    console.warn('BOMフォーマットの保存に失敗しました', error);
+  }
+};
+const buildBomSlotsFromLabels = (labels, currentSlots = []) => {
+  const normalized = normalizeBomFormatLabels(labels);
+  const currentMap = new Map((currentSlots || []).map((slot) => [slot.label, slot]));
+  return normalized.map((label) => {
+    const existing = currentMap.get(label);
+    return existing
+      ? { ...existing, label, quantity: existing.quantity ?? '1', note: existing.note ?? '' }
+      : { label, childCode: '', quantity: '1', note: '' };
+  });
+};
 
 const buildStatusRow = (label, value, type) => {
   const row = document.createElement('div');
@@ -129,6 +188,8 @@ const buildSuggestionChips = (label, items, onSelect, options = {}) => {
 };
 
 export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActionActive, renderUi }) => {
+  const initialBomFormats = normalizeBomFormats(loadBomFormatsFromStorage() || {});
+  const initialBomLabels = initialBomFormats[DEFAULT_BOM_FORMAT_KEY] ?? DEFAULT_BOM_FORMAT;
   const state = {
     status: { ...DEFAULT_STATUS },
     overview: {
@@ -144,9 +205,17 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     view: DEFAULT_VIEW,
     drafts: {
       component: buildDefaultComponentDraft(),
-      bom: { parentCode: '', childCode: '', quantity: '1', note: '' },
+      bom: {
+        parentCode: '',
+        parentLocation: '',
+        formatLocation: DEFAULT_BOM_FORMAT_KEY,
+        slots: buildBomSlotsFromLabels(initialBomLabels),
+        sharedNote: '',
+        newSlotLabel: '',
+      },
       flow: { componentCode: '', quantity: '', status: 'in-stock', updatedBy: 'operator' },
     },
+    bomFormats: initialBomFormats,
     editing: {
       componentCode: null,
     },
@@ -239,6 +308,86 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     state.importResult = null;
   };
 
+  const persistBomFormats = () => {
+    state.bomFormats = normalizeBomFormats(state.bomFormats);
+    persistBomFormatsToStorage(state.bomFormats);
+  };
+
+  const getBomFormatLabels = (location) => {
+    const key = normalizeSlotLabel(location) || DEFAULT_BOM_FORMAT_KEY;
+    const labels = state.bomFormats[key] ?? state.bomFormats[DEFAULT_BOM_FORMAT_KEY] ?? DEFAULT_BOM_FORMAT;
+    return normalizeBomFormatLabels(labels);
+  };
+
+  const ensureBomFormatExists = (location) => {
+    const key = normalizeSlotLabel(location) || DEFAULT_BOM_FORMAT_KEY;
+    if (state.bomFormats[key]) {
+      return key;
+    }
+    state.bomFormats = { ...state.bomFormats, [key]: getBomFormatLabels(DEFAULT_BOM_FORMAT_KEY) };
+    persistBomFormats();
+    return key;
+  };
+
+  const setBomFormatLocation = (location) => {
+    const key = ensureBomFormatExists(location);
+    state.drafts.bom.formatLocation = key;
+    state.drafts.bom.slots = buildBomSlotsFromLabels(getBomFormatLabels(key), state.drafts.bom.slots);
+  };
+
+  const resetBomDraft = ({ keepParent = false } = {}) => {
+    const formatKey = state.drafts.bom.formatLocation || DEFAULT_BOM_FORMAT_KEY;
+    const labels = getBomFormatLabels(formatKey);
+    state.drafts.bom = {
+      parentCode: keepParent ? state.drafts.bom.parentCode : '',
+      parentLocation: keepParent ? state.drafts.bom.parentLocation : '',
+      formatLocation: formatKey,
+      slots: buildBomSlotsFromLabels(labels),
+      sharedNote: '',
+      newSlotLabel: '',
+    };
+  };
+
+  const addBomSlotLabel = (label) => {
+    const normalized = normalizeSlotLabel(label);
+    if (!normalized) {
+      return;
+    }
+    const key = state.drafts.bom.formatLocation || DEFAULT_BOM_FORMAT_KEY;
+    const labels = getBomFormatLabels(key);
+    if (labels.includes(normalized)) {
+      state.drafts.bom.newSlotLabel = '';
+      return;
+    }
+    const nextLabels = [...labels, normalized];
+    state.bomFormats = { ...state.bomFormats, [key]: nextLabels };
+    persistBomFormats();
+    state.drafts.bom.newSlotLabel = '';
+    state.drafts.bom.slots = buildBomSlotsFromLabels(nextLabels, state.drafts.bom.slots);
+  };
+
+  const removeBomSlotLabel = (label) => {
+    const key = state.drafts.bom.formatLocation || DEFAULT_BOM_FORMAT_KEY;
+    const labels = getBomFormatLabels(key);
+    if (labels.length <= 1) {
+      return;
+    }
+    const nextLabels = labels.filter((item) => item !== label);
+    state.bomFormats = { ...state.bomFormats, [key]: nextLabels };
+    persistBomFormats();
+    state.drafts.bom.slots = buildBomSlotsFromLabels(nextLabels, state.drafts.bom.slots);
+  };
+
+  const updateBomSlotField = (slotLabel, field, value) => {
+    const slots = state.drafts.bom.slots.map((slot) => {
+      if (slot.label !== slotLabel) {
+        return slot;
+      }
+      return { ...slot, [field]: value };
+    });
+    state.drafts.bom.slots = slots;
+  };
+
   const setView = (viewId) => {
     const found = VIEW_DEFINITIONS.some((view) => view.id === viewId);
     if (!found) {
@@ -292,6 +441,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     };
   };
 
+  const normalizeTextQuery = (value) => (value ?? '').toString().trim().toLowerCase();
   const normalizeCodeQuery = (value) => (value ?? '').toString().trim().toLowerCase().replace(/-/g, '');
 
   const getBomCodeSuggestions = (keyword = '') => {
@@ -318,6 +468,50 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
       });
 
     return filtered.slice(0, BOM_CODE_SUGGESTION_LIMIT);
+  };
+
+  const resolveComponentCode = (value, locationHint) => {
+    const raw = (value ?? '').toString().trim();
+    if (!raw) return '';
+    const normalizedLocation = normalizeTextQuery(locationHint);
+    const normalizedCode = normalizeCodeQuery(raw);
+    const components = Array.isArray(state.overview.components) ? state.overview.components : [];
+    const matchedByCode = components.find((item) => normalizeCodeQuery(item.code) === normalizedCode);
+    if (matchedByCode) {
+      return matchedByCode.code;
+    }
+    const matchedByName = components.find((item) => {
+      if (normalizeTextQuery(item.name) !== normalizeTextQuery(raw)) {
+        return false;
+      }
+      if (!normalizedLocation) return true;
+      return normalizeTextQuery(item.location) === normalizedLocation;
+    });
+    return matchedByName?.code || raw;
+  };
+
+  const findComponentByCode = (code) => {
+    const normalized = normalizeCodeQuery(code);
+    return (state.overview.components ?? []).find(
+      (component) => normalizeCodeQuery(component.code) === normalized,
+    ) || null;
+  };
+
+  const setBomParentCode = (value) => {
+    state.drafts.bom.parentCode = value;
+    const component = findComponentByCode(value);
+    if (component) {
+      state.drafts.bom.parentLocation = component.location ?? '';
+      setBomFormatLocation(component.location);
+    }
+  };
+
+  const setBomLocation = (value) => {
+    const normalized = normalizeSlotLabel(value);
+    state.drafts.bom.parentLocation = normalized;
+    if (normalized) {
+      setBomFormatLocation(normalized);
+    }
   };
 
   const ensureBridge = (method) => {
@@ -410,6 +604,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
   const hydrate = async () => {
     state.view = DEFAULT_VIEW;
     resetComponentDraft({ keepRender: true });
+    resetBomDraft({ keepParent: false });
     render();
     await ensureSetup();
     await hydrateStatus();
@@ -484,16 +679,37 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
 
   const submitBom = async (event) => {
     event?.preventDefault();
-    if (!ensureBridge('upsertSwBom')) return;
+    if (!ensureBridge('upsertSwBomBatch')) return;
     state.flags.isSavingBom = true;
     render();
     try {
-      const payload = { ...state.drafts.bom, quantity: Number(state.drafts.bom.quantity) };
-      const result = await window.desktopBridge.upsertSwBom(payload);
+      const parentCode = resolveComponentCode(state.drafts.bom.parentCode, state.drafts.bom.parentLocation);
+      if (!parentCode) {
+        throw new Error('親品番を選択してください');
+      }
+      const payloads = (state.drafts.bom.slots ?? [])
+        .map((slot) => {
+          const noteParts = [
+            normalizeSlotLabel(slot.label),
+            normalizeSlotLabel(slot.note),
+            normalizeSlotLabel(state.drafts.bom.sharedNote),
+          ].filter(Boolean);
+          return {
+            parentCode,
+            childCode: resolveComponentCode(slot.childCode, state.drafts.bom.formatLocation),
+            quantity: Number(slot.quantity) > 0 ? Number(slot.quantity) : 1,
+            note: noteParts.join(' / ') || normalizeSlotLabel(slot.label),
+          };
+        })
+        .filter((slot) => slot.childCode);
+      if (!payloads.length) {
+        throw new Error('装備する子品番を1つ以上選択してください');
+      }
+      const result = await window.desktopBridge.upsertSwBomBatch(payloads);
       if (!result?.ok) {
         throw new Error(result?.error || 'BOM登録に失敗しました');
       }
-      state.drafts.bom = { parentCode: '', childCode: '', quantity: '1', note: '' };
+      resetBomDraft({ keepParent: true });
       await hydrateOverview();
     } catch (error) {
       applyStatus({ lastError: error?.message || 'BOM登録に失敗しました' });
@@ -597,96 +813,307 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     return grid;
   };
 
-  const buildBomForm = () => {
-    const form = document.createElement('form');
-    form.className = 'sw-form';
-    form.addEventListener('submit', submitBom);
+  const getBomLocationOptions = () => {
+    const locations = new Set(state.suggestions.locations ?? []);
+    (state.overview.components ?? []).forEach((component) => {
+      if (component?.location) {
+        locations.add(component.location);
+      }
+    });
+    if (state.drafts.bom.parentLocation) {
+      locations.add(state.drafts.bom.parentLocation);
+    }
+    return Array.from(locations).filter(Boolean);
+  };
 
-    const buildBomCodeField = (field) => {
-      const row = document.createElement('label');
-      row.className = 'sw-field';
-      const name = document.createElement('span');
-      name.textContent = field.label;
-      const input = document.createElement('input');
-      input.id = `sw-bom-${field.key}`;
-      input.type = 'text';
-      input.required = true;
-      input.placeholder = field.placeholder || '';
-      input.value = state.drafts.bom[field.key] ?? '';
+  const getSlotComponentCandidates = (slotLabel) => {
+    const normalizedLocation = normalizeTextQuery(state.drafts.bom.formatLocation);
+    const normalizedLabel = normalizeTextQuery(slotLabel);
+    const components = Array.isArray(state.overview.components) ? state.overview.components : [];
+    return components
+      .filter((component) => {
+        const matchesLocation =
+          !normalizedLocation || normalizeTextQuery(component.location) === normalizedLocation;
+        if (!matchesLocation) return false;
+        if (!normalizedLabel) return true;
+        return normalizeTextQuery(component.name).includes(normalizedLabel);
+      })
+      .slice(0, 6);
+  };
 
-      const datalist = document.createElement('datalist');
-      datalist.id = `sw-${field.key}-code-suggestions`;
+  const buildBomSlotCard = (slot) => {
+    const card = document.createElement('div');
+    card.className = 'sw-bom-slot';
 
-      const renderSuggestions = (keyword) => {
-        const suggestions = getBomCodeSuggestions(keyword);
-        datalist.replaceChildren();
-        suggestions.forEach((item) => {
-          const option = document.createElement('option');
-          option.value = item.code;
-          if (item.name) {
-            option.label = item.name;
-          }
-          datalist.append(option);
-        });
-      };
+    const header = document.createElement('div');
+    header.className = 'sw-bom-slot__header';
+    const label = document.createElement('div');
+    label.className = 'sw-bom-slot__label';
+    label.textContent = slot.label;
+    header.append(label);
 
-      renderSuggestions(input.value);
-      input.setAttribute('list', datalist.id);
-      input.addEventListener('input', (event) => {
-        const nextValue = event.target.value;
-        state.drafts.bom[field.key] = nextValue;
-        renderSuggestions(nextValue);
+    if (state.drafts.bom.slots.length > 1) {
+      const removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.className = 'sw-bom-slot__remove';
+      removeBtn.textContent = '×';
+      removeBtn.title = 'この枠を削除';
+      removeBtn.addEventListener('click', () => {
+        removeBomSlotLabel(slot.label);
+        render();
       });
+      header.append(removeBtn);
+    }
 
-      row.append(name, input, datalist);
-      return row;
+    const body = document.createElement('div');
+    body.className = 'sw-bom-slot__body';
+
+    const equipField = document.createElement('label');
+    equipField.className = 'sw-field sw-bom-slot__field';
+    const equipLabel = document.createElement('span');
+    equipLabel.textContent = '装備する品番';
+    const equipInput = document.createElement('input');
+    equipInput.type = 'text';
+    equipInput.placeholder = `${slot.label}の品番を選択`;
+    equipInput.value = slot.childCode ?? '';
+    const datalist = document.createElement('datalist');
+    const listId = `sw-bom-slot-${normalizeSlotLabel(slot.label || 'slot').replace(/[^a-zA-Z0-9_-]/g, '-')}-codes`;
+    datalist.id = listId;
+
+    const renderSuggestions = (keyword) => {
+      const suggestions = getBomCodeSuggestions(keyword);
+      datalist.replaceChildren();
+      suggestions.forEach((item) => {
+        const option = document.createElement('option');
+        option.value = item.code;
+        option.label = item.name || item.code;
+        datalist.append(option);
+      });
     };
 
-    const codeFields = [
-      { key: 'parentCode', label: '親部品コード', placeholder: 'SW-001' },
-      { key: 'childCode', label: '子部品コード', placeholder: 'SW-002' },
-    ];
+    renderSuggestions(slot.childCode || slot.label);
+    equipInput.setAttribute('list', listId);
+    equipInput.addEventListener('input', (event) => {
+      updateBomSlotField(slot.label, 'childCode', event.target.value);
+      renderSuggestions(event.target.value || slot.label);
+    });
+    equipField.append(equipLabel, equipInput, datalist);
+    body.append(equipField);
 
-    codeFields.forEach((field) => form.append(buildBomCodeField(field)));
+    const candidateComponents = getSlotComponentCandidates(slot.label);
+    if (candidateComponents.length) {
+      const candidateRow = document.createElement('div');
+      candidateRow.className = 'sw-bom-slot__candidates';
+      const candidateLabel = document.createElement('span');
+      candidateLabel.className = 'sw-bom-slot__candidates-label';
+      candidateLabel.textContent = '候補';
+      candidateRow.append(candidateLabel);
+      candidateComponents.forEach((component) => {
+        const chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className = 'sw-suggestion-chip';
+        chip.textContent = `${component.code} / ${component.name}`;
+        chip.addEventListener('click', () => {
+          updateBomSlotField(slot.label, 'childCode', component.code);
+          render();
+        });
+        candidateRow.append(chip);
+      });
+      body.append(candidateRow);
+    }
 
-    const quantityRow = document.createElement('label');
-    quantityRow.className = 'sw-field';
+    const metaRow = document.createElement('div');
+    metaRow.className = 'sw-bom-slot__meta';
+
+    const quantityField = document.createElement('label');
+    quantityField.className = 'sw-field sw-field--compact';
     const quantityLabel = document.createElement('span');
     quantityLabel.textContent = '数量';
     const quantityInput = document.createElement('input');
     quantityInput.type = 'number';
-    quantityInput.required = true;
-    quantityInput.placeholder = '1';
+    quantityInput.min = '0';
     quantityInput.step = '0.001';
-    quantityInput.value = state.drafts.bom.quantity ?? '';
+    quantityInput.value = slot.quantity ?? '1';
     quantityInput.addEventListener('input', (event) => {
-      state.drafts.bom.quantity = event.target.value;
+      updateBomSlotField(slot.label, 'quantity', event.target.value);
     });
-    quantityRow.append(quantityLabel, quantityInput);
-    form.append(quantityRow);
+    quantityField.append(quantityLabel, quantityInput);
 
-    const noteRow = document.createElement('label');
-    noteRow.className = 'sw-field';
+    const noteField = document.createElement('label');
+    noteField.className = 'sw-field sw-field--compact';
     const noteLabel = document.createElement('span');
-    noteLabel.textContent = '備考';
-    const noteInput = document.createElement('textarea');
-    noteInput.rows = 2;
-    noteInput.placeholder = '差し替え条件や補足メモ';
-    noteInput.value = state.drafts.bom.note ?? '';
+    noteLabel.textContent = '枠メモ';
+    const noteInput = document.createElement('input');
+    noteInput.type = 'text';
+    noteInput.placeholder = '例: 予備/ロットなど';
+    noteInput.value = slot.note ?? '';
     noteInput.addEventListener('input', (event) => {
-      state.drafts.bom.note = event.target.value;
+      updateBomSlotField(slot.label, 'note', event.target.value);
     });
-    noteRow.append(noteLabel, noteInput);
-    form.append(noteRow);
+    noteField.append(noteLabel, noteInput);
+
+    metaRow.append(quantityField, noteField);
+    body.append(metaRow);
+
+    card.append(header, body);
+    return card;
+  };
+
+  const buildBomForm = () => {
+    const form = document.createElement('form');
+    form.className = 'sw-form sw-form--bom-loadout';
+    form.addEventListener('submit', submitBom);
+
+    const lead = document.createElement('p');
+    lead.className = 'sw-bom-lead';
+    lead.textContent = '親品番をベースに装備枠へ品番をはめ込むRPG風のBOM登録です。場所/ラインごとに枠構成を変えられます。';
+    form.append(lead);
+
+    const parentRow = document.createElement('div');
+    parentRow.className = 'sw-bom-row sw-bom-row--parent';
+    const parentField = document.createElement('label');
+    parentField.className = 'sw-field sw-field--stacked';
+    const parentName = document.createElement('span');
+    parentName.textContent = '親品番（ベース装備）';
+    const parentInput = document.createElement('input');
+    parentInput.id = 'sw-bom-parent-code';
+    parentInput.type = 'text';
+    parentInput.required = true;
+    parentInput.placeholder = '例: SW-001';
+    parentInput.value = state.drafts.bom.parentCode ?? '';
+    const parentList = document.createElement('datalist');
+    parentList.id = 'sw-bom-parent-suggestions';
+    const renderParentSuggestions = (keyword) => {
+      const suggestions = getBomCodeSuggestions(keyword);
+      parentList.replaceChildren();
+      suggestions.forEach((item) => {
+        const option = document.createElement('option');
+        option.value = item.code;
+        option.label = item.name || item.code;
+        parentList.append(option);
+      });
+    };
+    renderParentSuggestions(parentInput.value);
+    parentInput.setAttribute('list', parentList.id);
+    parentInput.addEventListener('input', (event) => {
+      setBomParentCode(event.target.value);
+      renderParentSuggestions(event.target.value);
+      render();
+    });
+    parentField.append(parentName, parentInput, parentList);
+
+    const parentMeta = document.createElement('div');
+    parentMeta.className = 'sw-bom-parent__meta';
+    const component = findComponentByCode(state.drafts.bom.parentCode);
+    if (component) {
+      const metaLabel = document.createElement('span');
+      metaLabel.textContent = `${component.name} / 場所: ${component.location || '未設定'}`;
+      parentMeta.append(metaLabel);
+    } else {
+      const empty = document.createElement('span');
+      empty.textContent = '親品番を選択すると名称と場所を表示します';
+      parentMeta.append(empty);
+    }
+    parentRow.append(parentField, parentMeta);
+    form.append(parentRow);
+
+    const formatRow = document.createElement('div');
+    formatRow.className = 'sw-bom-row sw-bom-row--format';
+
+    const locationField = document.createElement('label');
+    locationField.className = 'sw-field sw-field--stacked';
+    const locationLabel = document.createElement('span');
+    locationLabel.textContent = '場所/ライン';
+    const locationInput = document.createElement('input');
+    locationInput.type = 'text';
+    locationInput.placeholder = '例: L1 / 東京セル';
+    locationInput.value = state.drafts.bom.parentLocation ?? state.drafts.bom.formatLocation;
+    const locationList = document.createElement('datalist');
+    locationList.id = 'sw-bom-location-suggestions';
+    getBomLocationOptions().forEach((location) => {
+      const option = document.createElement('option');
+      option.value = location;
+      locationList.append(option);
+    });
+    locationInput.setAttribute('list', locationList.id);
+    locationInput.addEventListener('input', (event) => {
+      setBomLocation(event.target.value);
+      render();
+    });
+    locationField.append(locationLabel, locationInput, locationList);
+
+    const formatField = document.createElement('div');
+    formatField.className = 'sw-bom-format';
+    const formatLabel = document.createElement('div');
+    formatLabel.className = 'sw-bom-format__label';
+    formatLabel.textContent = `枠フォーマット (${state.drafts.bom.formatLocation || DEFAULT_BOM_FORMAT_KEY})`;
+    const formatChips = document.createElement('div');
+    formatChips.className = 'sw-bom-format__chips';
+    getBomFormatLabels(state.drafts.bom.formatLocation).forEach((labelText) => {
+      const chip = document.createElement('span');
+      chip.className = 'chip tiny';
+      chip.textContent = labelText;
+      formatChips.append(chip);
+    });
+    formatField.append(formatLabel, formatChips);
+
+    const addSlotField = document.createElement('div');
+    addSlotField.className = 'sw-bom-format__add';
+    const addSlotInput = document.createElement('input');
+    addSlotInput.type = 'text';
+    addSlotInput.placeholder = '枠名を追加 (例: モーター)';
+    addSlotInput.value = state.drafts.bom.newSlotLabel ?? '';
+    addSlotInput.addEventListener('input', (event) => {
+      state.drafts.bom.newSlotLabel = event.target.value;
+    });
+    const addSlotButton = document.createElement('button');
+    addSlotButton.type = 'button';
+    addSlotButton.className = 'ghost';
+    addSlotButton.textContent = '枠を追加';
+    addSlotButton.addEventListener('click', () => {
+      addBomSlotLabel(state.drafts.bom.newSlotLabel);
+      render();
+    });
+    addSlotField.append(addSlotInput, addSlotButton);
+
+    formatRow.append(locationField, formatField, addSlotField);
+    form.append(formatRow);
+
+    const slotsGrid = document.createElement('div');
+    slotsGrid.className = 'sw-bom-slot-grid';
+    state.drafts.bom.slots.forEach((slot) => slotsGrid.append(buildBomSlotCard(slot)));
+    form.append(slotsGrid);
+
+    const sharedRow = document.createElement('label');
+    sharedRow.className = 'sw-field sw-field--stacked';
+    const sharedLabel = document.createElement('span');
+    sharedLabel.textContent = '共通メモ (各枠の備考に併記)';
+    const sharedInput = document.createElement('input');
+    sharedInput.type = 'text';
+    sharedInput.placeholder = '例: 試作ロット / 置き換え時期など';
+    sharedInput.value = state.drafts.bom.sharedNote ?? '';
+    sharedInput.addEventListener('input', (event) => {
+      state.drafts.bom.sharedNote = event.target.value;
+    });
+    sharedRow.append(sharedLabel, sharedInput);
+    form.append(sharedRow);
 
     const actions = document.createElement('div');
     actions.className = 'feature-actions';
+    const resetButton = document.createElement('button');
+    resetButton.type = 'button';
+    resetButton.className = 'ghost';
+    resetButton.textContent = '枠をクリア';
+    resetButton.addEventListener('click', () => {
+      resetBomDraft({ keepParent: true });
+      render();
+    });
     const submitButton = document.createElement('button');
     submitButton.type = 'submit';
     submitButton.className = 'primary';
     submitButton.disabled = state.flags.isSavingBom;
-    submitButton.textContent = state.flags.isSavingBom ? '登録中…' : 'BOMを登録';
-    actions.append(submitButton);
+    submitButton.textContent = state.flags.isSavingBom ? '登録中…' : '装備を登録';
+    actions.append(resetButton, submitButton);
     form.append(actions);
 
     return form;

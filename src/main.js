@@ -617,6 +617,7 @@ app.whenReady().then(async () => {
   ipcMain.handle('sw-menu:upsert-component', async (_event, payload) => swMenuService?.upsertComponent(payload));
   ipcMain.handle('sw-menu:import-components', async (_event, csvText) => swMenuService?.importComponentsFromCsv(csvText));
   ipcMain.handle('sw-menu:record-flow', async (_event, payload) => swMenuService?.recordFlow(payload));
+  ipcMain.handle('sw-menu:upsert-bom-batch', async (_event, payload) => swMenuService?.upsertBomLinks(payload));
   ipcMain.handle('sw-menu:upsert-bom', async (_event, payload) => swMenuService?.upsertBomLink(payload));
 
   createWindow();
