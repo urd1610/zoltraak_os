@@ -3201,7 +3201,9 @@
     "aiCompetitionMonitor": false,
     "monitorTargets": null,
     "scoringConfig": null,
-    "worktreePath": ".worktrees\\task-1765414087273-17ffa0"
+    "worktreePath": ".worktrees\\task-1765414087273-17ffa0",
+    "medal": "bronze",
+    "aiCompetitionScore": 80
   },
   {
     "id": "task-1765414087073-26740b",
@@ -3225,7 +3227,9 @@
     "aiCompetitionMonitor": false,
     "monitorTargets": null,
     "scoringConfig": null,
-    "worktreePath": ".worktrees\\task-1765414087073-26740b"
+    "worktreePath": ".worktrees\\task-1765414087073-26740b",
+    "medal": "gold",
+    "aiCompetitionScore": 85
   },
   {
     "id": "task-1765414086875-125550",
@@ -3249,7 +3253,9 @@
     "aiCompetitionMonitor": false,
     "monitorTargets": null,
     "scoringConfig": null,
-    "worktreePath": ".worktrees\\task-1765414086875-125550"
+    "worktreePath": ".worktrees\\task-1765414086875-125550",
+    "medal": "silver",
+    "aiCompetitionScore": 82
   },
   {
     "id": "task-1765414090764-c27707",
@@ -3288,39 +3294,15 @@
     "worktreePath": ".worktrees\\task-1765414090764-c27707"
   },
   {
-    "id": "task-1765414216773-b42e36",
-    "name": "CodexCLI3: SWメニューの品番を登録にクリアボタンも実装してください",
-    "model": "Codex CLI",
-    "status": "working",
-    "importance": "medium",
-    "urgency": "medium",
-    "createdAt": "2025-12-11T00:50:16.773Z",
-    "updatedAt": "2025-12-11T00:57:47.934Z",
-    "requiresTerminal": true,
-    "createWorktree": true,
-    "branchName": "task/task-1765414216773-b42e36",
-    "baseBranch": "main",
-    "useTmux": true,
-    "singleMode": false,
-    "aiCompetitionEntry": true,
-    "aiCompetitionResult": null,
-    "aiCompetitionGroupId": "comp-1765414216368-efxlc9zz",
-    "aiCompetitionGroupName": "SWメニューの品番を登録にクリアボタンも実装してください",
-    "aiCompetitionMonitor": false,
-    "monitorTargets": null,
-    "scoringConfig": null,
-    "worktreePath": ".worktrees\\task-1765414216773-b42e36"
-  },
-  {
     "id": "task-1765414216584-a7245b",
     "name": "CodexCLI2: SWメニューの品番を登録にクリアボタンも実装してください",
     "model": "Codex CLI",
-    "status": "working",
+    "status": "completed",
     "importance": "medium",
     "urgency": "medium",
     "createdAt": "2025-12-11T00:50:16.584Z",
-    "updatedAt": "2025-12-11T00:57:29.981Z",
-    "requiresTerminal": true,
+    "updatedAt": "2025-12-11T01:07:28.492Z",
+    "requiresTerminal": false,
     "createWorktree": true,
     "branchName": "task/task-1765414216584-a7245b",
     "baseBranch": "main",
@@ -3333,66 +3315,8 @@
     "aiCompetitionMonitor": false,
     "monitorTargets": null,
     "scoringConfig": null,
-    "worktreePath": ".worktrees\\task-1765414216584-a7245b"
-  },
-  {
-    "id": "task-1765414216370-6fd9ef",
-    "name": "CodexCLI1: SWメニューの品番を登録にクリアボタンも実装してください",
-    "model": "Codex CLI",
-    "status": "working",
-    "importance": "medium",
-    "urgency": "medium",
-    "createdAt": "2025-12-11T00:50:16.370Z",
-    "updatedAt": "2025-12-11T00:56:27.733Z",
-    "requiresTerminal": true,
-    "createWorktree": true,
-    "branchName": "task/task-1765414216370-6fd9ef",
-    "baseBranch": "main",
-    "useTmux": true,
-    "singleMode": false,
-    "aiCompetitionEntry": true,
-    "aiCompetitionResult": null,
-    "aiCompetitionGroupId": "comp-1765414216368-efxlc9zz",
-    "aiCompetitionGroupName": "SWメニューの品番を登録にクリアボタンも実装してください",
-    "aiCompetitionMonitor": false,
-    "monitorTargets": null,
-    "scoringConfig": null,
-    "worktreePath": ".worktrees\\task-1765414216370-6fd9ef"
-  },
-  {
-    "id": "task-1765414220787-694c1a",
-    "name": "🔍Monitor: SWメニューの品番を登録にクリアボタンも実装してください",
-    "model": "codex",
-    "status": "working",
-    "importance": "medium",
-    "urgency": "medium",
-    "createdAt": "2025-12-11T00:50:20.787Z",
-    "updatedAt": "2025-12-11T00:50:20.787Z",
-    "requiresTerminal": true,
-    "createWorktree": true,
-    "branchName": "task/task-1765414220787-694c1a",
-    "baseBranch": "main",
-    "useTmux": true,
-    "singleMode": false,
-    "aiCompetitionEntry": false,
-    "aiCompetitionResult": null,
-    "aiCompetitionGroupId": "comp-1765414216368-efxlc9zz",
-    "aiCompetitionGroupName": "SWメニューの品番を登録にクリアボタンも実装してください",
-    "aiCompetitionMonitor": true,
-    "monitorTargets": [
-      "task-1765414216370-6fd9ef",
-      "task-1765414216584-a7245b",
-      "task-1765414216773-b42e36"
-    ],
-    "scoringConfig": {
-      "auditEnabled": false,
-      "auditPrompt": "必須確認ログ / 報告フォーマット",
-      "enabled": true,
-      "prompt": "安定性 / コスト / 価値 / 実装妥当性 ",
-      "rubric": "medals",
-      "model": "codex"
-    },
-    "autoEvaluationNotBefore": 1765414276368,
-    "worktreePath": ".worktrees\\task-1765414220787-694c1a"
+    "worktreePath": ".worktrees\\task-1765414216584-a7245b",
+    "medal": "gold",
+    "aiCompetitionScore": 90
   }
 ]
