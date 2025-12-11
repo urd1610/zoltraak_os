@@ -997,6 +997,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
       caption.className = 'sw-search__label';
       caption.textContent = label;
       const input = document.createElement('input');
+      input.id = `sw-component-search-${key}`;
       input.type = 'search';
       input.className = 'sw-search__input';
       input.placeholder = placeholder;
