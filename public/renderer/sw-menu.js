@@ -208,6 +208,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
       bom: {
         parentCode: '',
         parentLocation: '',
+        parentName: '',
         formatLocation: DEFAULT_BOM_FORMAT_KEY,
         slots: buildBomSlotsFromLabels(initialBomLabels),
         sharedNote: '',
@@ -329,8 +330,15 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     return key;
   };
 
-  const setBomFormatLocation = (location) => {
-    const key = ensureBomFormatExists(location);
+  const setBomFormatLocation = (formatKey, fallbackKey = DEFAULT_BOM_FORMAT_KEY) => {
+    const primaryKey = normalizeSlotLabel(formatKey);
+    const fallback = normalizeSlotLabel(fallbackKey) || DEFAULT_BOM_FORMAT_KEY;
+    const targetKey = primaryKey || fallback;
+    if (primaryKey && !state.bomFormats[primaryKey] && state.bomFormats[fallback]) {
+      state.bomFormats = { ...state.bomFormats, [primaryKey]: getBomFormatLabels(fallback) };
+      persistBomFormats();
+    }
+    const key = ensureBomFormatExists(targetKey);
     state.drafts.bom.formatLocation = key;
     state.drafts.bom.slots = buildBomSlotsFromLabels(getBomFormatLabels(key), state.drafts.bom.slots);
   };
@@ -341,6 +349,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     state.drafts.bom = {
       parentCode: keepParent ? state.drafts.bom.parentCode : '',
       parentLocation: keepParent ? state.drafts.bom.parentLocation : '',
+      parentName: keepParent ? state.drafts.bom.parentName : '',
       formatLocation: formatKey,
       slots: buildBomSlotsFromLabels(labels),
       sharedNote: '',
@@ -499,19 +508,23 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
 
   const setBomParentCode = (value) => {
     state.drafts.bom.parentCode = value;
+    const normalizedCode = normalizeSlotLabel(value);
+    if (!normalizedCode) {
+      state.drafts.bom.parentLocation = '';
+      state.drafts.bom.parentName = '';
+      setBomFormatLocation(DEFAULT_BOM_FORMAT_KEY);
+      return;
+    }
     const component = findComponentByCode(value);
     if (component) {
       state.drafts.bom.parentLocation = component.location ?? '';
-      setBomFormatLocation(component.location);
+      state.drafts.bom.parentName = component.name ?? '';
+      setBomFormatLocation(component.name, component.location);
     }
   };
 
   const setBomLocation = (value) => {
-    const normalized = normalizeSlotLabel(value);
-    state.drafts.bom.parentLocation = normalized;
-    if (normalized) {
-      setBomFormatLocation(normalized);
-    }
+    state.drafts.bom.parentLocation = normalizeSlotLabel(value);
   };
 
   const ensureBridge = (method) => {
@@ -696,7 +709,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
           ].filter(Boolean);
           return {
             parentCode,
-            childCode: resolveComponentCode(slot.childCode, state.drafts.bom.formatLocation),
+            childCode: resolveComponentCode(slot.childCode, state.drafts.bom.parentLocation),
             quantity: Number(slot.quantity) > 0 ? Number(slot.quantity) : 1,
             note: noteParts.join(' / ') || normalizeSlotLabel(slot.label),
           };
@@ -814,20 +827,21 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
   };
 
   const getBomLocationOptions = () => {
-    const locations = new Set(state.suggestions.locations ?? []);
-    (state.overview.components ?? []).forEach((component) => {
-      if (component?.location) {
-        locations.add(component.location);
+    const locations = new Set();
+    const addLocation = (value) => {
+      const normalized = normalizeSlotLabel(value);
+      if (normalized) {
+        locations.add(normalized);
       }
-    });
-    if (state.drafts.bom.parentLocation) {
-      locations.add(state.drafts.bom.parentLocation);
-    }
-    return Array.from(locations).filter(Boolean);
+    };
+    (state.suggestions.locations ?? []).forEach(addLocation);
+    (state.overview.components ?? []).forEach((component) => addLocation(component?.location));
+    addLocation(state.drafts.bom.parentLocation);
+    return Array.from(locations);
   };
 
   const getSlotComponentCandidates = (slotLabel) => {
-    const normalizedLocation = normalizeTextQuery(state.drafts.bom.formatLocation);
+    const normalizedLocation = normalizeTextQuery(state.drafts.bom.parentLocation);
     const normalizedLabel = normalizeTextQuery(slotLabel);
     const components = Array.isArray(state.overview.components) ? state.overview.components : [];
     return components
@@ -966,7 +980,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
 
     const lead = document.createElement('p');
     lead.className = 'sw-bom-lead';
-    lead.textContent = '親品番をベースに装備枠へ品番をはめ込むRPG風のBOM登録です。場所/ラインごとに枠構成を変えられます。';
+    lead.textContent = '親品番をベースに装備枠へ品番をはめ込むRPG風のBOM登録です。名称ごとに枠構成を変えられます。';
     form.append(lead);
 
     const parentRow = document.createElement('div');
@@ -1027,10 +1041,11 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     const locationInput = document.createElement('input');
     locationInput.type = 'text';
     locationInput.placeholder = '例: L1 / 東京セル';
-    locationInput.value = state.drafts.bom.parentLocation ?? state.drafts.bom.formatLocation;
+    locationInput.value = state.drafts.bom.parentLocation || '';
     const locationList = document.createElement('datalist');
     locationList.id = 'sw-bom-location-suggestions';
-    getBomLocationOptions().forEach((location) => {
+    const locationOptions = getBomLocationOptions();
+    locationOptions.forEach((location) => {
       const option = document.createElement('option');
       option.value = location;
       locationList.append(option);
@@ -1041,12 +1056,19 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
       render();
     });
     locationField.append(locationLabel, locationInput, locationList);
+    const locationChips = buildSuggestionChips('場所/ライン候補', locationOptions, (value) => {
+      setBomLocation(value);
+      render();
+    });
+    if (locationChips) {
+      locationField.append(locationChips);
+    }
 
     const formatField = document.createElement('div');
     formatField.className = 'sw-bom-format';
     const formatLabel = document.createElement('div');
     formatLabel.className = 'sw-bom-format__label';
-    formatLabel.textContent = `枠フォーマット (${state.drafts.bom.formatLocation || DEFAULT_BOM_FORMAT_KEY})`;
+    formatLabel.textContent = `枠フォーマット (名称単位: ${state.drafts.bom.formatLocation || DEFAULT_BOM_FORMAT_KEY})`;
     const formatChips = document.createElement('div');
     formatChips.className = 'sw-bom-format__chips';
     getBomFormatLabels(state.drafts.bom.formatLocation).forEach((labelText) => {
