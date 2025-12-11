@@ -208,6 +208,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
       bom: {
         parentCode: '',
         parentLocation: '',
+        parentName: '',
         formatLocation: DEFAULT_BOM_FORMAT_KEY,
         slots: buildBomSlotsFromLabels(initialBomLabels),
         sharedNote: '',
@@ -341,6 +342,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     state.drafts.bom = {
       parentCode: keepParent ? state.drafts.bom.parentCode : '',
       parentLocation: keepParent ? state.drafts.bom.parentLocation : '',
+      parentName: keepParent ? state.drafts.bom.parentName : '',
       formatLocation: formatKey,
       slots: buildBomSlotsFromLabels(labels),
       sharedNote: '',
