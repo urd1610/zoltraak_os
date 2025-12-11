@@ -152,6 +152,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     search: {
       component: buildDefaultComponentSearch(),
     },
+    importResult: null,
     flags: {
       isInitializing: false,
       isRefreshing: false,
@@ -160,6 +161,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
       isSavingFlow: false,
       isDeletingComponent: false,
       isNameHintsOpen: false,
+      isImportingComponents: false,
     },
   };
 
@@ -231,6 +233,10 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
   };
 
   const cancelComponentEdit = () => resetComponentDraft();
+
+  const resetImportResult = () => {
+    state.importResult = null;
+  };
 
   const setView = (viewId) => {
     const found = VIEW_DEFINITIONS.some((view) => view.id === viewId);
@@ -403,6 +409,46 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
       applyStatus({ lastError: error?.message || '部品登録に失敗しました' });
     } finally {
       state.flags.isSavingComponent = false;
+      render();
+    }
+  };
+
+  const importComponentsFromCsvFile = async (file) => {
+    if (!file) {
+      return;
+    }
+    if (!ensureBridge('importSwComponentsFromCsv')) return;
+    state.flags.isImportingComponents = true;
+    state.importResult = null;
+    render();
+    try {
+      const csvText = await file.text();
+      const result = await window.desktopBridge.importSwComponentsFromCsv(csvText);
+      const ok = result?.ok !== false;
+      const duplicateCodes = Array.isArray(result?.duplicateCodes) ? result.duplicateCodes : [];
+      const rowErrors = Array.isArray(result?.rowErrors) ? result.rowErrors : [];
+      state.importResult = {
+        ok,
+        fileName: file.name,
+        imported: result?.imported ?? 0,
+        totalRows: result?.totalRows ?? null,
+        duplicateCodes,
+        rowErrors,
+        error: ok ? null : result?.error || 'CSVの取り込みに失敗しました',
+      };
+      if (!ok) {
+        applyStatus({ lastError: state.importResult.error });
+        return;
+      }
+      applyStatus({ lastError: null });
+      await hydrateOverview();
+      await hydrateComponentSuggestions();
+    } catch (error) {
+      const message = error?.message || 'CSVの取り込みに失敗しました';
+      state.importResult = { ok: false, error: message, fileName: file?.name };
+      applyStatus({ lastError: message });
+    } finally {
+      state.flags.isImportingComponents = false;
       render();
     }
   };
@@ -839,6 +885,140 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     return form;
   };
 
+  const buildImportResult = () => {
+    if (!state.importResult) {
+      return null;
+    }
+    const box = document.createElement('div');
+    box.className = 'sw-import-result';
+    box.classList.toggle('is-error', state.importResult.ok === false);
+
+    const title = document.createElement('div');
+    title.className = 'sw-import-result__title';
+    const fileName = state.importResult.fileName || 'CSV';
+    title.textContent = state.importResult.ok === false
+      ? `${fileName} の取り込みに失敗しました`
+      : `${fileName} を取り込みました`;
+    box.append(title);
+
+    const meta = document.createElement('div');
+    meta.className = 'sw-import-result__meta';
+    if (state.importResult.ok === false) {
+      meta.textContent = state.importResult.error || 'CSVの取り込みに失敗しました';
+    } else {
+      const totalRows = state.importResult.totalRows;
+      const totalText = Number.isFinite(totalRows) ? `全${totalRows}行中 ` : '';
+      meta.textContent = `${totalText}${state.importResult.imported ?? 0}件を登録しました`;
+    }
+    box.append(meta);
+
+    const duplicates = Array.isArray(state.importResult.duplicateCodes) ? state.importResult.duplicateCodes : [];
+    if (duplicates.length) {
+      const dup = document.createElement('div');
+      dup.className = 'sw-import-result__note';
+      const preview = duplicates.slice(0, 5).join(', ');
+      const moreCount = duplicates.length - 5;
+      dup.textContent = moreCount > 0
+        ? `重複で上書きした品番: ${preview} 他${moreCount}件`
+        : `重複で上書きした品番: ${preview}`;
+      box.append(dup);
+    }
+
+    if (state.importResult.rowErrors?.length) {
+      const errorLabel = document.createElement('div');
+      errorLabel.className = 'sw-import-result__note';
+      errorLabel.textContent = 'スキップした行';
+      const list = document.createElement('ul');
+      list.className = 'sw-import-result__list';
+      state.importResult.rowErrors.slice(0, 5).forEach((err) => {
+        const item = document.createElement('li');
+        const rowLabel = Number.isFinite(err?.row) ? `${err.row}行目` : '行不明';
+        item.textContent = `${rowLabel}: ${err?.error || '不明なエラー'}`;
+        list.append(item);
+      });
+      if (state.importResult.rowErrors.length > 5) {
+        const more = document.createElement('li');
+        more.textContent = `...他 ${state.importResult.rowErrors.length - 5}件`;
+        list.append(more);
+      }
+      box.append(errorLabel, list);
+    }
+
+    const actions = document.createElement('div');
+    actions.className = 'feature-actions sw-import-result__actions';
+    const clearButton = document.createElement('button');
+    clearButton.type = 'button';
+    clearButton.className = 'ghost';
+    clearButton.disabled = state.flags.isImportingComponents;
+    clearButton.textContent = '結果をクリア';
+    clearButton.addEventListener('click', () => {
+      resetImportResult();
+      render();
+    });
+    actions.append(clearButton);
+    box.append(actions);
+
+    return box;
+  };
+
+  const buildComponentImportPanel = () => {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'sw-import-panel';
+
+    const intro = document.createElement('p');
+    intro.className = 'sw-import-guidance';
+    intro.textContent = '部品コードと名称を含むヘッダー付きCSVから、品番データをまとめて登録します。';
+    const format = document.createElement('pre');
+    format.className = 'sw-import-code';
+    format.textContent = '部品コード,名称,版数,場所,説明\nSW-001,電源基板,v1.0,L1,初期ロット';
+    const tip = document.createElement('p');
+    tip.className = 'sw-import-guidance';
+    tip.textContent = '必須: 部品コード/名称。重複コードは上書き、空行は無視されます。UTF-8のヘッダー付きCSVを選択してください。';
+
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = '.csv,text/csv';
+    fileInput.id = 'sw-component-import-file';
+    fileInput.hidden = true;
+    fileInput.addEventListener('change', (event) => {
+      const selected = event.target.files?.[0];
+      if (selected) {
+        void importComponentsFromCsvFile(selected);
+      }
+      event.target.value = '';
+    });
+
+    const actions = document.createElement('div');
+    actions.className = 'feature-actions';
+    const pickButton = document.createElement('button');
+    pickButton.type = 'button';
+    pickButton.className = 'primary';
+    pickButton.disabled = state.flags.isImportingComponents;
+    pickButton.textContent = state.flags.isImportingComponents ? '取り込み中…' : 'CSVを選択';
+    pickButton.addEventListener('click', () => fileInput.click());
+
+    const clearButton = document.createElement('button');
+    clearButton.type = 'button';
+    clearButton.className = 'ghost';
+    clearButton.disabled = state.flags.isImportingComponents || !state.importResult;
+    clearButton.textContent = '結果クリア';
+    clearButton.addEventListener('click', () => {
+      resetImportResult();
+      render();
+    });
+
+    actions.append(pickButton, clearButton);
+
+    wrapper.append(intro, format, tip, fileInput, actions);
+
+    const result = buildImportResult();
+    if (result) {
+      wrapper.append(result);
+    }
+
+    return wrapper;
+  };
+
   const buildFlowForm = () => {
     const form = document.createElement('form');
     form.className = 'sw-form';
@@ -1250,10 +1430,13 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
 
     const rightColumn = document.createElement('div');
     rightColumn.className = 'sw-column';
-    rightColumn.append(buildSection(
-      isEditingComponent() ? '品番を編集' : '品番を登録',
-      buildComponentForm(),
-    ));
+    rightColumn.append(
+      buildSection(
+        isEditingComponent() ? '品番を編集' : '品番を登録',
+        buildComponentForm(),
+      ),
+      buildSection('CSVで一括登録', buildComponentImportPanel()),
+    );
 
     layout.append(leftColumn, rightColumn);
     return layout;

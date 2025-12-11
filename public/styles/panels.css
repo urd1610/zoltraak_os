@@ -681,3 +681,69 @@
   border-color: rgba(110, 231, 255, 0.45);
   box-shadow: 0 0 0 2px rgba(110, 231, 255, 0.15);
 }
+
+.sw-import-panel {
+  display: grid;
+  gap: 10px;
+}
+
+.sw-import-guidance {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.sw-import-code {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(110, 231, 255, 0.15);
+  color: var(--text);
+  font-family: "Cascadia Code", "Consolas", ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+  font-size: 12px;
+  white-space: pre-wrap;
+}
+
+.sw-import-result {
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(110, 231, 255, 0.25);
+  background: linear-gradient(140deg, rgba(110, 231, 255, 0.08), rgba(167, 139, 250, 0.06));
+  display: grid;
+  gap: 6px;
+}
+
+.sw-import-result.is-error {
+  border-color: rgba(248, 113, 113, 0.55);
+  background: linear-gradient(140deg, rgba(248, 113, 113, 0.12), rgba(255, 255, 255, 0.02));
+}
+
+.sw-import-result__title {
+  font-weight: 700;
+  color: var(--text);
+}
+
+.sw-import-result__meta {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.sw-import-result__note {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.sw-import-result__list {
+  margin: 0;
+  padding-left: 16px;
+  color: var(--muted);
+  font-size: 12px;
+  display: grid;
+  gap: 2px;
+}
+
+.sw-import-result__actions {
+  justify-content: flex-start;
+}
