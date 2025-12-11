@@ -984,6 +984,12 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
 
   const normalizeQuery = (value) => (value ?? '').toString().trim().toLowerCase();
 
+  const sortComponentsByCodeAsc = (items = []) => [...items].sort((a, b) => {
+    const codeA = a?.code ?? '';
+    const codeB = b?.code ?? '';
+    return codeA.localeCompare(codeB, 'ja', { numeric: true, sensitivity: 'base' });
+  });
+
   const hasComponentQuery = () => {
     const search = getComponentSearch();
     return ['keyword', 'code', 'name', 'location'].some((key) => Boolean(normalizeQuery(search[key])));
@@ -1006,12 +1012,12 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     const location = normalizeQuery(search.location);
 
     if (!keyword && !code && !name && !location) {
-      return allComponents;
+      return sortComponentsByCodeAsc(allComponents);
     }
 
     const includesQuery = (value, query) => !query || normalizeQuery(value).includes(query);
 
-    return allComponents.filter((item) => {
+    const filtered = allComponents.filter((item) => {
       if (keyword) {
         const matchesKeyword = [item.code, item.name, item.version, item.location, item.description].some(
           (value) => normalizeQuery(value).includes(keyword),
@@ -1025,6 +1031,8 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
       if (!includesQuery(item.location, location)) return false;
       return true;
     });
+
+    return sortComponentsByCodeAsc(filtered);
   };
 
   const buildComponentSearch = (filteredCount, totalCount) => {
