@@ -3258,63 +3258,15 @@
     "aiCompetitionScore": 90
   },
   {
-    "id": "task-1765419680138-3f059d",
-    "name": "CodexCLI3: SWメニューの品番データの品番登録では、入力項目の場所/ラインの項目を一番上にしてください。名称は場所/ラインが指定されたらその情報を元に候補を出すようにしてください。",
-    "model": "Codex CLI",
-    "status": "working",
-    "importance": "medium",
-    "urgency": "medium",
-    "createdAt": "2025-12-11T02:21:20.138Z",
-    "updatedAt": "2025-12-11T02:21:20.138Z",
-    "requiresTerminal": true,
-    "createWorktree": true,
-    "branchName": "task/task-1765419680138-3f059d",
-    "baseBranch": "main",
-    "useTmux": true,
-    "singleMode": false,
-    "aiCompetitionEntry": true,
-    "aiCompetitionResult": null,
-    "aiCompetitionGroupId": "comp-1765419679732-wvzj79vv",
-    "aiCompetitionGroupName": "SWメニューの品番データの品番登録では、入力項目の場所/ラインの項目を一番上にしてください。名称は場所/ラインが指定されたらその情報を元に候補を出すようにしてください。",
-    "aiCompetitionMonitor": false,
-    "monitorTargets": null,
-    "scoringConfig": null,
-    "worktreePath": ".worktrees\\task-1765419680138-3f059d"
-  },
-  {
-    "id": "task-1765419679936-ffcfd4",
-    "name": "CodexCLI2: SWメニューの品番データの品番登録では、入力項目の場所/ラインの項目を一番上にしてください。名称は場所/ラインが指定されたらその情報を元に候補を出すようにしてください。",
-    "model": "Codex CLI",
-    "status": "working",
-    "importance": "medium",
-    "urgency": "medium",
-    "createdAt": "2025-12-11T02:21:19.936Z",
-    "updatedAt": "2025-12-11T02:21:19.936Z",
-    "requiresTerminal": true,
-    "createWorktree": true,
-    "branchName": "task/task-1765419679936-ffcfd4",
-    "baseBranch": "main",
-    "useTmux": true,
-    "singleMode": false,
-    "aiCompetitionEntry": true,
-    "aiCompetitionResult": null,
-    "aiCompetitionGroupId": "comp-1765419679732-wvzj79vv",
-    "aiCompetitionGroupName": "SWメニューの品番データの品番登録では、入力項目の場所/ラインの項目を一番上にしてください。名称は場所/ラインが指定されたらその情報を元に候補を出すようにしてください。",
-    "aiCompetitionMonitor": false,
-    "monitorTargets": null,
-    "scoringConfig": null,
-    "worktreePath": ".worktrees\\task-1765419679936-ffcfd4"
-  },
-  {
     "id": "task-1765419679733-275502",
     "name": "CodexCLI1: SWメニューの品番データの品番登録では、入力項目の場所/ラインの項目を一番上にしてください。名称は場所/ラインが指定されたらその情報を元に候補を出すようにしてください。",
     "model": "Codex CLI",
-    "status": "working",
+    "status": "completed",
     "importance": "medium",
     "urgency": "medium",
     "createdAt": "2025-12-11T02:21:19.733Z",
-    "updatedAt": "2025-12-11T02:21:19.733Z",
-    "requiresTerminal": true,
+    "updatedAt": "2025-12-11T02:48:08.357Z",
+    "requiresTerminal": false,
     "createWorktree": true,
     "branchName": "task/task-1765419679733-275502",
     "baseBranch": "main",
@@ -3327,43 +3279,9 @@
     "aiCompetitionMonitor": false,
     "monitorTargets": null,
     "scoringConfig": null,
-    "worktreePath": ".worktrees\\task-1765419679733-275502"
-  },
-  {
-    "id": "task-1765419683235-c76e80",
-    "name": "🔍Monitor: SWメニューの品番データの品番登録では、入力項目の場所/ラインの項目を一番上にしてください。名称は場所/ラインが指定されたらその情報を元に候補を出すようにしてください。",
-    "model": "codex",
-    "status": "working",
-    "importance": "medium",
-    "urgency": "medium",
-    "createdAt": "2025-12-11T02:21:23.235Z",
-    "updatedAt": "2025-12-11T02:21:23.235Z",
-    "requiresTerminal": true,
-    "createWorktree": true,
-    "branchName": "task/task-1765419683235-c76e80",
-    "baseBranch": "main",
-    "useTmux": true,
-    "singleMode": false,
-    "aiCompetitionEntry": false,
-    "aiCompetitionResult": null,
-    "aiCompetitionGroupId": "comp-1765419679732-wvzj79vv",
-    "aiCompetitionGroupName": "SWメニューの品番データの品番登録では、入力項目の場所/ラインの項目を一番上にしてください。名称は場所/ラインが指定されたらその情報を元に候補を出すようにしてください。",
-    "aiCompetitionMonitor": true,
-    "monitorTargets": [
-      "task-1765419679733-275502",
-      "task-1765419679936-ffcfd4",
-      "task-1765419680138-3f059d"
-    ],
-    "scoringConfig": {
-      "auditEnabled": false,
-      "auditPrompt": "必須確認ログ / 報告フォーマット",
-      "enabled": true,
-      "prompt": "安定性 / コスト / 価値 / 実装妥当性 ",
-      "rubric": "medals",
-      "model": "codex"
-    },
-    "autoEvaluationNotBefore": 1765419739732,
-    "worktreePath": ".worktrees\\task-1765419683235-c76e80"
+    "worktreePath": ".worktrees\\task-1765419679733-275502",
+    "medal": "gold",
+    "aiCompetitionScore": 83
   },
   {
     "id": "task-1765419870925-13ed2d",
@@ -3387,7 +3305,9 @@
     "aiCompetitionMonitor": false,
     "monitorTargets": null,
     "scoringConfig": null,
-    "worktreePath": ".worktrees\\task-1765419870925-13ed2d"
+    "worktreePath": ".worktrees\\task-1765419870925-13ed2d",
+    "medal": "gold",
+    "aiCompetitionScore": 87
   },
   {
     "id": "task-1765419870531-f70543",
@@ -3411,7 +3331,9 @@
     "aiCompetitionMonitor": false,
     "monitorTargets": null,
     "scoringConfig": null,
-    "worktreePath": ".worktrees\\task-1765419870531-f70543"
+    "worktreePath": ".worktrees\\task-1765419870531-f70543",
+    "medal": "bronze",
+    "aiCompetitionScore": 62
   },
   {
     "id": "task-1765419870740-31308b",
@@ -3435,7 +3357,9 @@
     "aiCompetitionMonitor": false,
     "monitorTargets": null,
     "scoringConfig": null,
-    "worktreePath": ".worktrees\\task-1765419870740-31308b"
+    "worktreePath": ".worktrees\\task-1765419870740-31308b",
+    "medal": "silver",
+    "aiCompetitionScore": 86
   },
   {
     "id": "task-1765419874300-baa98f",
