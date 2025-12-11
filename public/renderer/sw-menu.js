@@ -669,10 +669,10 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     }
 
     const fields = [
+      { key: 'location', label: '場所/ライン', placeholder: 'Aライン' },
       { key: 'code', label: '部品コード', placeholder: 'SW-001', required: true },
       { key: 'name', label: '名称', placeholder: 'メインモジュール', required: true },
       { key: 'version', label: '版数', placeholder: 'v1.0.0' },
-      { key: 'location', label: '場所/ライン', placeholder: 'Aライン' },
     ];
 
     fields.forEach((field) => {
