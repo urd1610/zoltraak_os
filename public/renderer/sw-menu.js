@@ -814,16 +814,17 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
   };
 
   const getBomLocationOptions = () => {
-    const locations = new Set(state.suggestions.locations ?? []);
-    (state.overview.components ?? []).forEach((component) => {
-      if (component?.location) {
-        locations.add(component.location);
+    const locations = new Set();
+    const addLocation = (value) => {
+      const normalized = normalizeSlotLabel(value);
+      if (normalized) {
+        locations.add(normalized);
       }
-    });
-    if (state.drafts.bom.parentLocation) {
-      locations.add(state.drafts.bom.parentLocation);
-    }
-    return Array.from(locations).filter(Boolean);
+    };
+    (state.suggestions.locations ?? []).forEach(addLocation);
+    (state.overview.components ?? []).forEach((component) => addLocation(component?.location));
+    addLocation(state.drafts.bom.parentLocation);
+    return Array.from(locations);
   };
 
   const getSlotComponentCandidates = (slotLabel) => {
@@ -1030,7 +1031,8 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     locationInput.value = state.drafts.bom.parentLocation ?? state.drafts.bom.formatLocation;
     const locationList = document.createElement('datalist');
     locationList.id = 'sw-bom-location-suggestions';
-    getBomLocationOptions().forEach((location) => {
+    const locationOptions = getBomLocationOptions();
+    locationOptions.forEach((location) => {
       const option = document.createElement('option');
       option.value = location;
       locationList.append(option);
@@ -1041,6 +1043,13 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
       render();
     });
     locationField.append(locationLabel, locationInput, locationList);
+    const locationChips = buildSuggestionChips('場所/ライン候補', locationOptions, (value) => {
+      setBomLocation(value);
+      render();
+    });
+    if (locationChips) {
+      locationField.append(locationChips);
+    }
 
     const formatField = document.createElement('div');
     formatField.className = 'sw-bom-format';
