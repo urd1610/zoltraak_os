@@ -17,6 +17,7 @@ const VIEW_DEFINITIONS = [
 
 const DEFAULT_VIEW = VIEW_DEFINITIONS[0].id;
 const MAX_SUGGESTION_ITEMS = 20;
+const BOM_CODE_SUGGESTION_LIMIT = MAX_SUGGESTION_ITEMS;
 const buildDefaultComponentDraft = () => ({
   code: '',
   name: '',
@@ -283,6 +284,34 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
       locations: normalizeSuggestionList(payload.locations),
       namesByLocation: normalizeNamesByLocation(payload.namesByLocation),
     };
+  };
+
+  const normalizeCodeQuery = (value) => (value ?? '').toString().trim().toLowerCase().replace(/-/g, '');
+
+  const getBomCodeSuggestions = (keyword = '') => {
+    const codes = new Map();
+    const addCode = (code, name) => {
+      const trimmed = (code ?? '').toString().trim();
+      if (!trimmed) return;
+      if (codes.has(trimmed)) return;
+      codes.set(trimmed, (name ?? '').toString().trim());
+    };
+
+    (state.overview.components ?? []).forEach((item) => addCode(item.code, item.name));
+    (state.overview.boms ?? []).forEach((bom) => {
+      addCode(bom.parent_code);
+      addCode(bom.child_code);
+    });
+
+    const query = normalizeCodeQuery(keyword);
+    const filtered = Array.from(codes.entries())
+      .map(([code, name]) => ({ code, name }))
+      .filter(({ code }) => {
+        if (!query) return true;
+        return normalizeCodeQuery(code).includes(query);
+      });
+
+    return filtered.slice(0, BOM_CODE_SUGGESTION_LIMIT);
   };
 
   const ensureBridge = (method) => {
