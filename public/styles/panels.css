@@ -433,6 +433,61 @@
   gap: 6px;
 }
 
+.sw-search-hint-panel {
+  display: grid;
+  gap: 6px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(110, 231, 255, 0.14);
+}
+
+.sw-search-hint-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.sw-search-hint-panel__title {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.sw-search-hint-panel__toggle {
+  padding: 4px 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(110, 231, 255, 0.18);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  font-size: 12px;
+  cursor: pointer;
+  transition: border-color 130ms ease, background 130ms ease, transform 130ms ease;
+}
+
+.sw-search-hint-panel__toggle:hover {
+  border-color: rgba(110, 231, 255, 0.36);
+  background: rgba(110, 231, 255, 0.12);
+  transform: translateY(-1px);
+}
+
+.sw-search-hint-panel__toggle:active {
+  transform: translateY(0);
+}
+
+.sw-search-hint-panel__body {
+  display: grid;
+  gap: 6px;
+  padding-top: 6px;
+  border-top: 1px dashed rgba(110, 231, 255, 0.14);
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.sw-search-hint-panel__body[hidden] {
+  display: none;
+}
+
 .sw-list {
   display: grid;
   gap: 8px;

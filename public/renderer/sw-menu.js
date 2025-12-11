@@ -95,22 +95,27 @@ const buildSection = (title, content) => {
   return section;
 };
 
-const buildSuggestionChips = (label, items, onSelect) => {
+const buildSuggestionChips = (label, items, onSelect, options = {}) => {
   if (!items?.length || typeof onSelect !== 'function') {
     return null;
   }
+  const { maxItems = 8, showLabel = true } = options || {};
   const unique = Array.from(new Set(items)).filter(Boolean);
   if (!unique.length) {
     return null;
   }
   const wrapper = document.createElement('div');
   wrapper.className = 'sw-suggestions';
-  const title = document.createElement('div');
-  title.className = 'sw-suggestions__label';
-  title.textContent = label;
+  if (showLabel && label) {
+    const title = document.createElement('div');
+    title.className = 'sw-suggestions__label';
+    title.textContent = label;
+    wrapper.append(title);
+  }
   const list = document.createElement('div');
   list.className = 'sw-suggestions__chips';
-  unique.slice(0, 8).forEach((text) => {
+  const renderItems = typeof maxItems === 'number' ? unique.slice(0, maxItems) : unique;
+  renderItems.forEach((text) => {
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'sw-suggestion-chip';
@@ -118,7 +123,7 @@ const buildSuggestionChips = (label, items, onSelect) => {
     button.addEventListener('click', () => onSelect(text));
     list.append(button);
   });
-  wrapper.append(title, list);
+  wrapper.append(list);
   return wrapper;
 };
 
@@ -154,6 +159,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
       isSavingBom: false,
       isSavingFlow: false,
       isDeletingComponent: false,
+      isNameHintsOpen: false,
     },
   };
 
@@ -1149,24 +1155,67 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     return wrapper;
   };
 
-  const buildComponentSearchHints = () => {
-    const chips = [];
-    const names = buildSuggestionChips('名称で絞り込み', state.suggestions.names, (value) => {
-      applyComponentSearchField('name', value);
+  const buildNameSuggestionHints = () => {
+    const nameSuggestions = Array.isArray(state.suggestions.names) ? state.suggestions.names : [];
+    if (!nameSuggestions.length) {
+      return null;
+    }
+
+    const panel = document.createElement('div');
+    panel.className = 'sw-search-hint-panel';
+
+    const header = document.createElement('div');
+    header.className = 'sw-search-hint-panel__header';
+
+    const label = document.createElement('span');
+    label.className = 'sw-search-hint-panel__title';
+    label.textContent = `名称で絞り込み (${nameSuggestions.length}件)`;
+
+    const toggleButton = document.createElement('button');
+    toggleButton.type = 'button';
+    toggleButton.className = 'ghost sw-search-hint-panel__toggle';
+    toggleButton.textContent = state.flags.isNameHintsOpen ? '閉じる' : '全て表示';
+    toggleButton.setAttribute('aria-expanded', state.flags.isNameHintsOpen ? 'true' : 'false');
+    toggleButton.addEventListener('click', () => {
+      state.flags.isNameHintsOpen = !state.flags.isNameHintsOpen;
       render();
     });
+
+    header.append(label, toggleButton);
+    panel.append(header);
+
+    const body = document.createElement('div');
+    body.className = 'sw-search-hint-panel__body';
+    body.hidden = !state.flags.isNameHintsOpen;
+
+    const chips = buildSuggestionChips('名称で絞り込み', nameSuggestions, (value) => {
+      applyComponentSearchField('name', value);
+      render();
+    }, { maxItems: null, showLabel: false });
+
+    if (chips) {
+      body.append(chips);
+      panel.append(body);
+    }
+
+    return panel;
+  };
+
+  const buildComponentSearchHints = () => {
+    const hints = [];
+    const namePanel = buildNameSuggestionHints();
     const locations = buildSuggestionChips('場所/ラインで絞り込み', state.suggestions.locations, (value) => {
       applyComponentSearchField('location', value);
       render();
     });
-    if (names) chips.push(names);
-    if (locations) chips.push(locations);
-    if (!chips.length) {
+    if (namePanel) hints.push(namePanel);
+    if (locations) hints.push(locations);
+    if (!hints.length) {
       return null;
     }
     const wrapper = document.createElement('div');
     wrapper.className = 'sw-search-hints';
-    chips.forEach((chip) => wrapper.append(chip));
+    hints.forEach((hint) => wrapper.append(hint));
     return wrapper;
   };
 
