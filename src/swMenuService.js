@@ -104,8 +104,8 @@ const normalizeFlowPayload = (payload = {}) => {
 };
 
 const normalizeBomPayload = (payload = {}) => {
-  const parentCode = (payload.parentCode ?? '').trim();
-  const childCode = (payload.childCode ?? '').trim();
+  const parentCode = normalizeComponentCode(payload.parentCode);
+  const childCode = normalizeComponentCode(payload.childCode);
   if (!parentCode || !childCode) {
     throw new Error('親部品コードと子部品コードは必須です');
   }
