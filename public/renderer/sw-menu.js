@@ -504,8 +504,11 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     const component = findComponentByCode(value);
     if (component) {
       state.drafts.bom.parentLocation = component.location ?? '';
-      setBomFormatLocation(component.location);
+      state.drafts.bom.parentName = component.name ?? '';
+      setBomFormatLocation(component.name);
+      return;
     }
+    state.drafts.bom.parentName = '';
   };
 
   const setBomLocation = (value) => {
