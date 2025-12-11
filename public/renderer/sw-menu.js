@@ -829,7 +829,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
   };
 
   const getSlotComponentCandidates = (slotLabel) => {
-    const normalizedLocation = normalizeTextQuery(state.drafts.bom.formatLocation);
+    const normalizedLocation = normalizeTextQuery(state.drafts.bom.parentLocation);
     const normalizedLabel = normalizeTextQuery(slotLabel);
     const components = Array.isArray(state.overview.components) ? state.overview.components : [];
     return components
