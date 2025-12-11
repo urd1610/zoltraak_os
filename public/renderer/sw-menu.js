@@ -501,14 +501,19 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
 
   const setBomParentCode = (value) => {
     state.drafts.bom.parentCode = value;
+    const normalizedCode = normalizeSlotLabel(value);
+    if (!normalizedCode) {
+      state.drafts.bom.parentLocation = '';
+      state.drafts.bom.parentName = '';
+      setBomFormatLocation(DEFAULT_BOM_FORMAT_KEY);
+      return;
+    }
     const component = findComponentByCode(value);
     if (component) {
       state.drafts.bom.parentLocation = component.location ?? '';
       state.drafts.bom.parentName = component.name ?? '';
       setBomFormatLocation(component.name);
-      return;
     }
-    state.drafts.bom.parentName = '';
   };
 
   const setBomLocation = (value) => {
