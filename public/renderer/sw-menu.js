@@ -155,9 +155,44 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     },
   };
 
+  const captureFocusSnapshot = () => {
+    const activeElement = document.activeElement;
+    if (!activeElement) {
+      return null;
+    }
+    const surface = document.getElementById('sw-menu-surface');
+    if (!surface || !surface.contains(activeElement)) {
+      return null;
+    }
+    const activeId = activeElement.id;
+    if (!activeId) {
+      return null;
+    }
+    const selection =
+      typeof activeElement.selectionStart === 'number' && typeof activeElement.selectionEnd === 'number'
+        ? { start: activeElement.selectionStart, end: activeElement.selectionEnd }
+        : null;
+    return () => {
+      const next = document.getElementById(activeId);
+      if (!next) return;
+      try {
+        next.focus({ preventScroll: true });
+      } catch (error) {
+        next.focus();
+      }
+      if (selection && typeof next.setSelectionRange === 'function') {
+        next.setSelectionRange(selection.start, selection.end);
+      }
+    };
+  };
+
   const render = () => {
+    const restoreFocus = captureFocusSnapshot();
     if (typeof renderUi === 'function') {
       renderUi();
+    }
+    if (typeof restoreFocus === 'function') {
+      restoreFocus();
     }
   };
 
@@ -1005,6 +1040,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
       caption.className = 'sw-search__label';
       caption.textContent = label;
       const input = document.createElement('input');
+      input.id = `sw-component-search-${key}`;
       input.type = 'search';
       input.className = 'sw-search__input';
       input.placeholder = placeholder;
