@@ -723,6 +723,14 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
       cancelButton.textContent = 'キャンセル';
       cancelButton.addEventListener('click', cancelComponentEdit);
       actions.append(cancelButton);
+    } else {
+      const clearButton = document.createElement('button');
+      clearButton.type = 'button';
+      clearButton.className = 'ghost';
+      clearButton.disabled = state.flags.isSavingComponent;
+      clearButton.textContent = 'クリア';
+      clearButton.addEventListener('click', () => resetComponentDraft());
+      actions.append(clearButton);
     }
     const submitButton = document.createElement('button');
     submitButton.type = 'submit';
