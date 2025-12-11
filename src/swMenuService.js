@@ -475,13 +475,14 @@ const createSwMenuService = (options = {}) => {
   const getOverview = async () => {
     try {
       const data = await withConnection(async (conn) => {
-        const [components, boms, flows] = await Promise.all([
+        const [components, componentCount, boms, flows] = await Promise.all([
           conn.query(
             `SELECT code, name, version, location, description, updated_at
               FROM sw_components
               ORDER BY updated_at DESC
               LIMIT ${COMPONENT_OVERVIEW_LIMIT}`,
           ),
+          conn.query('SELECT COUNT(*) AS total FROM sw_components'),
           conn.query(
             `SELECT parent_code, child_code, quantity, note, updated_at
               FROM sw_boms
@@ -495,12 +496,14 @@ const createSwMenuService = (options = {}) => {
               LIMIT ${FLOW_OVERVIEW_LIMIT}`,
           ),
         ]);
-        return { components, boms, flows };
+        const totalComponents = Number(componentCount?.[0]?.total ?? 0);
+        return { components, totalComponents, boms, flows };
       });
       return {
         ok: true,
         ready: schemaReady,
         database: dbConfig.database,
+        componentLimit: COMPONENT_OVERVIEW_LIMIT,
         ...data,
       };
     } catch (error) {

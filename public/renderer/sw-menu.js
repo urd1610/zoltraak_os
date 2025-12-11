@@ -585,6 +585,8 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
       if (overview?.ok) {
         state.overview = {
           components: overview.components ?? [],
+          totalComponents: overview.totalComponents ?? 0,
+          componentLimit: overview.componentLimit ?? 1000,
           boms: overview.boms ?? [],
           flows: overview.flows ?? [],
         };
@@ -1868,7 +1870,13 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
         meta.textContent = `${filteredCount} / ${serverTotal} 件`;
       }
     } else {
-      meta.textContent = `${totalCount}件`;
+      const dbTotal = state.overview.totalComponents ?? totalCount;
+      const limit = state.overview.componentLimit ?? 1000;
+      if (dbTotal > limit) {
+        meta.textContent = `${filteredCount}件表示 / ${dbTotal}件 (上限${limit}件)`;
+      } else {
+        meta.textContent = `${totalCount}件`;
+      }
     }
 
     const clear = document.createElement('button');
