@@ -968,7 +968,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
 
     const lead = document.createElement('p');
     lead.className = 'sw-bom-lead';
-    lead.textContent = '親品番をベースに装備枠へ品番をはめ込むRPG風のBOM登録です。場所/ラインごとに枠構成を変えられます。';
+    lead.textContent = '親品番をベースに装備枠へ品番をはめ込むRPG風のBOM登録です。名称ごとに枠構成を変えられます。';
     form.append(lead);
 
     const parentRow = document.createElement('div');
@@ -1056,7 +1056,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     formatField.className = 'sw-bom-format';
     const formatLabel = document.createElement('div');
     formatLabel.className = 'sw-bom-format__label';
-    formatLabel.textContent = `枠フォーマット (${state.drafts.bom.formatLocation || DEFAULT_BOM_FORMAT_KEY})`;
+    formatLabel.textContent = `枠フォーマット (名称単位: ${state.drafts.bom.formatLocation || DEFAULT_BOM_FORMAT_KEY})`;
     const formatChips = document.createElement('div');
     formatChips.className = 'sw-bom-format__chips';
     getBomFormatLabels(state.drafts.bom.formatLocation).forEach((labelText) => {
