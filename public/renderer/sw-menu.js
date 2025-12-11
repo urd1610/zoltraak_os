@@ -512,11 +512,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
   };
 
   const setBomLocation = (value) => {
-    const normalized = normalizeSlotLabel(value);
-    state.drafts.bom.parentLocation = normalized;
-    if (normalized) {
-      setBomFormatLocation(normalized);
-    }
+    state.drafts.bom.parentLocation = normalizeSlotLabel(value);
   };
 
   const ensureBridge = (method) => {
