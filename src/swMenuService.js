@@ -5,6 +5,8 @@ const parseNumber = (value, fallback) => {
   return Number.isFinite(parsed) ? parsed : fallback;
 };
 
+const normalizeComponentCode = (code) => (code ?? '').toString().replace(/-/g, '').trim();
+
 const DEFAULT_SW_DB_NAME = process.env.SW_DB_NAME || 'zoltraak';
 const DEFAULT_DB_CONFIG = {
   host: process.env.MARIADB_HOST || '192.168.0.156',
@@ -73,7 +75,7 @@ const normalizeError = (error, context = 'unknown') => {
 };
 
 const normalizeComponentPayload = (payload = {}) => {
-  const code = (payload.code ?? '').trim();
+  const code = normalizeComponentCode(payload.code);
   const name = (payload.name ?? '').trim();
   if (!code || !name) {
     throw new Error('部品コードと名称は必須です');
