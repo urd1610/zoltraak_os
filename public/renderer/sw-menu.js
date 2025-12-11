@@ -330,8 +330,8 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     return key;
   };
 
-  const setBomFormatLocation = (location) => {
-    const key = ensureBomFormatExists(location);
+  const setBomFormatLocation = (formatKey) => {
+    const key = ensureBomFormatExists(formatKey);
     state.drafts.bom.formatLocation = key;
     state.drafts.bom.slots = buildBomSlotsFromLabels(getBomFormatLabels(key), state.drafts.bom.slots);
   };
