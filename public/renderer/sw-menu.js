@@ -17,6 +17,7 @@ const VIEW_DEFINITIONS = [
 
 const DEFAULT_VIEW = VIEW_DEFINITIONS[0].id;
 const MAX_SUGGESTION_ITEMS = 20;
+const BOM_CODE_SUGGESTION_LIMIT = MAX_SUGGESTION_ITEMS;
 const buildDefaultComponentDraft = () => ({
   code: '',
   name: '',
@@ -285,6 +286,34 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     };
   };
 
+  const normalizeCodeQuery = (value) => (value ?? '').toString().trim().toLowerCase().replace(/-/g, '');
+
+  const getBomCodeSuggestions = (keyword = '') => {
+    const codes = new Map();
+    const addCode = (code, name) => {
+      const trimmed = (code ?? '').toString().trim();
+      if (!trimmed) return;
+      if (codes.has(trimmed)) return;
+      codes.set(trimmed, (name ?? '').toString().trim());
+    };
+
+    (state.overview.components ?? []).forEach((item) => addCode(item.code, item.name));
+    (state.overview.boms ?? []).forEach((bom) => {
+      addCode(bom.parent_code);
+      addCode(bom.child_code);
+    });
+
+    const query = normalizeCodeQuery(keyword);
+    const filtered = Array.from(codes.entries())
+      .map(([code, name]) => ({ code, name }))
+      .filter(({ code }) => {
+        if (!query) return true;
+        return normalizeCodeQuery(code).includes(query);
+      });
+
+    return filtered.slice(0, BOM_CODE_SUGGESTION_LIMIT);
+  };
+
   const ensureBridge = (method) => {
     if (!window.desktopBridge || typeof window.desktopBridge[method] !== 'function') {
       applyStatus({ lastError: `SWメニューのブリッジ(${method})が見つかりません` });
@@ -527,31 +556,68 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     form.className = 'sw-form';
     form.addEventListener('submit', submitBom);
 
-    const fields = [
-      { key: 'parentCode', label: '親部品コード', placeholder: 'SW-001', required: true },
-      { key: 'childCode', label: '子部品コード', placeholder: 'SW-002', required: true },
-      { key: 'quantity', label: '数量', placeholder: '1', type: 'number', step: '0.001', required: true },
-    ];
-
-    fields.forEach((field) => {
+    const buildBomCodeField = (field) => {
       const row = document.createElement('label');
       row.className = 'sw-field';
       const name = document.createElement('span');
       name.textContent = field.label;
       const input = document.createElement('input');
-      input.type = field.type || 'text';
-      input.required = Boolean(field.required);
-      if (field.step) {
-        input.step = field.step;
-      }
+      input.id = `sw-bom-${field.key}`;
+      input.type = 'text';
+      input.required = true;
       input.placeholder = field.placeholder || '';
       input.value = state.drafts.bom[field.key] ?? '';
+
+      const datalist = document.createElement('datalist');
+      datalist.id = `sw-${field.key}-code-suggestions`;
+
+      const renderSuggestions = (keyword) => {
+        const suggestions = getBomCodeSuggestions(keyword);
+        datalist.replaceChildren();
+        suggestions.forEach((item) => {
+          const option = document.createElement('option');
+          option.value = item.code;
+          if (item.name) {
+            option.label = item.name;
+          }
+          datalist.append(option);
+        });
+      };
+
+      renderSuggestions(input.value);
+      input.setAttribute('list', datalist.id);
       input.addEventListener('input', (event) => {
-        state.drafts.bom[field.key] = event.target.value;
+        const nextValue = event.target.value;
+        state.drafts.bom[field.key] = nextValue;
+        renderSuggestions(nextValue);
       });
-      row.append(name, input);
-      form.append(row);
+
+      row.append(name, input, datalist);
+      return row;
+    };
+
+    const codeFields = [
+      { key: 'parentCode', label: '親部品コード', placeholder: 'SW-001' },
+      { key: 'childCode', label: '子部品コード', placeholder: 'SW-002' },
+    ];
+
+    codeFields.forEach((field) => form.append(buildBomCodeField(field)));
+
+    const quantityRow = document.createElement('label');
+    quantityRow.className = 'sw-field';
+    const quantityLabel = document.createElement('span');
+    quantityLabel.textContent = '数量';
+    const quantityInput = document.createElement('input');
+    quantityInput.type = 'number';
+    quantityInput.required = true;
+    quantityInput.placeholder = '1';
+    quantityInput.step = '0.001';
+    quantityInput.value = state.drafts.bom.quantity ?? '';
+    quantityInput.addEventListener('input', (event) => {
+      state.drafts.bom.quantity = event.target.value;
     });
+    quantityRow.append(quantityLabel, quantityInput);
+    form.append(quantityRow);
 
     const noteRow = document.createElement('label');
     noteRow.className = 'sw-field';
