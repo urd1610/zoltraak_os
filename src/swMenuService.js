@@ -64,6 +64,7 @@ const FLOW_OVERVIEW_LIMIT = 20;
 const COMPONENT_SUGGESTION_LIMIT = 20;
 const LOCATION_NAME_SUGGESTION_LIMIT = COMPONENT_SUGGESTION_LIMIT * 5;
 const COMPONENT_INSERT_CHUNK_SIZE = 200;
+const BOM_INSERT_CHUNK_SIZE = 200;
 const MAX_COMPONENT_IMPORT_ROWS = 5000;
 const CSV_COMPONENT_FIELDS = {
   code: ['code', '部品コード', '品番', '品番コード', 'part_number', 'part number'],
@@ -184,9 +185,41 @@ const dedupeComponentsByCode = (components = []) => {
   return { unique: Array.from(map.values()), duplicates: Array.from(duplicates) };
 };
 
+const dedupeBomsByParentChild = (items = []) => {
+  const map = new Map();
+  const duplicates = new Set();
+  items.forEach((item) => {
+    const normalizedParent = normalizeComponentCode(item.parentCode ?? item.parent_code);
+    const normalizedChild = normalizeComponentCode(item.childCode ?? item.child_code);
+    if (!normalizedParent || !normalizedChild) {
+      return;
+    }
+    const normalized = {
+      ...item,
+      parentCode: normalizedParent,
+      childCode: normalizedChild,
+    };
+    const key = `${normalizedParent}__${normalizedChild}`;
+    if (map.has(key)) {
+      duplicates.add(key);
+    }
+    map.set(key, normalized);
+  });
+  return { unique: Array.from(map.values()), duplicates: Array.from(duplicates) };
+};
+
 const normalizeComponentList = (components = []) => components.reduce((acc, component, index) => {
   try {
     acc.normalized.push(normalizeComponentPayload(component));
+  } catch (error) {
+    acc.errors.push({ index, error: error?.message || '入力が不足しています' });
+  }
+  return acc;
+}, { normalized: [], errors: [] });
+
+const normalizeBomList = (items = []) => items.reduce((acc, item, index) => {
+  try {
+    acc.normalized.push(normalizeBomPayload(item));
   } catch (error) {
     acc.errors.push({ index, error: error?.message || '入力が不足しています' });
   }
@@ -570,18 +603,58 @@ const createSwMenuService = (options = {}) => {
     }
   };
 
+  const upsertBomLinks = async (links = [], options = {}) => {
+    const { skipNormalization = false } = options || {};
+    try {
+      const { normalized, errors } = skipNormalization
+        ? { normalized: links ?? [], errors: [] }
+        : normalizeBomList(links);
+      const { unique, duplicates } = dedupeBomsByParentChild(normalized);
+      if (!unique.length) {
+        const errorMessage = errors[0]?.error || '登録するBOMリンクがありません';
+        lastError = errorMessage;
+        return { ok: false, error: errorMessage, errors };
+      }
+      await withTransaction(async (conn) => {
+        const chunks = chunkArray(unique, BOM_INSERT_CHUNK_SIZE);
+        for (const chunk of chunks) {
+          const placeholders = chunk.map(() => '(?, ?, ?, ?)').join(', ');
+          const values = chunk.flatMap((item) => [
+            item.parentCode,
+            item.childCode,
+            item.quantity,
+            item.note,
+          ]);
+          // eslint-disable-next-line no-await-in-loop
+          await conn.query(
+            `INSERT INTO sw_boms (parent_code, child_code, quantity, note)
+              VALUES ${placeholders}
+              ON DUPLICATE KEY UPDATE quantity = VALUES(quantity), note = VALUES(note)`,
+            values,
+          );
+        }
+      });
+      lastError = null;
+      return {
+        ok: true,
+        imported: unique.length,
+        duplicates: duplicates.slice(0, 200),
+        errors,
+        boms: unique,
+      };
+    } catch (error) {
+      lastError = error?.message ?? 'BOM登録に失敗しました';
+      return normalizeError(error, 'bulk-upsert-bom');
+    }
+  };
+
   const upsertBomLink = async (payload) => {
     try {
-      const normalized = normalizeBomPayload(payload);
-      await withConnection(async (conn) => {
-        await conn.query(
-          `INSERT INTO sw_boms (parent_code, child_code, quantity, note)
-            VALUES (?, ?, ?, ?)
-            ON DUPLICATE KEY UPDATE quantity = VALUES(quantity), note = VALUES(note)`,
-          [normalized.parentCode, normalized.childCode, normalized.quantity, normalized.note],
-        );
-      });
-      return { ok: true, bom: normalized };
+      const result = await upsertBomLinks([payload]);
+      if (result?.ok) {
+        return { ok: true, bom: result?.boms?.[0] ?? normalizeBomPayload(payload) };
+      }
+      return result;
     } catch (error) {
       lastError = error?.message ?? 'BOM登録に失敗しました';
       return normalizeError(error, 'upsert-bom');
@@ -617,6 +690,7 @@ const createSwMenuService = (options = {}) => {
     upsertComponentsBulk,
     importComponentsFromCsv,
     recordFlow,
+    upsertBomLinks,
     upsertBomLink,
     dispose,
     config: { ...dbConfig },
