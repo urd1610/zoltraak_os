@@ -556,31 +556,68 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     form.className = 'sw-form';
     form.addEventListener('submit', submitBom);
 
-    const fields = [
-      { key: 'parentCode', label: '親部品コード', placeholder: 'SW-001', required: true },
-      { key: 'childCode', label: '子部品コード', placeholder: 'SW-002', required: true },
-      { key: 'quantity', label: '数量', placeholder: '1', type: 'number', step: '0.001', required: true },
-    ];
-
-    fields.forEach((field) => {
+    const buildBomCodeField = (field) => {
       const row = document.createElement('label');
       row.className = 'sw-field';
       const name = document.createElement('span');
       name.textContent = field.label;
       const input = document.createElement('input');
-      input.type = field.type || 'text';
-      input.required = Boolean(field.required);
-      if (field.step) {
-        input.step = field.step;
-      }
+      input.id = `sw-bom-${field.key}`;
+      input.type = 'text';
+      input.required = true;
       input.placeholder = field.placeholder || '';
       input.value = state.drafts.bom[field.key] ?? '';
+
+      const datalist = document.createElement('datalist');
+      datalist.id = `sw-${field.key}-code-suggestions`;
+
+      const renderSuggestions = (keyword) => {
+        const suggestions = getBomCodeSuggestions(keyword);
+        datalist.replaceChildren();
+        suggestions.forEach((item) => {
+          const option = document.createElement('option');
+          option.value = item.code;
+          if (item.name) {
+            option.label = item.name;
+          }
+          datalist.append(option);
+        });
+      };
+
+      renderSuggestions(input.value);
+      input.setAttribute('list', datalist.id);
       input.addEventListener('input', (event) => {
-        state.drafts.bom[field.key] = event.target.value;
+        const nextValue = event.target.value;
+        state.drafts.bom[field.key] = nextValue;
+        renderSuggestions(nextValue);
       });
-      row.append(name, input);
-      form.append(row);
+
+      row.append(name, input, datalist);
+      return row;
+    };
+
+    const codeFields = [
+      { key: 'parentCode', label: '親部品コード', placeholder: 'SW-001' },
+      { key: 'childCode', label: '子部品コード', placeholder: 'SW-002' },
+    ];
+
+    codeFields.forEach((field) => form.append(buildBomCodeField(field)));
+
+    const quantityRow = document.createElement('label');
+    quantityRow.className = 'sw-field';
+    const quantityLabel = document.createElement('span');
+    quantityLabel.textContent = '数量';
+    const quantityInput = document.createElement('input');
+    quantityInput.type = 'number';
+    quantityInput.required = true;
+    quantityInput.placeholder = '1';
+    quantityInput.step = '0.001';
+    quantityInput.value = state.drafts.bom.quantity ?? '';
+    quantityInput.addEventListener('input', (event) => {
+      state.drafts.bom.quantity = event.target.value;
     });
+    quantityRow.append(quantityLabel, quantityInput);
+    form.append(quantityRow);
 
     const noteRow = document.createElement('label');
     noteRow.className = 'sw-field';
