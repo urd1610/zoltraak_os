@@ -330,8 +330,15 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     return key;
   };
 
-  const setBomFormatLocation = (formatKey) => {
-    const key = ensureBomFormatExists(formatKey);
+  const setBomFormatLocation = (formatKey, fallbackKey = DEFAULT_BOM_FORMAT_KEY) => {
+    const primaryKey = normalizeSlotLabel(formatKey);
+    const fallback = normalizeSlotLabel(fallbackKey) || DEFAULT_BOM_FORMAT_KEY;
+    const targetKey = primaryKey || fallback;
+    if (primaryKey && !state.bomFormats[primaryKey] && state.bomFormats[fallback]) {
+      state.bomFormats = { ...state.bomFormats, [primaryKey]: getBomFormatLabels(fallback) };
+      persistBomFormats();
+    }
+    const key = ensureBomFormatExists(targetKey);
     state.drafts.bom.formatLocation = key;
     state.drafts.bom.slots = buildBomSlotsFromLabels(getBomFormatLabels(key), state.drafts.bom.slots);
   };
@@ -512,7 +519,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     if (component) {
       state.drafts.bom.parentLocation = component.location ?? '';
       state.drafts.bom.parentName = component.name ?? '';
-      setBomFormatLocation(component.name);
+      setBomFormatLocation(component.name, component.location);
     }
   };
 
