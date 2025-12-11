@@ -95,22 +95,27 @@ const buildSection = (title, content) => {
   return section;
 };
 
-const buildSuggestionChips = (label, items, onSelect) => {
+const buildSuggestionChips = (label, items, onSelect, options = {}) => {
   if (!items?.length || typeof onSelect !== 'function') {
     return null;
   }
+  const { maxItems = 8, showLabel = true } = options || {};
   const unique = Array.from(new Set(items)).filter(Boolean);
   if (!unique.length) {
     return null;
   }
   const wrapper = document.createElement('div');
   wrapper.className = 'sw-suggestions';
-  const title = document.createElement('div');
-  title.className = 'sw-suggestions__label';
-  title.textContent = label;
+  if (showLabel && label) {
+    const title = document.createElement('div');
+    title.className = 'sw-suggestions__label';
+    title.textContent = label;
+    wrapper.append(title);
+  }
   const list = document.createElement('div');
   list.className = 'sw-suggestions__chips';
-  unique.slice(0, 8).forEach((text) => {
+  const renderItems = typeof maxItems === 'number' ? unique.slice(0, maxItems) : unique;
+  renderItems.forEach((text) => {
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'sw-suggestion-chip';
@@ -118,7 +123,7 @@ const buildSuggestionChips = (label, items, onSelect) => {
     button.addEventListener('click', () => onSelect(text));
     list.append(button);
   });
-  wrapper.append(title, list);
+  wrapper.append(list);
   return wrapper;
 };
 
