@@ -5,6 +5,8 @@ const parseNumber = (value, fallback) => {
   return Number.isFinite(parsed) ? parsed : fallback;
 };
 
+const normalizeComponentCode = (code) => (code ?? '').toString().replace(/-/g, '').trim();
+
 const DEFAULT_SW_DB_NAME = process.env.SW_DB_NAME || 'zoltraak';
 const DEFAULT_DB_CONFIG = {
   host: process.env.MARIADB_HOST || '192.168.0.156',
@@ -74,7 +76,7 @@ const normalizeError = (error, context = 'unknown') => {
 };
 
 const normalizeComponentPayload = (payload = {}) => {
-  const code = (payload.code ?? '').trim();
+  const code = normalizeComponentCode(payload.code);
   const name = (payload.name ?? '').trim();
   if (!code || !name) {
     throw new Error('部品コードと名称は必須です');
@@ -89,7 +91,7 @@ const normalizeComponentPayload = (payload = {}) => {
 };
 
 const normalizeFlowPayload = (payload = {}) => {
-  const componentCode = (payload.componentCode ?? payload.code ?? '').trim();
+  const componentCode = normalizeComponentCode(payload.componentCode ?? payload.code);
   if (!componentCode) {
     throw new Error('流動数を登録する部品コードを入力してください');
   }
@@ -103,8 +105,8 @@ const normalizeFlowPayload = (payload = {}) => {
 };
 
 const normalizeBomPayload = (payload = {}) => {
-  const parentCode = (payload.parentCode ?? '').trim();
-  const childCode = (payload.childCode ?? '').trim();
+  const parentCode = normalizeComponentCode(payload.parentCode);
+  const childCode = normalizeComponentCode(payload.childCode);
   if (!parentCode || !childCode) {
     throw new Error('親部品コードと子部品コードは必須です');
   }
