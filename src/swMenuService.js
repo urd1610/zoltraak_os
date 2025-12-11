@@ -59,6 +59,7 @@ const COMPONENT_OVERVIEW_LIMIT = 30;
 const BOM_OVERVIEW_LIMIT = 12;
 const FLOW_OVERVIEW_LIMIT = 20;
 const COMPONENT_SUGGESTION_LIMIT = 20;
+const LOCATION_NAME_SUGGESTION_LIMIT = COMPONENT_SUGGESTION_LIMIT * 5;
 
 const normalizeError = (error, context = 'unknown') => {
   const message = error?.message || '不明なエラーが発生しました';
@@ -282,7 +283,7 @@ const createSwMenuService = (options = {}) => {
   const getComponentSuggestions = async () => {
     try {
       const suggestionData = await withConnection(async (conn) => {
-        const [names, locations] = await Promise.all([
+        const [names, locations, namesByLocation] = await Promise.all([
           conn.query(
             `SELECT name, COUNT(*) AS cnt, MAX(updated_at) AS last_updated
               FROM sw_components
@@ -299,13 +300,36 @@ const createSwMenuService = (options = {}) => {
               ORDER BY last_updated DESC, cnt DESC
               LIMIT ${COMPONENT_SUGGESTION_LIMIT}`,
           ),
+          conn.query(
+            `SELECT location, name, COUNT(*) AS cnt, MAX(updated_at) AS last_updated
+              FROM sw_components
+              WHERE location <> '' AND name <> ''
+              GROUP BY location, name
+              ORDER BY last_updated DESC, cnt DESC
+              LIMIT ${LOCATION_NAME_SUGGESTION_LIMIT}`,
+          ),
         ]);
         const normalize = (items, key) => items
           .map((item) => (item?.[key] ?? '').trim())
           .filter(Boolean);
+        const namesByLocationMap = namesByLocation.reduce((acc, item) => {
+          const location = (item?.location ?? '').trim();
+          const name = (item?.name ?? '').trim();
+          if (!location || !name) {
+            return acc;
+          }
+          const current = acc[location] ?? [];
+          if (current.includes(name) || current.length >= COMPONENT_SUGGESTION_LIMIT) {
+            acc[location] = current;
+            return acc;
+          }
+          acc[location] = [...current, name];
+          return acc;
+        }, {});
         return {
           names: normalize(names, 'name'),
           locations: normalize(locations, 'location'),
+          namesByLocation: namesByLocationMap,
         };
       });
       return { ok: true, suggestions: suggestionData };

@@ -16,6 +16,7 @@ const VIEW_DEFINITIONS = [
 ];
 
 const DEFAULT_VIEW = VIEW_DEFINITIONS[0].id;
+const MAX_SUGGESTION_ITEMS = 20;
 const buildDefaultComponentDraft = () => ({
   code: '',
   name: '',
@@ -132,6 +133,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     suggestions: {
       names: [],
       locations: [],
+      namesByLocation: {},
     },
     view: DEFAULT_VIEW,
     drafts: {
@@ -244,10 +246,36 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     };
   };
 
+  const normalizeSuggestionList = (values) => {
+    const source = Array.isArray(values) ? values : [];
+    const trimmed = source
+      .map((value) => (typeof value === 'string' ? value.trim() : ''))
+      .filter(Boolean);
+    return Array.from(new Set(trimmed)).slice(0, MAX_SUGGESTION_ITEMS);
+  };
+
+  const normalizeNamesByLocation = (map) => {
+    if (!map || typeof map !== 'object') {
+      return {};
+    }
+    return Object.entries(map).reduce((acc, [location, names]) => {
+      const key = typeof location === 'string' ? location.trim() : '';
+      if (!key) {
+        return acc;
+      }
+      const normalizedNames = normalizeSuggestionList(names);
+      if (normalizedNames.length) {
+        acc[key] = normalizedNames;
+      }
+      return acc;
+    }, {});
+  };
+
   const applySuggestions = (payload = {}) => {
     state.suggestions = {
-      names: Array.isArray(payload.names) ? payload.names : [],
-      locations: Array.isArray(payload.locations) ? payload.locations : [],
+      names: normalizeSuggestionList(payload.names),
+      locations: normalizeSuggestionList(payload.locations),
+      namesByLocation: normalizeNamesByLocation(payload.namesByLocation),
     };
   };
 
@@ -646,6 +674,22 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     return row;
   };
 
+  const getDraftLocation = () => (state.drafts.component.location ?? '').trim();
+
+  const resolveNameSuggestionsForLocation = () => {
+    const location = getDraftLocation();
+    const namesByLocation = state.suggestions.namesByLocation || {};
+    if (location) {
+      const matchedEntry = Object.entries(namesByLocation).find(
+        ([key]) => (key ?? '').trim().toLowerCase() === location.toLowerCase(),
+      );
+      if (matchedEntry?.[1]?.length) {
+        return { list: matchedEntry[1], label: `${matchedEntry[0]} の名称候補` };
+      }
+    }
+    return { list: state.suggestions.names, label: '最近使った名称' };
+  };
+
   const buildComponentForm = () => {
     const form = document.createElement('form');
     form.className = 'sw-form';
@@ -669,10 +713,10 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     }
 
     const fields = [
+      { key: 'location', label: '場所/ライン', placeholder: 'Aライン' },
       { key: 'code', label: '部品コード', placeholder: 'SW-001', required: true },
       { key: 'name', label: '名称', placeholder: 'メインモジュール', required: true },
       { key: 'version', label: '版数', placeholder: 'v1.0.0' },
-      { key: 'location', label: '場所/ライン', placeholder: 'Aライン' },
     ];
 
     fields.forEach((field) => {
@@ -681,6 +725,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
       const name = document.createElement('span');
       name.textContent = editing && field.key === 'code' ? `${field.label}（変更不可）` : field.label;
       const input = document.createElement('input');
+      input.id = `sw-component-${field.key}`;
       input.type = 'text';
       input.required = Boolean(field.required);
       input.placeholder = field.placeholder || '';
@@ -688,8 +733,9 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
       let suggestionList = null;
       let suggestionLabel = '';
       if (field.key === 'name') {
-        suggestionList = state.suggestions.names;
-        suggestionLabel = '最近使った名称';
+        const nameSuggestions = resolveNameSuggestionsForLocation();
+        suggestionList = nameSuggestions.list;
+        suggestionLabel = nameSuggestions.label;
       } else if (field.key === 'location') {
         suggestionList = state.suggestions.locations;
         suggestionLabel = '最近使った場所/ライン';
@@ -711,7 +757,12 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
         input.title = '登録済みの品番コードは変更できません';
       }
       input.addEventListener('input', (event) => {
-        state.drafts.component[field.key] = event.target.value;
+        const nextValue = event.target.value;
+        const prevValue = state.drafts.component[field.key];
+        state.drafts.component[field.key] = nextValue;
+        if (field.key === 'location' && prevValue !== nextValue) {
+          render();
+        }
       });
       row.append(name, input);
       if (datalist) {
@@ -720,6 +771,9 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
           state.drafts.component[field.key] = value;
           input.value = value;
           input.focus();
+          if (field.key === 'location') {
+            render();
+          }
         });
         if (chips) {
           row.append(chips);
