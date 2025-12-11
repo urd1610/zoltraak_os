@@ -384,7 +384,7 @@ const createSwMenuService = (options = {}) => {
         lastError = errorMessage;
         return { ok: false, error: errorMessage, errors };
       }
-      await withConnection(async (conn) => {
+      await withTransaction(async (conn) => {
         const chunks = chunkArray(unique, COMPONENT_INSERT_CHUNK_SIZE);
         for (const chunk of chunks) {
           const placeholders = chunk.map(() => '(?, ?, ?, ?, ?)').join(', ');
