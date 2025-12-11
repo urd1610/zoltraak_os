@@ -159,7 +159,7 @@ const buildSuggestionChips = (label, items, onSelect, options = {}) => {
   if (!items?.length || typeof onSelect !== 'function') {
     return null;
   }
-  const { maxItems = 8, showLabel = true } = options || {};
+  const { maxItems = 20, showLabel = true } = options || {};
   const unique = Array.from(new Set(items)).filter(Boolean);
   if (!unique.length) {
     return null;
