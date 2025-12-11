@@ -356,6 +356,22 @@ const createSwMenuService = (options = {}) => {
     }
   };
 
+  const withTransaction = async (handler) => withConnection(async (conn) => {
+    await conn.beginTransaction();
+    try {
+      const result = await handler(conn);
+      await conn.commit();
+      return result;
+    } catch (error) {
+      try {
+        await conn.rollback();
+      } catch (rollbackError) {
+        error.rollbackError = rollbackError;
+      }
+      throw error;
+    }
+  });
+
   const upsertComponentsBulk = async (components = [], options = {}) => {
     const { skipNormalization = false } = options || {};
     try {
