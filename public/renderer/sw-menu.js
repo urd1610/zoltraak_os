@@ -558,6 +558,40 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     state.drafts.bom.parentLocation = normalizeSlotLabel(value);
   };
 
+  const getBomMatrixColumnLabels = () => {
+    const rawLabels = getBomSlotNameSuggestions();
+    const filtered = rawLabels.filter(
+      (label) => normalizeTextQuery(label) !== 'sw',
+    );
+    if (filtered.length) {
+      return filtered;
+    }
+    return getBomFormatLabels(state.drafts.bom.parentLocation);
+  };
+
+  const syncBomMatrixSlots = () => {
+    const labels = getBomMatrixColumnLabels();
+    state.drafts.bom.slots = buildBomSlotsFromLabels(labels, state.drafts.bom.slots);
+  };
+
+  const resetBomMatrixValues = () => {
+    state.drafts.bom.slots = (state.drafts.bom.slots ?? []).map((slot) => ({
+      ...slot,
+      childCode: '',
+      quantity: '1',
+      note: '',
+    }));
+    state.drafts.bom.sharedNote = '';
+    state.drafts.bom.newSlotLabel = '';
+  };
+
+  const setBomMatrixLocation = (value) => {
+    setBomLocation(value);
+    state.drafts.bom.parentCode = 'SW';
+    state.drafts.bom.parentName = 'SW';
+    syncBomMatrixSlots();
+  };
+
   const ensureBridge = (method) => {
     if (!window.desktopBridge || typeof window.desktopBridge[method] !== 'function') {
       applyStatus({ lastError: `SWメニューのブリッジ(${method})が見つかりません` });
