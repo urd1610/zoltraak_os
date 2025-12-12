@@ -1778,7 +1778,6 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     statusSection.classList.add('sw-dashboard__section');
 
     const latestComponent = state.overview.components?.[0];
-    const latestBom = state.overview.boms?.[0];
     const latestFlow = state.overview.flows?.[0];
 
     const statsRow = document.createElement('div');
@@ -1789,12 +1788,6 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
         value: `${state.overview.components.length}`,
         meta: latestComponent ? `最新: ${latestComponent.code} (${latestComponent.updated_at || '-'})` : 'まだ登録がありません',
         view: 'components',
-      }),
-      buildStatCard({
-        title: 'BOMリンク',
-        value: `${state.overview.boms.length}`,
-        meta: latestBom ? `最新: ${latestBom.parent_code} → ${latestBom.child_code}` : 'まだ登録がありません',
-        view: 'bom',
       }),
       buildStatCard({
         title: '流動数',
@@ -1816,12 +1809,6 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
           activeCode: state.editing.componentCode,
         }),
         '構成がありません',
-      ),
-      buildList(
-        '最新のBOMリンク',
-        (state.overview.boms ?? []).slice(0, surfaceLimit),
-        buildBomRow,
-        'BOMリンクがありません',
       ),
       buildList(
         '最新の流動数',
@@ -2099,32 +2086,11 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
 
   const buildBomView = () => {
     const layout = document.createElement('div');
-    layout.className = 'sw-grid';
-
-    const leftColumn = document.createElement('div');
-    leftColumn.className = 'sw-column';
-    leftColumn.append(
+    layout.className = 'sw-column';
+    layout.append(
       buildSection('接続ステータス', buildStatusGrid()),
-      buildList('BOMリンク（最新）', state.overview.boms, buildBomRow, 'BOMリンクはまだ登録されていません'),
-    );
-
-    const rightColumn = document.createElement('div');
-    rightColumn.className = 'sw-column';
-    rightColumn.append(
       buildSection('SW BOM表を編集', buildBomForm()),
-      buildList(
-        '参照用: 構成（最新）',
-        (state.overview.components ?? []).slice(0, 5),
-        (item) => buildComponentRow(item, {
-          onEdit: startComponentEdit,
-          onDelete: deleteComponent,
-          activeCode: state.editing.componentCode,
-        }),
-        '品番データが必要です',
-      ),
     );
-
-    layout.append(leftColumn, rightColumn);
     return layout;
   };
 
