@@ -1154,23 +1154,52 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     addSlotField.className = 'sw-bom-format__add';
     const addSlotInput = document.createElement('input');
     addSlotInput.type = 'text';
-    addSlotInput.placeholder = '枠名を追加 (場所/ラインの候補から選択可)';
+    addSlotInput.placeholder = '枠名を追加';
     addSlotInput.value = state.drafts.bom.newSlotLabel ?? '';
+
+    const slotNameSuggestions = getBomSlotNameSuggestions();
+    let slotDropdown = null;
+    let renderSlotDropdown = null;
+
+    if (slotNameSuggestions.length) {
+      slotDropdown = document.createElement('div');
+      slotDropdown.className = 'sw-bom-slot-dropdown';
+
+      renderSlotDropdown = (keyword = '') => {
+        const query = normalizeTextQuery(keyword);
+        const filtered = slotNameSuggestions.filter((name) => {
+          if (!query) return true;
+          return normalizeTextQuery(name).includes(query);
+        });
+
+        slotDropdown.replaceChildren();
+        filtered.forEach((name) => {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'sw-bom-slot-dropdown__item';
+          button.textContent = name;
+          button.addEventListener('mousedown', (event) => {
+            event.preventDefault();
+            state.drafts.bom.newSlotLabel = name;
+            addBomSlotLabel(name);
+            render();
+          });
+          slotDropdown.append(button);
+        });
+
+        slotDropdown.classList.toggle('is-open', filtered.length > 0);
+      };
+
+      addSlotInput.addEventListener('focus', () => renderSlotDropdown(addSlotInput.value));
+      addSlotInput.addEventListener('blur', () => slotDropdown.classList.remove('is-open'));
+    }
+
     addSlotInput.addEventListener('input', (event) => {
       state.drafts.bom.newSlotLabel = event.target.value;
+      if (renderSlotDropdown) {
+        renderSlotDropdown(event.target.value);
+      }
     });
-    const slotNameSuggestions = getBomSlotNameSuggestions();
-    let addSlotList = null;
-    if (slotNameSuggestions.length) {
-      addSlotList = document.createElement('datalist');
-      addSlotList.id = 'sw-bom-slot-name-suggestions';
-      slotNameSuggestions.forEach((name) => {
-        const option = document.createElement('option');
-        option.value = name;
-        addSlotList.append(option);
-      });
-      addSlotInput.setAttribute('list', addSlotList.id);
-    }
     const addSlotButton = document.createElement('button');
     addSlotButton.type = 'button';
     addSlotButton.className = 'ghost';
@@ -1180,21 +1209,8 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
       render();
     });
     addSlotField.append(addSlotInput, addSlotButton);
-    if (addSlotList) {
-      addSlotField.append(addSlotList);
-      const slotNameChips = buildSuggestionChips(
-        '場所/ラインの名称候補',
-        slotNameSuggestions,
-        (value) => {
-          state.drafts.bom.newSlotLabel = value;
-          addBomSlotLabel(value);
-          render();
-        },
-        { maxItems: 12 },
-      );
-      if (slotNameChips) {
-        addSlotField.append(slotNameChips);
-      }
+    if (slotDropdown) {
+      addSlotField.append(slotDropdown);
     }
 
     formatRow.append(locationField, formatField, addSlotField);
