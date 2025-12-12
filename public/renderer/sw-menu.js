@@ -22,6 +22,7 @@ const DEFAULT_BOM_FORMAT_KEY = '汎用';
 const BOM_FORMAT_STORAGE_KEY = 'sw-menu:bom-formats';
 const DEFAULT_BOM_FORMAT = ['メイン', 'サブ', 'アクセサリ', '補助'];
 const MAX_BOM_SLOTS = 12;
+let bomSlotIdCounter = 0;
 const buildDefaultComponentDraft = () => ({
   code: '',
   name: '',
@@ -39,8 +40,9 @@ const normalizeSlotLabel = (value) => (value ?? '').toString().trim();
 const normalizeBomFormatLabels = (labels = []) => {
   const normalized = (Array.isArray(labels) ? labels : [])
     .map((label) => normalizeSlotLabel(label))
-    .filter(Boolean);
-  return Array.from(new Set(normalized)).slice(0, MAX_BOM_SLOTS);
+    .filter(Boolean)
+    .slice(0, MAX_BOM_SLOTS);
+  return normalized;
 };
 const normalizeBomFormats = (formats) => {
   const source = formats && typeof formats === 'object' ? formats : {};
@@ -80,14 +82,34 @@ const persistBomFormatsToStorage = (formats) => {
     console.warn('BOMフォーマットの保存に失敗しました', error);
   }
 };
+const createBomSlot = (label, base = {}) => ({
+  id: base.id || `slot-${Date.now().toString(36)}-${bomSlotIdCounter++}`,
+  label,
+  childCode: base.childCode ?? '',
+  quantity: base.quantity ?? '1',
+  note: base.note ?? '',
+});
 const buildBomSlotsFromLabels = (labels, currentSlots = []) => {
-  const normalized = normalizeBomFormatLabels(labels);
-  const currentMap = new Map((currentSlots || []).map((slot) => [slot.label, slot]));
-  return normalized.map((label) => {
-    const existing = currentMap.get(label);
-    return existing
-      ? { ...existing, label, quantity: existing.quantity ?? '1', note: existing.note ?? '' }
-      : { label, childCode: '', quantity: '1', note: '' };
+  const normalizedLabels = normalizeBomFormatLabels(labels);
+  const slotQueues = new Map();
+
+  (currentSlots || []).forEach((slot) => {
+    const normalizedLabel = normalizeSlotLabel(slot.label);
+    if (!normalizedLabel) return;
+    const preparedSlot = createBomSlot(normalizedLabel, slot);
+    const queue = slotQueues.get(normalizedLabel) || [];
+    queue.push(preparedSlot);
+    slotQueues.set(normalizedLabel, queue);
+  });
+
+  return normalizedLabels.map((label) => {
+    const normalizedLabel = normalizeSlotLabel(label);
+    const queue = slotQueues.get(normalizedLabel);
+    const existing = queue?.shift();
+    if (queue && !queue.length) {
+      slotQueues.delete(normalizedLabel);
+    }
+    return existing ? { ...existing, label: normalizedLabel } : createBomSlot(normalizedLabel);
   });
 };
 
@@ -367,32 +389,38 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     }
     const key = state.drafts.bom.formatLocation || DEFAULT_BOM_FORMAT_KEY;
     const labels = getBomFormatLabels(key);
-    if (labels.includes(normalized)) {
-      state.drafts.bom.newSlotLabel = '';
+    if (labels.length >= MAX_BOM_SLOTS) {
       return;
     }
-    const nextLabels = [...labels, normalized];
+    const nextLabels = normalizeBomFormatLabels([...labels, normalized]);
     state.bomFormats = { ...state.bomFormats, [key]: nextLabels };
     persistBomFormats();
     state.drafts.bom.newSlotLabel = '';
     state.drafts.bom.slots = buildBomSlotsFromLabels(nextLabels, state.drafts.bom.slots);
   };
 
-  const removeBomSlotLabel = (label) => {
+  const removeBomSlot = (slotId) => {
     const key = state.drafts.bom.formatLocation || DEFAULT_BOM_FORMAT_KEY;
     const labels = getBomFormatLabels(key);
     if (labels.length <= 1) {
       return;
     }
-    const nextLabels = labels.filter((item) => item !== label);
+    const index = state.drafts.bom.slots.findIndex((slot) => slot.id === slotId);
+    if (index < 0) {
+      return;
+    }
+    const nextLabels = labels.filter((_, idx) => idx !== index);
     state.bomFormats = { ...state.bomFormats, [key]: nextLabels };
     persistBomFormats();
-    state.drafts.bom.slots = buildBomSlotsFromLabels(nextLabels, state.drafts.bom.slots);
+    state.drafts.bom.slots = buildBomSlotsFromLabels(
+      nextLabels,
+      state.drafts.bom.slots.filter((slot) => slot.id !== slotId),
+    );
   };
 
-  const updateBomSlotField = (slotLabel, field, value) => {
+  const updateBomSlotField = (slotId, field, value) => {
     const slots = state.drafts.bom.slots.map((slot) => {
-      if (slot.label !== slotLabel) {
+      if (slot.id !== slotId) {
         return slot;
       }
       return { ...slot, [field]: value };
@@ -845,6 +873,44 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     return Array.from(locations);
   };
 
+  const getBomSlotNameSuggestions = () => {
+    const names = new Set();
+    const normalizedLocation = normalizeTextQuery(state.drafts.bom.parentLocation);
+    const namesByLocation = state.suggestions.namesByLocation || {};
+
+    if (normalizedLocation) {
+      const matchedEntry = Object.entries(namesByLocation).find(
+        ([key]) => normalizeTextQuery(key) === normalizedLocation,
+      );
+      matchedEntry?.[1]?.forEach((name) => {
+        const normalizedName = normalizeSlotLabel(name);
+        if (normalizedName) {
+          names.add(normalizedName);
+        }
+      });
+
+      (state.overview.components ?? []).forEach((component) => {
+        if (normalizeTextQuery(component.location) === normalizedLocation) {
+          const normalizedName = normalizeSlotLabel(component.name);
+          if (normalizedName) {
+            names.add(normalizedName);
+          }
+        }
+      });
+    }
+
+    if (!names.size) {
+      (state.suggestions.names ?? []).forEach((name) => {
+        const normalizedName = normalizeSlotLabel(name);
+        if (normalizedName) {
+          names.add(normalizedName);
+        }
+      });
+    }
+
+    return Array.from(names).slice(0, MAX_SUGGESTION_ITEMS);
+  };
+
   const getSlotComponentCandidates = (slotLabel) => {
     const normalizedLocation = normalizeTextQuery(state.drafts.bom.parentLocation);
     const normalizedLabel = normalizeTextQuery(slotLabel);
@@ -878,7 +944,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
       removeBtn.textContent = '×';
       removeBtn.title = 'この枠を削除';
       removeBtn.addEventListener('click', () => {
-        removeBomSlotLabel(slot.label);
+        removeBomSlot(slot.id);
         render();
       });
       header.append(removeBtn);
@@ -896,7 +962,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     equipInput.placeholder = `${slot.label}の品番を選択`;
     equipInput.value = slot.childCode ?? '';
     const datalist = document.createElement('datalist');
-    const listId = `sw-bom-slot-${normalizeSlotLabel(slot.label || 'slot').replace(/[^a-zA-Z0-9_-]/g, '-')}-codes`;
+    const listId = `sw-bom-slot-${slot.id}-codes`;
     datalist.id = listId;
 
     const renderSuggestions = (keyword) => {
@@ -913,7 +979,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     renderSuggestions(slot.childCode || slot.label);
     equipInput.setAttribute('list', listId);
     equipInput.addEventListener('input', (event) => {
-      updateBomSlotField(slot.label, 'childCode', event.target.value);
+      updateBomSlotField(slot.id, 'childCode', event.target.value);
       renderSuggestions(event.target.value || slot.label);
     });
     equipField.append(equipLabel, equipInput, datalist);
@@ -933,7 +999,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
         chip.className = 'sw-suggestion-chip';
         chip.textContent = `${component.code} / ${component.name}`;
         chip.addEventListener('click', () => {
-          updateBomSlotField(slot.label, 'childCode', component.code);
+          updateBomSlotField(slot.id, 'childCode', component.code);
           render();
         });
         candidateRow.append(chip);
@@ -954,7 +1020,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     quantityInput.step = '0.001';
     quantityInput.value = slot.quantity ?? '1';
     quantityInput.addEventListener('input', (event) => {
-      updateBomSlotField(slot.label, 'quantity', event.target.value);
+      updateBomSlotField(slot.id, 'quantity', event.target.value);
     });
     quantityField.append(quantityLabel, quantityInput);
 
@@ -967,7 +1033,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     noteInput.placeholder = '例: 予備/ロットなど';
     noteInput.value = slot.note ?? '';
     noteInput.addEventListener('input', (event) => {
-      updateBomSlotField(slot.label, 'note', event.target.value);
+      updateBomSlotField(slot.id, 'note', event.target.value);
     });
     noteField.append(noteLabel, noteInput);
 
@@ -1088,11 +1154,23 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     addSlotField.className = 'sw-bom-format__add';
     const addSlotInput = document.createElement('input');
     addSlotInput.type = 'text';
-    addSlotInput.placeholder = '枠名を追加 (例: モーター)';
+    addSlotInput.placeholder = '枠名を追加 (場所/ラインの候補から選択可)';
     addSlotInput.value = state.drafts.bom.newSlotLabel ?? '';
     addSlotInput.addEventListener('input', (event) => {
       state.drafts.bom.newSlotLabel = event.target.value;
     });
+    const slotNameSuggestions = getBomSlotNameSuggestions();
+    let addSlotList = null;
+    if (slotNameSuggestions.length) {
+      addSlotList = document.createElement('datalist');
+      addSlotList.id = 'sw-bom-slot-name-suggestions';
+      slotNameSuggestions.forEach((name) => {
+        const option = document.createElement('option');
+        option.value = name;
+        addSlotList.append(option);
+      });
+      addSlotInput.setAttribute('list', addSlotList.id);
+    }
     const addSlotButton = document.createElement('button');
     addSlotButton.type = 'button';
     addSlotButton.className = 'ghost';
@@ -1102,6 +1180,22 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
       render();
     });
     addSlotField.append(addSlotInput, addSlotButton);
+    if (addSlotList) {
+      addSlotField.append(addSlotList);
+      const slotNameChips = buildSuggestionChips(
+        '場所/ラインの名称候補',
+        slotNameSuggestions,
+        (value) => {
+          state.drafts.bom.newSlotLabel = value;
+          addBomSlotLabel(value);
+          render();
+        },
+        { maxItems: 12 },
+      );
+      if (slotNameChips) {
+        addSlotField.append(slotNameChips);
+      }
+    }
 
     formatRow.append(locationField, formatField, addSlotField);
     form.append(formatRow);
