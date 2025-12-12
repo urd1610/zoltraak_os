@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claude Code と GLM Coding Plan - 実装ガイド</title>
+    <link rel="stylesheet" href="./kamui-os-intro-1732171200.css">
+</head>
+<body>
+    <div class="app">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-title">スライド一覧</div>
+                <div class="sidebar-actions">
+                    <button id="downloadAllBtn" aria-label="全スライドをダウンロード" title="全スライドをダウンロード">
+                        <span class="download-icon" aria-hidden="true"></span>
+                    </button>
+                    <button id="toggleSidebar" aria-label="サイドバーを折りたたむ" aria-expanded="true">
+                        <span class="chevron">◀</span>
+                    </button>
+                </div>
+            </div>
+            <p class="sidebar-caption">クリックでスライドへ移動</p>
+            <ul class="slide-list" id="slideList" aria-label="スライド一覧"></ul>
+        </aside>
+
+        <main class="slides-area">
+            <div class="progress">
+                <span id="slideNumber">1 / 5</span>
+            </div>
+
+            <div class="slide-container">
+                <!-- Slide 1: タイトル -->
+                <div class="slide active">
+                    <img src="https://v3b.fal.media/files/b/0a85f380/lL3zcNDvVJq0vVrlFuUjI.png" alt="Claude Code と GLM Coding Plan - タイトル">
+                </div>
+
+                <!-- Slide 2: Claude Code とは -->
+                <div class="slide">
+                    <img src="https://v3b.fal.media/files/b/0a85f380/XUkZlMl_hE3-ya2tkCY2U.png" alt="Claude Code とは - エージェント型コーディングツール">
+                </div>
+
+                <!-- Slide 3: GLM Coding Plan とは -->
+                <div class="slide">
+                    <img src="https://v3b.fal.media/files/b/0a85f380/fgIbZhLrGGqh7qN9NOcRy.png" alt="GLM Coding Plan - 3倍のパフォーマンス">
+                </div>
+
+                <!-- Slide 4: セットアップ手順 -->
+                <div class="slide">
+                    <img src="https://v3b.fal.media/files/b/0a85f381/xW84yofIKX7cJKWOULlwk.png" alt="セットアップ手順 - インストール・設定・実行">
+                </div>
+
+                <!-- Slide 5: 実装活用例 -->
+                <div class="slide">
+                    <img src="https://v3b.fal.media/files/b/0a85f381/PfRYVBxmkH6bZFQLRMEH8.png" alt="実装活用例とベストプラクティス">
+                </div>
+            </div>
+
+            <div class="navigation">
+                <button class="nav-btn" id="prevBtn">◀</button>
+                <button class="nav-btn" id="nextBtn">▶</button>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <script src="./claude-code-glm-plan-20251212.js"></script>
+</body>
+</html>

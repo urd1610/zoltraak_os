@@ -1,0 +1,74 @@
+{
+  "app": {
+    "name": "Claude Code と GLM Coding Plan - 実装ガイド",
+    "prefix": "claude-code-glm-plan-20251212",
+    "icon": ".kamui/apps/icons/claude-code-glm-plan-20251212.svg",
+    "html_file": ".kamui/apps/claude-code-glm-plan-20251212.html",
+    "js_file": ".kamui/apps/claude-code-glm-plan-20251212.js",
+    "css_file": ".kamui/apps/kamui-os-intro-1732171200.css"
+  },
+  "slides": [
+    {
+      "index": 1,
+      "title": "Claude Code と GLM Coding Plan",
+      "subtitle": "ターミナルベースのエージェント型コーディングツール × GLM 統合",
+      "description": "Claude Code と GLM Coding Plan を組み合わせることで実現される3倍のパフォーマンスと開発効率化。タイトルスライド。",
+      "image_prompt": "Claude Code と GLM Coding Plan のタイトルスライド。左側に紫と青のグラデーションのターミナルウィンドウ、右側に「3倍のパフォーマンス」と稲妻のアイコン。モダンな技術的デザイン。背景は深い紺色。",
+      "alt_text": "Claude Code と GLM Coding Plan - タイトル"
+    },
+    {
+      "index": 2,
+      "title": "Claude Code とは",
+      "subtitle": "エージェント型コーディングツール",
+      "description": "Claude Code の基本機能：自然言語コマンド、コード理解、ルーチンタスク自動化、複雑なコード説明、Git ワークフロー処理。",
+      "image_prompt": "Claude Code の機能を示すスライド。ターミナルウィンドウ中央に「>」プロンプト。周囲に5つの機能アイコン：コード理解（目玉）、自動化（ギア）、説明（吹き出し）、Git（ブランチ）、スピード（矢印）。カラフルで分かりやすいデザイン。",
+      "alt_text": "Claude Code とは - エージェント型コーディングツール"
+    },
+    {
+      "index": 3,
+      "title": "GLM Coding Plan",
+      "subtitle": "3倍のパフォーマンス実現",
+      "description": "GLM Coding Plan との統合で実現：より多くのトークン、安定した信頼性、より速いコーディング、より賢いデバッグ、シームレスなワークフロー管理。",
+      "image_prompt": "GLM Coding Plan のメリットを示すスライド。中央に大きな「3倍」の数字。周囲に4つのメリット表示：トークン量（データベース）、信頼性（チェックマーク）、スピード（稲妻）、スマート（脳）。グラデーション背景は紫から青。",
+      "alt_text": "GLM Coding Plan - 3倍のパフォーマンス"
+    },
+    {
+      "index": 4,
+      "title": "セットアップ手順",
+      "subtitle": "インストール → 設定 → 実行",
+      "description": "3つのステップ：1) npm install で Claude Code インストール、2) Z.AI でAPIキー取得・設定、3) claude コマンドで実行開始。",
+      "image_prompt": "セットアップ3ステップのスライド。左から右へ流れるステップ表示：ステップ1（矢印）npm インストール、ステップ2（鍵）API キー設定、ステップ3（再生ボタン）実行開始。各ステップ間に矢印。モダンなデザイン。",
+      "alt_text": "セットアップ手順 - インストール・設定・実行"
+    },
+    {
+      "index": 5,
+      "title": "実装活用例",
+      "subtitle": "開発効率化のベストプラクティス",
+      "description": "Claude Code + GLM Coding Plan の実装活用例：ルーチンタスク自動化、複雑なバグ調査、大規模リファクタリング、マルチファイル変更管理。",
+      "image_prompt": "実装活用例を示すスライド。中央に4つの実装事例アイコン：タスク自動化（チェックボックス）、バグ調査（虫眼鏡）、リファクタリング（ハンマーレンチ）、変更管理（フォルダ）。各事例の周囲に稲妻のエフェクト。",
+      "alt_text": "実装活用例とベストプラクティス"
+    }
+  ],
+  "image_replacement_guide": {
+    "method": "nano-banana-pro MCP t2i",
+    "steps": [
+      "各スライドの image_prompt を nano-banana-pro MCP に送信",
+      "生成された画像 URL を HTML の img src に置き換え",
+      "alt_text と照合して確認"
+    ],
+    "placeholder_urls": [
+      "https://v3b.fal.media/files/b/panda/w56KXNnWKsTelwQLFUe66.png",
+      "https://v3b.fal.media/files/b/penguin/z_8BgnSmt-C4zRAK3UQ2w.png",
+      "https://v3b.fal.media/files/b/elephant/PnO9qTgouRKGU1WUvkZun.png",
+      "https://v3b.fal.media/files/b/lion/MJiYEFnnkBKcKGnFTSyHX.png",
+      "https://v3b.fal.media/files/b/panda/Lr1B9tmtWmuRsZIDcw6kP.png"
+    ]
+  },
+  "customization_notes": {
+    "base_structure": "kamui-os-intro-20251125.html をコピーして使用。DOM 構造・クラス名は変更なし",
+    "sidebar": "スライド一覧、キーボード/クリック操作、折りたたみ機能は完全に機能",
+    "navigation": "矢印キー、クリックボタンで操作可能",
+    "download": "ダウンロードボタンは完全に機能（JPEG PDF 生成）",
+    "css": "既存の kamui-os-intro-1732171200.css を共有使用（変更不可）"
+  }
+}
