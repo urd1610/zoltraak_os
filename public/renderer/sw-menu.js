@@ -763,7 +763,13 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     state.flags.isSavingBom = true;
     render();
     try {
-      const parentCode = resolveComponentCode(state.drafts.bom.parentCode, state.drafts.bom.parentLocation);
+      if (!normalizeSlotLabel(state.drafts.bom.parentLocation)) {
+        throw new Error('場所/ラインを選択してください');
+      }
+      const parentCode = resolveComponentCode(
+        state.drafts.bom.parentCode || 'SW',
+        state.drafts.bom.parentLocation,
+      );
       if (!parentCode) {
         throw new Error('親品番を選択してください');
       }
@@ -789,7 +795,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
       if (!result?.ok) {
         throw new Error(result?.error || 'BOM登録に失敗しました');
       }
-      resetBomDraft({ keepParent: true });
+      resetBomMatrixValues();
       await hydrateOverview();
     } catch (error) {
       applyStatus({ lastError: error?.message || 'BOM登録に失敗しました' });
