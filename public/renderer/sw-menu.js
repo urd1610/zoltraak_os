@@ -2101,7 +2101,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     const rightColumn = document.createElement('div');
     rightColumn.className = 'sw-column';
     rightColumn.append(
-      buildSection('BOMを登録', buildBomForm()),
+      buildSection('SW BOM表を編集', buildBomForm()),
       buildList(
         '参照用: 構成（最新）',
         (state.overview.components ?? []).slice(0, 5),
