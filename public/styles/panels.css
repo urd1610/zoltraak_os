@@ -686,6 +686,63 @@
   gap: 14px;
 }
 
+.sw-form--bom-matrix {
+  gap: 14px;
+}
+
+.sw-bom-row--matrix {
+  grid-template-columns: 1fr;
+}
+
+.sw-bom-matrix {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: 12px;
+  border: 1px solid rgba(110, 231, 255, 0.14);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.sw-bom-matrix__table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: max-content;
+}
+
+.sw-bom-matrix__table th,
+.sw-bom-matrix__table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid rgba(110, 231, 255, 0.12);
+  border-right: 1px solid rgba(110, 231, 255, 0.12);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.sw-bom-matrix__table thead th {
+  background: rgba(110, 231, 255, 0.06);
+  font-weight: 700;
+}
+
+.sw-bom-matrix__corner {
+  background: transparent;
+  border-right: 1px solid rgba(110, 231, 255, 0.12);
+}
+
+.sw-bom-matrix__row-header {
+  background: rgba(255, 255, 255, 0.05);
+  font-weight: 700;
+}
+
+.sw-bom-matrix__table input {
+  width: 100%;
+  min-width: 140px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(110, 231, 255, 0.18);
+  background: rgba(17, 27, 47, 0.6);
+  color: var(--text);
+  font-size: 13px;
+}
+
 .sw-bom-lead {
   margin: 0;
   color: var(--muted);
