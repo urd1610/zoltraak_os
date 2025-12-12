@@ -873,6 +873,44 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     return Array.from(locations);
   };
 
+  const getBomSlotNameSuggestions = () => {
+    const names = new Set();
+    const normalizedLocation = normalizeTextQuery(state.drafts.bom.parentLocation);
+    const namesByLocation = state.suggestions.namesByLocation || {};
+
+    if (normalizedLocation) {
+      const matchedEntry = Object.entries(namesByLocation).find(
+        ([key]) => normalizeTextQuery(key) === normalizedLocation,
+      );
+      matchedEntry?.[1]?.forEach((name) => {
+        const normalizedName = normalizeSlotLabel(name);
+        if (normalizedName) {
+          names.add(normalizedName);
+        }
+      });
+
+      (state.overview.components ?? []).forEach((component) => {
+        if (normalizeTextQuery(component.location) === normalizedLocation) {
+          const normalizedName = normalizeSlotLabel(component.name);
+          if (normalizedName) {
+            names.add(normalizedName);
+          }
+        }
+      });
+    }
+
+    if (!names.size) {
+      (state.suggestions.names ?? []).forEach((name) => {
+        const normalizedName = normalizeSlotLabel(name);
+        if (normalizedName) {
+          names.add(normalizedName);
+        }
+      });
+    }
+
+    return Array.from(names).slice(0, MAX_SUGGESTION_ITEMS);
+  };
+
   const getSlotComponentCandidates = (slotLabel) => {
     const normalizedLocation = normalizeTextQuery(state.drafts.bom.parentLocation);
     const normalizedLabel = normalizeTextQuery(slotLabel);
@@ -1116,11 +1154,23 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     addSlotField.className = 'sw-bom-format__add';
     const addSlotInput = document.createElement('input');
     addSlotInput.type = 'text';
-    addSlotInput.placeholder = '枠名を追加 (例: モーター)';
+    addSlotInput.placeholder = '枠名を追加 (場所/ラインの候補から選択可)';
     addSlotInput.value = state.drafts.bom.newSlotLabel ?? '';
     addSlotInput.addEventListener('input', (event) => {
       state.drafts.bom.newSlotLabel = event.target.value;
     });
+    const slotNameSuggestions = getBomSlotNameSuggestions();
+    let addSlotList = null;
+    if (slotNameSuggestions.length) {
+      addSlotList = document.createElement('datalist');
+      addSlotList.id = 'sw-bom-slot-name-suggestions';
+      slotNameSuggestions.forEach((name) => {
+        const option = document.createElement('option');
+        option.value = name;
+        addSlotList.append(option);
+      });
+      addSlotInput.setAttribute('list', addSlotList.id);
+    }
     const addSlotButton = document.createElement('button');
     addSlotButton.type = 'button';
     addSlotButton.className = 'ghost';
@@ -1130,6 +1180,22 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
       render();
     });
     addSlotField.append(addSlotInput, addSlotButton);
+    if (addSlotList) {
+      addSlotField.append(addSlotList);
+      const slotNameChips = buildSuggestionChips(
+        '場所/ラインの名称候補',
+        slotNameSuggestions,
+        (value) => {
+          state.drafts.bom.newSlotLabel = value;
+          addBomSlotLabel(value);
+          render();
+        },
+        { maxItems: 12 },
+      );
+      if (slotNameChips) {
+        addSlotField.append(slotNameChips);
+      }
+    }
 
     formatRow.append(locationField, formatField, addSlotField);
     form.append(formatRow);
