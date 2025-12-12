@@ -2086,32 +2086,11 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
 
   const buildBomView = () => {
     const layout = document.createElement('div');
-    layout.className = 'sw-grid';
-
-    const leftColumn = document.createElement('div');
-    leftColumn.className = 'sw-column';
-    leftColumn.append(
+    layout.className = 'sw-column';
+    layout.append(
       buildSection('接続ステータス', buildStatusGrid()),
-      buildList('BOMリンク（最新）', state.overview.boms, buildBomRow, 'BOMリンクはまだ登録されていません'),
-    );
-
-    const rightColumn = document.createElement('div');
-    rightColumn.className = 'sw-column';
-    rightColumn.append(
       buildSection('SW BOM表を編集', buildBomForm()),
-      buildList(
-        '参照用: 構成（最新）',
-        (state.overview.components ?? []).slice(0, 5),
-        (item) => buildComponentRow(item, {
-          onEdit: startComponentEdit,
-          onDelete: deleteComponent,
-          activeCode: state.editing.componentCode,
-        }),
-        '品番データが必要です',
-      ),
     );
-
-    layout.append(leftColumn, rightColumn);
     return layout;
   };
 
