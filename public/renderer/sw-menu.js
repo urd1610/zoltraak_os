@@ -773,6 +773,16 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
       if (!parentCode) {
         throw new Error('親品番を選択してください');
       }
+      if (normalizeTextQuery(state.drafts.bom.parentCode || 'SW') === 'sw') {
+        const normalizedLocation = normalizeTextQuery(state.drafts.bom.parentLocation);
+        const hasSwParent = (state.overview.components ?? []).some((component) => (
+          normalizeTextQuery(component.name) === 'sw'
+          && normalizeTextQuery(component.location) === normalizedLocation
+        ));
+        if (!hasSwParent) {
+          throw new Error('選択した場所/ラインに名称SWの親品番がありません');
+        }
+      }
       const payloads = (state.drafts.bom.slots ?? [])
         .map((slot) => {
           const noteParts = [
