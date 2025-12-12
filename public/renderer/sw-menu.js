@@ -1086,64 +1086,16 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
 
   const buildBomForm = () => {
     const form = document.createElement('form');
-    form.className = 'sw-form sw-form--bom-loadout';
+    form.className = 'sw-form sw-form--bom-matrix';
     form.addEventListener('submit', submitBom);
 
     const lead = document.createElement('p');
     lead.className = 'sw-bom-lead';
-    lead.textContent = '親品番をベースに装備枠へ品番をはめ込むRPG風のBOM登録です。名称ごとに枠構成を変えられます。';
+    lead.textContent = '場所/ラインを選択すると、SW×名称のBOM表を編集できます。';
     form.append(lead);
 
-    const parentRow = document.createElement('div');
-    parentRow.className = 'sw-bom-row sw-bom-row--parent';
-    const parentField = document.createElement('label');
-    parentField.className = 'sw-field sw-field--stacked';
-    const parentName = document.createElement('span');
-    parentName.textContent = '親品番（ベース装備）';
-    const parentInput = document.createElement('input');
-    parentInput.id = 'sw-bom-parent-code';
-    parentInput.type = 'text';
-    parentInput.required = true;
-    parentInput.placeholder = '例: SW-001';
-    parentInput.value = state.drafts.bom.parentCode ?? '';
-    const parentList = document.createElement('datalist');
-    parentList.id = 'sw-bom-parent-suggestions';
-    const renderParentSuggestions = (keyword) => {
-      const suggestions = getBomCodeSuggestions(keyword);
-      parentList.replaceChildren();
-      suggestions.forEach((item) => {
-        const option = document.createElement('option');
-        option.value = item.code;
-        option.label = item.name || item.code;
-        parentList.append(option);
-      });
-    };
-    renderParentSuggestions(parentInput.value);
-    parentInput.setAttribute('list', parentList.id);
-    parentInput.addEventListener('input', (event) => {
-      setBomParentCode(event.target.value);
-      renderParentSuggestions(event.target.value);
-      render();
-    });
-    parentField.append(parentName, parentInput, parentList);
-
-    const parentMeta = document.createElement('div');
-    parentMeta.className = 'sw-bom-parent__meta';
-    const component = findComponentByCode(state.drafts.bom.parentCode);
-    if (component) {
-      const metaLabel = document.createElement('span');
-      metaLabel.textContent = `${component.name} / 場所: ${component.location || '未設定'}`;
-      parentMeta.append(metaLabel);
-    } else {
-      const empty = document.createElement('span');
-      empty.textContent = '親品番を選択すると名称と場所を表示します';
-      parentMeta.append(empty);
-    }
-    parentRow.append(parentField, parentMeta);
-    form.append(parentRow);
-
-    const formatRow = document.createElement('div');
-    formatRow.className = 'sw-bom-row sw-bom-row--format';
+    const locationRow = document.createElement('div');
+    locationRow.className = 'sw-bom-row sw-bom-row--matrix';
 
     const locationField = document.createElement('label');
     locationField.className = 'sw-field sw-field--stacked';
@@ -1163,133 +1115,116 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     });
     locationInput.setAttribute('list', locationList.id);
     locationInput.addEventListener('input', (event) => {
-      setBomLocation(event.target.value);
+      setBomMatrixLocation(event.target.value);
       render();
     });
     locationField.append(locationLabel, locationInput, locationList);
     const locationChips = buildSuggestionChips('場所/ライン候補', locationOptions, (value) => {
-      setBomLocation(value);
+      setBomMatrixLocation(value);
       render();
     });
     if (locationChips) {
       locationField.append(locationChips);
     }
 
-    const formatField = document.createElement('div');
-    formatField.className = 'sw-bom-format';
-    const formatLabel = document.createElement('div');
-    formatLabel.className = 'sw-bom-format__label';
-    formatLabel.textContent = `枠フォーマット (名称単位: ${state.drafts.bom.formatLocation || DEFAULT_BOM_FORMAT_KEY})`;
-    const formatChips = document.createElement('div');
-    formatChips.className = 'sw-bom-format__chips';
-    getBomFormatLabels(state.drafts.bom.formatLocation).forEach((labelText) => {
-      const chip = document.createElement('span');
-      chip.className = 'chip tiny';
-      chip.textContent = labelText;
-      formatChips.append(chip);
+    locationRow.append(locationField);
+    form.append(locationRow);
+
+    if (!normalizeSlotLabel(state.drafts.bom.parentLocation)) {
+      const empty = document.createElement('div');
+      empty.className = 'sw-empty';
+      empty.textContent = '場所/ラインを選択してください';
+      form.append(empty);
+      return form;
+    }
+
+    syncBomMatrixSlots();
+    const labels = getBomMatrixColumnLabels();
+    const slots = state.drafts.bom.slots ?? [];
+    const slotsByLabel = new Map(slots.map((slot) => [normalizeSlotLabel(slot.label), slot]));
+
+    const matrix = document.createElement('div');
+    matrix.className = 'sw-bom-matrix';
+
+    const table = document.createElement('table');
+    table.className = 'sw-bom-matrix__table';
+
+    const thead = document.createElement('thead');
+    const headRow = document.createElement('tr');
+    const corner = document.createElement('th');
+    corner.className = 'sw-bom-matrix__corner';
+    headRow.append(corner);
+    labels.forEach((labelText) => {
+      const th = document.createElement('th');
+      th.textContent = labelText;
+      headRow.append(th);
     });
-    formatField.append(formatLabel, formatChips);
+    thead.append(headRow);
+    table.append(thead);
 
-    const addSlotField = document.createElement('div');
-    addSlotField.className = 'sw-bom-format__add';
-    const addSlotInput = document.createElement('input');
-    addSlotInput.type = 'text';
-    addSlotInput.placeholder = '枠名を追加';
-    addSlotInput.value = state.drafts.bom.newSlotLabel ?? '';
+    const tbody = document.createElement('tbody');
+    const bodyRow = document.createElement('tr');
+    const rowHeader = document.createElement('th');
+    rowHeader.className = 'sw-bom-matrix__row-header';
+    rowHeader.textContent = 'SW';
+    bodyRow.append(rowHeader);
 
-    const slotNameSuggestions = getBomSlotNameSuggestions();
-    let slotDropdown = null;
-    let renderSlotDropdown = null;
+    labels.forEach((labelText) => {
+      const key = normalizeSlotLabel(labelText);
+      const slot = slotsByLabel.get(key);
+      const cell = document.createElement('td');
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.placeholder = `${labelText}の品番`;
+      input.value = slot?.childCode ?? '';
 
-    if (slotNameSuggestions.length) {
-      slotDropdown = document.createElement('div');
-      slotDropdown.className = 'sw-bom-slot-dropdown';
+      const datalist = document.createElement('datalist');
+      const listId = `sw-bom-matrix-${key}-codes`;
+      datalist.id = listId;
 
-      renderSlotDropdown = (keyword = '') => {
-        const query = normalizeTextQuery(keyword);
-        const filtered = slotNameSuggestions.filter((name) => {
-          if (!query) return true;
-          return normalizeTextQuery(name).includes(query);
+      const renderSuggestions = (keyword) => {
+        const suggestions = getBomCodeSuggestions(keyword);
+        datalist.replaceChildren();
+        suggestions.forEach((item) => {
+          const option = document.createElement('option');
+          option.value = item.code;
+          option.label = item.name || item.code;
+          datalist.append(option);
         });
-
-        slotDropdown.replaceChildren();
-        filtered.forEach((name) => {
-          const button = document.createElement('button');
-          button.type = 'button';
-          button.className = 'sw-bom-slot-dropdown__item';
-          button.textContent = name;
-          button.addEventListener('mousedown', (event) => {
-            event.preventDefault();
-            state.drafts.bom.newSlotLabel = name;
-            addBomSlotLabel(name);
-            render();
-          });
-          slotDropdown.append(button);
-        });
-
-        slotDropdown.classList.toggle('is-open', filtered.length > 0);
       };
 
-      addSlotInput.addEventListener('focus', () => renderSlotDropdown(addSlotInput.value));
-      addSlotInput.addEventListener('blur', () => slotDropdown.classList.remove('is-open'));
-    }
+      renderSuggestions(input.value || labelText);
+      input.setAttribute('list', listId);
+      input.addEventListener('input', (event) => {
+        if (slot) {
+          updateBomSlotField(slot.id, 'childCode', event.target.value);
+        }
+      });
 
-    addSlotInput.addEventListener('input', (event) => {
-      state.drafts.bom.newSlotLabel = event.target.value;
-      if (renderSlotDropdown) {
-        renderSlotDropdown(event.target.value);
-      }
+      cell.append(input, datalist);
+      bodyRow.append(cell);
     });
-    const addSlotButton = document.createElement('button');
-    addSlotButton.type = 'button';
-    addSlotButton.className = 'ghost';
-    addSlotButton.textContent = '枠を追加';
-    addSlotButton.addEventListener('click', () => {
-      addBomSlotLabel(state.drafts.bom.newSlotLabel);
-      render();
-    });
-    addSlotField.append(addSlotInput, addSlotButton);
-    if (slotDropdown) {
-      addSlotField.append(slotDropdown);
-    }
 
-    formatRow.append(locationField, formatField, addSlotField);
-    form.append(formatRow);
-
-    const slotsGrid = document.createElement('div');
-    slotsGrid.className = 'sw-bom-slot-grid';
-    state.drafts.bom.slots.forEach((slot) => slotsGrid.append(buildBomSlotCard(slot)));
-    form.append(slotsGrid);
-
-    const sharedRow = document.createElement('label');
-    sharedRow.className = 'sw-field sw-field--stacked';
-    const sharedLabel = document.createElement('span');
-    sharedLabel.textContent = '共通メモ (各枠の備考に併記)';
-    const sharedInput = document.createElement('input');
-    sharedInput.type = 'text';
-    sharedInput.placeholder = '例: 試作ロット / 置き換え時期など';
-    sharedInput.value = state.drafts.bom.sharedNote ?? '';
-    sharedInput.addEventListener('input', (event) => {
-      state.drafts.bom.sharedNote = event.target.value;
-    });
-    sharedRow.append(sharedLabel, sharedInput);
-    form.append(sharedRow);
+    tbody.append(bodyRow);
+    table.append(tbody);
+    matrix.append(table);
+    form.append(matrix);
 
     const actions = document.createElement('div');
     actions.className = 'feature-actions';
     const resetButton = document.createElement('button');
     resetButton.type = 'button';
     resetButton.className = 'ghost';
-    resetButton.textContent = '枠をクリア';
+    resetButton.textContent = '表をクリア';
     resetButton.addEventListener('click', () => {
-      resetBomDraft({ keepParent: true });
+      resetBomMatrixValues();
       render();
     });
     const submitButton = document.createElement('button');
     submitButton.type = 'submit';
     submitButton.className = 'primary';
     submitButton.disabled = state.flags.isSavingBom;
-    submitButton.textContent = state.flags.isSavingBom ? '登録中…' : '装備を登録';
+    submitButton.textContent = state.flags.isSavingBom ? '登録中…' : 'BOMを登録';
     actions.append(resetButton, submitButton);
     form.append(actions);
 
