@@ -696,7 +696,9 @@
 
 .sw-bom-matrix {
   width: 100%;
-  overflow-x: auto;
+  max-height: clamp(280px, 60vh, 560px);
+  overflow: auto;
+  scrollbar-gutter: stable both-edges;
   border-radius: 12px;
   border: 1px solid rgba(110, 231, 255, 0.14);
   background: rgba(255, 255, 255, 0.03);
