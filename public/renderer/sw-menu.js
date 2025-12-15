@@ -2392,20 +2392,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     subtitle.className = 'sw-menu-surface__subtitle';
     subtitle.textContent = 'three.jsの背景を止めて構成/流動の管理ビューを全面表示します。';
 
-    const meta = document.createElement('div');
-    meta.className = 'sw-menu-surface__meta';
-    const hostChip = document.createElement('span');
-    hostChip.className = 'chip tiny';
-    hostChip.textContent = `Host: ${state.status.host ?? DEFAULT_STATUS.host}:${state.status.port ?? DEFAULT_STATUS.port}`;
-    const dbChip = document.createElement('span');
-    dbChip.className = 'chip tiny';
-    dbChip.textContent = `DB: ${state.status.database || DEFAULT_STATUS.database}`;
-    const userChip = document.createElement('span');
-    userChip.className = 'chip tiny';
-    userChip.textContent = `User: ${state.status.user || DEFAULT_STATUS.user}`;
-    meta.append(hostChip, dbChip, userChip);
-
-    lead.append(eyebrow, title, subtitle, meta);
+    lead.append(eyebrow, title, subtitle);
 
     const headerControls = document.createElement('div');
     headerControls.className = 'sw-menu-surface__actions';
