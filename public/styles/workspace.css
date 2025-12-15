@@ -312,6 +312,18 @@
   color: rgba(226, 232, 240, 0.76);
 }
 
+.sw-menu-surface .sw-bom-matrix__table th,
+.sw-menu-surface .sw-bom-matrix__table td {
+  padding: 6px 8px;
+  font-size: 12px;
+}
+
+.sw-menu-surface .sw-bom-matrix__table input {
+  min-width: 110px;
+  padding: 6px 8px;
+  font-size: 12px;
+}
+
 .sw-menu-surface .feature-actions button {
   min-height: 28px;
 }
