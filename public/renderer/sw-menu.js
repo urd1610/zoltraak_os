@@ -576,6 +576,30 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     state.drafts.bom.slots = buildBomSlotsFromLabels(labels, state.drafts.bom.slots);
   };
 
+  const getBomMatrixCellValue = (parentCode, slotLabel) => {
+    const parentKey = normalizeSlotLabel(parentCode);
+    const labelKey = normalizeSlotLabel(slotLabel);
+    if (!parentKey || !labelKey) {
+      return '';
+    }
+    return state.drafts.bom.matrixCells?.[parentKey]?.[labelKey] ?? '';
+  };
+
+  const setBomMatrixCellValue = (parentCode, slotLabel, value) => {
+    const parentKey = normalizeSlotLabel(parentCode);
+    const labelKey = normalizeSlotLabel(slotLabel);
+    if (!parentKey || !labelKey) {
+      return;
+    }
+    if (!state.drafts.bom.matrixCells || typeof state.drafts.bom.matrixCells !== 'object') {
+      state.drafts.bom.matrixCells = {};
+    }
+    if (!state.drafts.bom.matrixCells[parentKey] || typeof state.drafts.bom.matrixCells[parentKey] !== 'object') {
+      state.drafts.bom.matrixCells[parentKey] = {};
+    }
+    state.drafts.bom.matrixCells[parentKey][labelKey] = (value ?? '').toString();
+  };
+
   const resetBomMatrixValues = () => {
     state.drafts.bom.slots = (state.drafts.bom.slots ?? []).map((slot) => ({
       ...slot,
