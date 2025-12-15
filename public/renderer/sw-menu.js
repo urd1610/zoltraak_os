@@ -832,41 +832,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     state.flags.isSavingBom = true;
     render();
     try {
-      if (!normalizeSlotLabel(state.drafts.bom.parentLocation)) {
-        throw new Error('場所/ラインを選択してください');
-      }
-      const parentCode = resolveComponentCode(
-        state.drafts.bom.parentCode || 'SW',
-        state.drafts.bom.parentLocation,
-      );
-      if (!parentCode) {
-        throw new Error('親品番を選択してください');
-      }
-      if (normalizeTextQuery(state.drafts.bom.parentCode || 'SW') === 'sw') {
-        const normalizedLocation = normalizeTextQuery(state.drafts.bom.parentLocation);
-        const hasSwParent = (state.overview.components ?? []).some((component) => (
-          normalizeTextQuery(component.name) === 'sw'
-          && normalizeTextQuery(component.location) === normalizedLocation
-        ));
-        if (!hasSwParent) {
-          throw new Error('選択した場所/ラインに名称SWの親品番がありません');
-        }
-      }
-      const payloads = (state.drafts.bom.slots ?? [])
-        .map((slot) => {
-          const noteParts = [
-            normalizeSlotLabel(slot.label),
-            normalizeSlotLabel(slot.note),
-            normalizeSlotLabel(state.drafts.bom.sharedNote),
-          ].filter(Boolean);
-          return {
-            parentCode,
-            childCode: resolveComponentCode(slot.childCode, state.drafts.bom.parentLocation),
-            quantity: Number(slot.quantity) > 0 ? Number(slot.quantity) : 1,
-            note: noteParts.join(' / ') || normalizeSlotLabel(slot.label),
-          };
-        })
-        .filter((slot) => slot.childCode);
+      const payloads = buildBomMatrixPayloads();
       if (!payloads.length) {
         throw new Error('装備する子品番を1つ以上選択してください');
       }
