@@ -36,6 +36,14 @@ const buildDefaultComponentSearch = () => ({
   name: '',
   location: '',
 });
+const buildDefaultBomMatrixState = () => ({
+  locationKey: '',
+  swComponents: [],
+  total: 0,
+  limit: null,
+  isLoadingSwComponents: false,
+  lastError: null,
+});
 const normalizeSlotLabel = (value) => (value ?? '').toString().trim();
 const normalizeBomFormatLabels = (labels = []) => {
   const normalized = (Array.isArray(labels) ? labels : [])
@@ -239,14 +247,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
       },
       flow: { componentCode: '', quantity: '', status: 'in-stock', updatedBy: 'operator' },
     },
-    bomMatrix: {
-      locationKey: '',
-      swComponents: [],
-      total: 0,
-      limit: null,
-      isLoadingSwComponents: false,
-      lastError: null,
-    },
+    bomMatrix: buildDefaultBomMatrixState(),
     bomFormats: initialBomFormats,
     editing: {
       componentCode: null,
@@ -390,14 +391,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
       sharedNote: '',
       newSlotLabel: '',
     };
-    state.bomMatrix = {
-      locationKey: '',
-      swComponents: [],
-      total: 0,
-      limit: null,
-      isLoadingSwComponents: false,
-      lastError: null,
-    };
+    state.bomMatrix = buildDefaultBomMatrixState();
   };
 
   const addBomSlotLabel = (label) => {
