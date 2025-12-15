@@ -614,6 +614,7 @@ app.whenReady().then(async () => {
   ipcMain.handle('sw-menu:status', async () => swMenuService?.getStatus());
   ipcMain.handle('sw-menu:overview', async () => swMenuService?.getOverview());
   ipcMain.handle('sw-menu:suggestions', async () => swMenuService?.getComponentSuggestions());
+  ipcMain.handle('sw-menu:bom-matrix-sw-components', async (_event, query) => swMenuService?.getBomMatrixSwComponents(query));
   ipcMain.handle('sw-menu:upsert-component', async (_event, payload) => swMenuService?.upsertComponent(payload));
   ipcMain.handle('sw-menu:import-components', async (_event, csvText) => swMenuService?.importComponentsFromCsv(csvText));
   ipcMain.handle('sw-menu:record-flow', async (_event, payload) => swMenuService?.recordFlow(payload));
