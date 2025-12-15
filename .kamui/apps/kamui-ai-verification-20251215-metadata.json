@@ -1,0 +1,112 @@
+{
+  "title": "高性能PC導入によるAI検証",
+  "theme": "handwritten",
+  "description": "Ryzen AI 7 350 + RTX 5070 を用いたローカルAI基盤の検証報告スライド",
+  "slides": [
+    {
+      "id": 1,
+      "title": "高性能PC導入によるAI検証",
+      "subtitle": "ローカルAI基盤実現性確認",
+      "type": "title",
+      "imageUrl": "https://v3b.fal.media/files/b/0a865fb4/PxWVKn9S_8UtKRzSGXfhm.png",
+      "imagePrompt": "Japanese business presentation slide: 'High-Performance PC Introduction - AI Verification'. Handwritten style title slide with elegant typography. Features a sophisticated Ryzen AI 7 350 + RTX 5070 PC illustration in sketch-style. Subtle circuit pattern background. Professional yet creative handwritten aesthetic. Text: PC導入によるAI検証 (in handwriting). Color scheme: deep navy, cyan accents, warm gold highlights. High quality, clean composition.",
+      "order": 0
+    },
+    {
+      "id": 2,
+      "title": "PCスペック",
+      "subtitle": "検証用マシンの構成",
+      "type": "specification",
+      "imageUrl": "https://v3b.fal.media/files/b/0a865fb7/FayjPFTfZjqYvgdlvjlNW.png",
+      "imagePrompt": "Handwritten style technical specification slide. CPU: Ryzen AI 7 350, GPU: NVIDIA GeForce RTX 5070, RAM: 64GB DDR5. Display as hand-drawn boxes with specifications. Add small icons for each component (CPU chip, GPU core, RAM module). Sketch-style badges and checkmarks. Subtle grid background. Colors: navy blue, cyan tech highlights, warm accents. Handwriting font style.",
+      "order": 1
+    },
+    {
+      "id": 3,
+      "title": "検証概要",
+      "subtitle": "目的と前提条件",
+      "type": "overview",
+      "imageUrl": "https://v3b.fal.media/files/b/0a865fb8/tmAww2E5ehOsmH_tyy3R8.png",
+      "imagePrompt": "Handwritten presentation slide: '検証概要 - 目的と前提'. Hand-drawn bullet points and icons. Main purpose: Realization check of local AI infrastructure without cloud. Secondary objectives: Practical evaluation of chat support, summarization, code completion. LM Studio platform illustration. Sketch-style diagrams. Handwritten annotations. Colors: navy, cyan, gold accents.",
+      "order": 2
+    },
+    {
+      "id": 4,
+      "title": "検証環境・ツール",
+      "subtitle": "OS・ハードウェア・LM Studio",
+      "type": "environment",
+      "imageUrl": "https://v3b.fal.media/files/b/0a865fb8/v9d55x0qehz-i1sASfNZs.png",
+      "imagePrompt": "Handwritten technical environment slide. Shows LM Studio logo with hand-drawn architecture diagram. OS/Hardware section, LM Studio tools section, GGUF format model illustration. Hand-sketched boxes, arrows connecting components, handwritten labels. Gemma3 and gpt-oss-20B model icons. Sketch-style aesthetic. Colors: navy blue, cyan, warm gold for emphasis.",
+      "order": 3
+    },
+    {
+      "id": 5,
+      "title": "LM Studio設定",
+      "subtitle": "軽量・高品質モデル構成",
+      "type": "configuration",
+      "imageUrl": "https://v3b.fal.media/files/b/0a865fb8/-lTwVN3btChUKGlHpSv3_.png",
+      "imagePrompt": "Handwritten configuration slide. LM Studio settings display with hand-drawn boxes. Gemma3 model: lightweight, fast response. gpt-oss-20B: high quality, long Japanese text. Comparison table in handwriting style. Model download & management, Local inference, OpenAI compatible API icons. Sketch aesthetic with professional layout.",
+      "order": 4
+    },
+    {
+      "id": 6,
+      "title": "検証シナリオ",
+      "subtitle": "メール生成・要約・翻訳・API検証",
+      "type": "scenarios",
+      "imageUrl": "https://v3b.fal.media/files/b/0a865fb8/3UG0eVcY_giPDLzMVGPky.png",
+      "imagePrompt": "Handwritten slide showing 4 verification scenarios. 1) Email generation - envelope and pen icon sketch. 2) Email summarization - document with bullet points. 3) Japanese translation - language exchange icon. 4) API verification - server connection diagram. Each scenario hand-drawn with explanatory text. Handwritten style annotations. Colors: navy, cyan, warm accents.",
+      "order": 5
+    },
+    {
+      "id": 7,
+      "title": "結果サマリ：メール生成・要約",
+      "subtitle": "Gemma3 vs gpt-oss-20B 定性的評価",
+      "type": "results-1",
+      "imageUrl": "https://v3b.fal.media/files/b/0a865fb8/Am1YliBWuUIIQuC-1LAyj.png",
+      "imagePrompt": "Handwritten comparison slide. Results summary for email generation and summarization. Two-column layout: Gemma3 on left, gpt-oss-20B on right. Hand-sketched rating bars, checkmarks for strengths, stars for quality indicators. Email example snippets in light background boxes. Handwritten evaluation notes. Color: navy background, cyan/gold accents, warm highlight colors.",
+      "order": 6
+    },
+    {
+      "id": 8,
+      "title": "結果サマリ：翻訳・API",
+      "subtitle": "翻訳精度とAPI経由検証",
+      "type": "results-2",
+      "imageUrl": "https://v3b.fal.media/files/b/0a865fb8/k4hXmqQBlkDzMDwLpmuZx.png",
+      "imagePrompt": "Handwritten slide covering translation results and API verification. Japanese-English translation quality comparison. API compatibility diagram with OpenAI endpoint illustration. Hand-drawn checkmarks for success metrics, JSON structure examples in sketch boxes. Handwritten annotations for findings. Colors: navy, cyan API highlights, warm success indicators. Sketch style.",
+      "order": 7
+    },
+    {
+      "id": 9,
+      "title": "モデル別所感・総評",
+      "subtitle": "Gemma3は即時レスポンス、gpt-oss-20Bは高品質",
+      "type": "insights",
+      "imageUrl": "https://v3b.fal.media/files/b/0a865fb8/hbr1WnYMUdMqOUyChqih5.png",
+      "imagePrompt": "Handwritten summary slide presenting key insights. Gemma3: instant response, lightweight, suitable for daily tasks. gpt-oss-20B: high quality, better for critical decisions but resource-intensive. Hand-drawn comparison chart, lightning bolt for speed, crown/star for quality. Practical workflow diagram. Handwritten conclusion notes. Colors: navy, cyan, gold accents, warm highlights for emphasis.",
+      "order": 8
+    },
+    {
+      "id": 10,
+      "title": "リソース利用と運用上の注意",
+      "subtitle": "GPU/メモリ・ストレージ・セキュリティ",
+      "type": "operations",
+      "imageUrl": "https://v3b.fal.media/files/b/0a865fb8/gmOdFjLVN1umjFKlcTVFY.png",
+      "imagePrompt": "Handwritten operational guidelines slide. GPU/Memory management tips with hand-sketched monitoring charts. Storage requirements for model files illustration. Security & privacy: local-only processing diagram. Hand-drawn warning icons, checkmarks, resource graphs. Handwritten best practices annotations. Colors: navy, cyan technical elements, warm warning highlights.",
+      "order": 9
+    },
+    {
+      "id": 11,
+      "title": "今後の検討事項",
+      "subtitle": "RAG・複数ユーザー・モデル拡充・監視",
+      "type": "future",
+      "imageUrl": "https://v3b.fal.media/files/b/0a865fb8/Fi-81xKJRoTYTTuLK4WXc.png",
+      "imagePrompt": "Handwritten future roadmap slide. 4 main topics: RAG integration with hand-drawn database icons, Multi-user support network diagram, Model lineup expansion with different model type icons, Monitoring and logging dashboard sketch. Hand-drawn roadmap timeline with milestone markers. Handwritten annotations for each item. Colors: navy, cyan, gold, warm accent colors.",
+      "order": 10
+    }
+  ],
+  "imageReplacementGuide": {
+    "mcp": "t2i-kamui-fal-nano-banana-pro",
+    "workflow": "1. Generate each image using the imagePrompt (handwritten style enforced)",
+    "htmlStructure": "Each slide is a <div class='slide'> with <img src='[imageUrl]' alt='[title]'>",
+    "updateMethod": "Replace imageUrl placeholder-NNN with actual fal.media image URLs after MCP generation"
+  }
+}

@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>高性能PC導入によるAI検証</title>
+    <link rel="stylesheet" href="./kamui-os-intro-1732171200.css">
+</head>
+<body>
+    <div class="app">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-title">スライド一覧</div>
+                <div class="sidebar-actions">
+                    <button id="downloadAllBtn" aria-label="全スライドをダウンロード" title="全スライドをダウンロード">
+                        <span class="download-icon" aria-hidden="true"></span>
+                    </button>
+                    <button id="toggleSidebar" aria-label="サイドバーを折りたたむ" aria-expanded="true">
+                        <span class="chevron">◀</span>
+                    </button>
+                </div>
+            </div>
+            <p class="sidebar-caption">クリックでスライドへ移動</p>
+            <ul class="slide-list" id="slideList" aria-label="スライド一覧"></ul>
+        </aside>
+
+        <main class="slides-area">
+            <div class="progress">
+                <span id="slideNumber">1 / 11</span>
+            </div>
+
+            <div class="slide-container">
+                <!-- Slide 1: Title -->
+                <div class="slide active">
+                    <img src="https://v3b.fal.media/files/b/0a865fb4/PxWVKn9S_8UtKRzSGXfhm.png" alt="高性能PC導入によるAI検証">
+                </div>
+
+                <!-- Slide 2: PCスペック -->
+                <div class="slide">
+                    <img src="https://v3b.fal.media/files/b/0a865fb7/FayjPFTfZjqYvgdlvjlNW.png" alt="PCスペック">
+                </div>
+
+                <!-- Slide 3: 検証概要 -->
+                <div class="slide">
+                    <img src="https://v3b.fal.media/files/b/0a865fb8/tmAww2E5ehOsmH_tyy3R8.png" alt="検証概要">
+                </div>
+
+                <!-- Slide 4: 検証環境・ツール -->
+                <div class="slide">
+                    <img src="https://v3b.fal.media/files/b/0a865fb8/v9d55x0qehz-i1sASfNZs.png" alt="検証環境・ツール">
+                </div>
+
+                <!-- Slide 5: LM Studio設定 -->
+                <div class="slide">
+                    <img src="https://v3b.fal.media/files/b/0a865fb8/-lTwVN3btChUKGlHpSv3_.png" alt="LM Studio設定">
+                </div>
+
+                <!-- Slide 6: 検証シナリオ -->
+                <div class="slide">
+                    <img src="https://v3b.fal.media/files/b/0a865fb8/3UG0eVcY_giPDLzMVGPky.png" alt="検証シナリオ">
+                </div>
+
+                <!-- Slide 7: 結果サマリ（メール生成・要約） -->
+                <div class="slide">
+                    <img src="https://v3b.fal.media/files/b/0a865fb8/Am1YliBWuUIIQuC-1LAyj.png" alt="結果サマリ：メール生成・要約">
+                </div>
+
+                <!-- Slide 8: 結果サマリ（翻訳・API） -->
+                <div class="slide">
+                    <img src="https://v3b.fal.media/files/b/0a865fb8/k4hXmqQBlkDzMDwLpmuZx.png" alt="結果サマリ：翻訳・API">
+                </div>
+
+                <!-- Slide 9: モデル別所感・総評 -->
+                <div class="slide">
+                    <img src="https://v3b.fal.media/files/b/0a865fb8/hbr1WnYMUdMqOUyChqih5.png" alt="モデル別所感・総評">
+                </div>
+
+                <!-- Slide 10: リソース利用と運用上の注意 -->
+                <div class="slide">
+                    <img src="https://v3b.fal.media/files/b/0a865fb8/gmOdFjLVN1umjFKlcTVFY.png" alt="リソース利用と運用上の注意">
+                </div>
+
+                <!-- Slide 11: 今後の検討事項 -->
+                <div class="slide">
+                    <img src="https://v3b.fal.media/files/b/0a865fb8/Fi-81xKJRoTYTTuLK4WXc.png" alt="今後の検討事項">
+                </div>
+            </div>
+
+            <div class="navigation">
+                <button class="nav-btn" id="prevBtn">◀</button>
+                <button class="nav-btn" id="nextBtn">▶</button>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <script src="./kamui-os-intro-1732171200.js"></script>
+</body>
+</html>
