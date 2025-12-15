@@ -224,6 +224,7 @@
   display: grid;
   gap: 14px;
   overflow: auto;
+  align-content: start;
 }
 
 .sw-view-nav {
