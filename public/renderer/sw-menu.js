@@ -36,6 +36,14 @@ const buildDefaultComponentSearch = () => ({
   name: '',
   location: '',
 });
+const buildDefaultBomMatrixState = () => ({
+  locationKey: '',
+  swComponents: [],
+  total: 0,
+  limit: null,
+  isLoadingSwComponents: false,
+  lastError: null,
+});
 const normalizeSlotLabel = (value) => (value ?? '').toString().trim();
 const normalizeBomFormatLabels = (labels = []) => {
   const normalized = (Array.isArray(labels) ? labels : [])
@@ -239,6 +247,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
       },
       flow: { componentCode: '', quantity: '', status: 'in-stock', updatedBy: 'operator' },
     },
+    bomMatrix: buildDefaultBomMatrixState(),
     bomFormats: initialBomFormats,
     editing: {
       componentCode: null,
@@ -382,6 +391,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
       sharedNote: '',
       newSlotLabel: '',
     };
+    state.bomMatrix = buildDefaultBomMatrixState();
   };
 
   const addBomSlotLabel = (label) => {
@@ -755,6 +765,89 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     }
   };
 
+  let bomMatrixSwComponentsRequestId = 0;
+  let bomMatrixSwComponentsDebounceTimer = null;
+
+  const hydrateBomMatrixSwComponents = async (location, requestId) => {
+    const locationKey = normalizeTextQuery(location);
+    if (!locationKey) {
+      return;
+    }
+    if (!ensureBridge('getSwMenuBomMatrixSwComponents')) {
+      if (requestId !== bomMatrixSwComponentsRequestId) return;
+      state.bomMatrix = {
+        ...buildDefaultBomMatrixState(),
+        locationKey,
+        isLoadingSwComponents: false,
+        lastError: 'SW品番の取得ブリッジが利用できません',
+      };
+      render();
+      return;
+    }
+
+    try {
+      const result = await window.desktopBridge.getSwMenuBomMatrixSwComponents({ location });
+      if (requestId !== bomMatrixSwComponentsRequestId) return;
+      if (result?.ok) {
+        state.bomMatrix = {
+          ...buildDefaultBomMatrixState(),
+          locationKey,
+          swComponents: result.components ?? [],
+          total: result.total ?? 0,
+          limit: result.limit ?? null,
+          isLoadingSwComponents: false,
+          lastError: null,
+        };
+        return;
+      }
+      state.bomMatrix = {
+        ...buildDefaultBomMatrixState(),
+        locationKey,
+        isLoadingSwComponents: false,
+        lastError: result?.error || 'SW品番の取得に失敗しました',
+      };
+    } catch (error) {
+      if (requestId !== bomMatrixSwComponentsRequestId) return;
+      state.bomMatrix = {
+        ...buildDefaultBomMatrixState(),
+        locationKey,
+        isLoadingSwComponents: false,
+        lastError: error?.message || 'SW品番の取得中にエラーが発生しました',
+      };
+    } finally {
+      if (requestId === bomMatrixSwComponentsRequestId) {
+        render();
+      }
+    }
+  };
+
+  const scheduleBomMatrixSwComponentsHydration = (location) => {
+    if (bomMatrixSwComponentsDebounceTimer) {
+      clearTimeout(bomMatrixSwComponentsDebounceTimer);
+      bomMatrixSwComponentsDebounceTimer = null;
+    }
+
+    const locationKey = normalizeTextQuery(location);
+    const requestId = ++bomMatrixSwComponentsRequestId;
+
+    if (!locationKey) {
+      state.bomMatrix = buildDefaultBomMatrixState();
+      return;
+    }
+
+    state.bomMatrix = {
+      ...buildDefaultBomMatrixState(),
+      locationKey,
+      isLoadingSwComponents: true,
+      lastError: null,
+    };
+
+    bomMatrixSwComponentsDebounceTimer = setTimeout(() => {
+      bomMatrixSwComponentsDebounceTimer = null;
+      void hydrateBomMatrixSwComponents(location, requestId);
+    }, 250);
+  };
+
   const hydrate = async () => {
     state.view = DEFAULT_VIEW;
     resetComponentDraft({ keepRender: true });
@@ -968,6 +1061,12 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     if (!normalizedLocation) {
       return [];
     }
+    const bomMatrixActive = state.bomMatrix.locationKey === normalizedLocation;
+    if (bomMatrixActive && !state.bomMatrix.isLoadingSwComponents && !state.bomMatrix.lastError) {
+      const components = Array.isArray(state.bomMatrix.swComponents) ? state.bomMatrix.swComponents : [];
+      return [...components]
+        .sort((a, b) => (a?.code ?? '').localeCompare(b?.code ?? '', 'ja', { numeric: true, sensitivity: 'base' }));
+    }
     const components = Array.isArray(state.overview.components) ? state.overview.components : [];
     return components
       .filter((component) => (
@@ -1180,11 +1279,13 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     locationInput.setAttribute('list', locationList.id);
     locationInput.addEventListener('input', (event) => {
       setBomMatrixLocation(event.target.value);
+      scheduleBomMatrixSwComponentsHydration(event.target.value);
       render();
     });
     locationField.append(locationLabel, locationInput, locationList);
     const locationChips = buildSuggestionChips('場所/ライン候補', locationOptions, (value) => {
       setBomMatrixLocation(value);
+      scheduleBomMatrixSwComponentsHydration(value);
       render();
     });
     if (locationChips) {
@@ -1204,14 +1305,33 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
 
     syncBomMatrixSlots();
     const labels = getBomMatrixColumnLabels();
+    const activeLocationKey = normalizeTextQuery(state.drafts.bom.parentLocation);
+    const bomMatrixActive = activeLocationKey && state.bomMatrix.locationKey === activeLocationKey;
     const swComponents = getSwComponentsForSelectedLocation();
 
     if (!swComponents.length) {
       const empty = document.createElement('div');
       empty.className = 'sw-empty';
-      empty.textContent = '選択した場所/ラインに名称SWの品番がありません';
+      if (bomMatrixActive && state.bomMatrix.lastError) {
+        empty.textContent = state.bomMatrix.lastError;
+      } else if (bomMatrixActive && state.bomMatrix.isLoadingSwComponents) {
+        empty.textContent = 'SW品番を読み込み中...';
+      } else {
+        empty.textContent = '選択した場所/ラインに名称SWの品番がありません';
+      }
       form.append(empty);
       return form;
+    }
+
+    if (bomMatrixActive && !state.bomMatrix.isLoadingSwComponents) {
+      const limit = Number(state.bomMatrix.limit ?? 0);
+      const total = Number(state.bomMatrix.total ?? 0);
+      if (limit > 0 && total > limit) {
+        const notice = document.createElement('p');
+        notice.className = 'sw-bom-lead';
+        notice.textContent = `SW品番: ${swComponents.length}件表示 / ${total}件 (上限${limit}件)`;
+        form.append(notice);
+      }
     }
 
     const matrix = document.createElement('div');

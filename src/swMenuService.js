@@ -61,6 +61,7 @@ const TABLE_DEFINITIONS = [
 const COMPONENT_OVERVIEW_LIMIT = 1000;
 const COMPONENT_SEARCH_LIMIT = 500;
 const BOM_OVERVIEW_LIMIT = 12;
+const BOM_MATRIX_SW_COMPONENT_LIMIT = 5000;
 const FLOW_OVERVIEW_LIMIT = 20;
 const COMPONENT_SUGGESTION_LIMIT = 50;
 const LOCATION_NAME_SUGGESTION_LIMIT = COMPONENT_SUGGESTION_LIMIT * 5;
@@ -733,6 +734,53 @@ const createSwMenuService = (options = {}) => {
     }
   };
 
+  const getBomMatrixSwComponents = async (query = {}) => {
+    try {
+      const rawLocation = typeof query === 'string' ? query : (query?.location ?? '');
+      const location = rawLocation.toString().trim();
+      const normalizedLocation = location.toLowerCase();
+
+      if (!normalizedLocation) {
+        return { ok: true, hasQuery: false, location: '', components: [], total: 0, limit: BOM_MATRIX_SW_COMPONENT_LIMIT };
+      }
+
+      const data = await withConnection(async (conn) => {
+        const whereClause = "WHERE LOWER(TRIM(location)) = ? AND LOWER(TRIM(name)) = 'sw'";
+        const params = [normalizedLocation];
+
+        const [countResult, components] = await Promise.all([
+          conn.query(
+            `SELECT COUNT(*) AS total FROM sw_components ${whereClause}`,
+            params,
+          ),
+          conn.query(
+            `SELECT code, name, version, location, description, updated_at
+              FROM sw_components
+              ${whereClause}
+              ORDER BY code ASC
+              LIMIT ${BOM_MATRIX_SW_COMPONENT_LIMIT}`,
+            params,
+          ),
+        ]);
+
+        const total = Number(countResult?.[0]?.total ?? 0);
+        return { components, total };
+      });
+
+      return {
+        ok: true,
+        hasQuery: true,
+        location,
+        components: data.components,
+        total: data.total,
+        limit: BOM_MATRIX_SW_COMPONENT_LIMIT,
+      };
+    } catch (error) {
+      lastError = error?.message ?? 'BOM表に表示するSW品番の取得に失敗しました';
+      return normalizeError(error, 'get-bom-matrix-sw-components');
+    }
+  };
+
   const getStatus = () => ({
     ok: schemaReady && !lastError,
     ready: schemaReady,
@@ -757,6 +805,7 @@ const createSwMenuService = (options = {}) => {
     ensureSchema,
     getStatus,
     getOverview,
+    getBomMatrixSwComponents,
     searchComponents,
     getComponentSuggestions,
     upsertComponent,
