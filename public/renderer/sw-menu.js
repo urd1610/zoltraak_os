@@ -923,6 +923,20 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     return Array.from(locations);
   };
 
+  const getSwComponentsForSelectedLocation = () => {
+    const normalizedLocation = normalizeTextQuery(state.drafts.bom.parentLocation);
+    if (!normalizedLocation) {
+      return [];
+    }
+    const components = Array.isArray(state.overview.components) ? state.overview.components : [];
+    return components
+      .filter((component) => (
+        normalizeTextQuery(component?.location) === normalizedLocation
+        && normalizeTextQuery(component?.name) === 'sw'
+      ))
+      .sort((a, b) => (a?.code ?? '').localeCompare(b?.code ?? '', 'ja', { numeric: true, sensitivity: 'base' }));
+  };
+
   const getBomSlotNameSuggestions = () => {
     const names = new Set();
     const normalizedLocation = normalizeTextQuery(state.drafts.bom.parentLocation);
