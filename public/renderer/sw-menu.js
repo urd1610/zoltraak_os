@@ -233,6 +233,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
         parentName: '',
         formatLocation: DEFAULT_BOM_FORMAT_KEY,
         slots: buildBomSlotsFromLabels(initialBomLabels),
+        matrixCells: {},
         sharedNote: '',
         newSlotLabel: '',
       },
@@ -377,6 +378,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
       parentName: keepParent ? state.drafts.bom.parentName : '',
       formatLocation: formatKey,
       slots: buildBomSlotsFromLabels(labels),
+      matrixCells: {},
       sharedNote: '',
       newSlotLabel: '',
     };
@@ -574,13 +576,85 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     state.drafts.bom.slots = buildBomSlotsFromLabels(labels, state.drafts.bom.slots);
   };
 
+  const getBomMatrixCellValue = (parentCode, slotLabel) => {
+    const parentKey = normalizeSlotLabel(parentCode);
+    const labelKey = normalizeSlotLabel(slotLabel);
+    if (!parentKey || !labelKey) {
+      return '';
+    }
+    return state.drafts.bom.matrixCells?.[parentKey]?.[labelKey] ?? '';
+  };
+
+  const setBomMatrixCellValue = (parentCode, slotLabel, value) => {
+    const parentKey = normalizeSlotLabel(parentCode);
+    const labelKey = normalizeSlotLabel(slotLabel);
+    if (!parentKey || !labelKey) {
+      return;
+    }
+    if (!state.drafts.bom.matrixCells || typeof state.drafts.bom.matrixCells !== 'object') {
+      state.drafts.bom.matrixCells = {};
+    }
+    if (!state.drafts.bom.matrixCells[parentKey] || typeof state.drafts.bom.matrixCells[parentKey] !== 'object') {
+      state.drafts.bom.matrixCells[parentKey] = {};
+    }
+    state.drafts.bom.matrixCells[parentKey][labelKey] = (value ?? '').toString();
+  };
+
+  const buildBomMatrixPayloads = () => {
+    if (!normalizeSlotLabel(state.drafts.bom.parentLocation)) {
+      throw new Error('場所/ラインを選択してください');
+    }
+
+    const swComponents = getSwComponentsForSelectedLocation();
+    if (!swComponents.length) {
+      throw new Error('選択した場所/ラインに名称SWの親品番がありません');
+    }
+
+    syncBomMatrixSlots();
+    const labels = getBomMatrixColumnLabels();
+    const sharedNote = normalizeSlotLabel(state.drafts.bom.sharedNote);
+
+    const payloads = [];
+    swComponents.forEach((swComponent) => {
+      const parentCode = (swComponent?.code ?? '').toString().trim();
+      if (!parentCode) {
+        return;
+      }
+      labels.forEach((labelText) => {
+        const slotLabel = normalizeSlotLabel(labelText);
+        if (!slotLabel) {
+          return;
+        }
+        const rawChild = getBomMatrixCellValue(parentCode, slotLabel);
+        const childCode = resolveComponentCode(rawChild, state.drafts.bom.parentLocation);
+        if (!childCode) {
+          return;
+        }
+        const noteParts = [slotLabel, sharedNote].filter(Boolean);
+        payloads.push({
+          parentCode,
+          childCode,
+          quantity: 1,
+          note: noteParts.join(' / ') || slotLabel,
+        });
+      });
+    });
+
+    return payloads;
+  };
+
   const resetBomMatrixValues = () => {
-    state.drafts.bom.slots = (state.drafts.bom.slots ?? []).map((slot) => ({
-      ...slot,
-      childCode: '',
-      quantity: '1',
-      note: '',
-    }));
+    const swComponents = getSwComponentsForSelectedLocation();
+    const matrixCells = state.drafts.bom.matrixCells;
+    if (matrixCells && typeof matrixCells === 'object') {
+      swComponents.forEach((swComponent) => {
+        const parentKey = normalizeSlotLabel(swComponent?.code);
+        if (!parentKey) {
+          return;
+        }
+        delete matrixCells[parentKey];
+      });
+    }
     state.drafts.bom.sharedNote = '';
     state.drafts.bom.newSlotLabel = '';
   };
@@ -763,41 +837,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     state.flags.isSavingBom = true;
     render();
     try {
-      if (!normalizeSlotLabel(state.drafts.bom.parentLocation)) {
-        throw new Error('場所/ラインを選択してください');
-      }
-      const parentCode = resolveComponentCode(
-        state.drafts.bom.parentCode || 'SW',
-        state.drafts.bom.parentLocation,
-      );
-      if (!parentCode) {
-        throw new Error('親品番を選択してください');
-      }
-      if (normalizeTextQuery(state.drafts.bom.parentCode || 'SW') === 'sw') {
-        const normalizedLocation = normalizeTextQuery(state.drafts.bom.parentLocation);
-        const hasSwParent = (state.overview.components ?? []).some((component) => (
-          normalizeTextQuery(component.name) === 'sw'
-          && normalizeTextQuery(component.location) === normalizedLocation
-        ));
-        if (!hasSwParent) {
-          throw new Error('選択した場所/ラインに名称SWの親品番がありません');
-        }
-      }
-      const payloads = (state.drafts.bom.slots ?? [])
-        .map((slot) => {
-          const noteParts = [
-            normalizeSlotLabel(slot.label),
-            normalizeSlotLabel(slot.note),
-            normalizeSlotLabel(state.drafts.bom.sharedNote),
-          ].filter(Boolean);
-          return {
-            parentCode,
-            childCode: resolveComponentCode(slot.childCode, state.drafts.bom.parentLocation),
-            quantity: Number(slot.quantity) > 0 ? Number(slot.quantity) : 1,
-            note: noteParts.join(' / ') || normalizeSlotLabel(slot.label),
-          };
-        })
-        .filter((slot) => slot.childCode);
+      const payloads = buildBomMatrixPayloads();
       if (!payloads.length) {
         throw new Error('装備する子品番を1つ以上選択してください');
       }
@@ -921,6 +961,20 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     (state.overview.components ?? []).forEach((component) => addLocation(component?.location));
     addLocation(state.drafts.bom.parentLocation);
     return Array.from(locations);
+  };
+
+  const getSwComponentsForSelectedLocation = () => {
+    const normalizedLocation = normalizeTextQuery(state.drafts.bom.parentLocation);
+    if (!normalizedLocation) {
+      return [];
+    }
+    const components = Array.isArray(state.overview.components) ? state.overview.components : [];
+    return components
+      .filter((component) => (
+        normalizeTextQuery(component?.location) === normalizedLocation
+        && normalizeTextQuery(component?.name) === 'sw'
+      ))
+      .sort((a, b) => (a?.code ?? '').localeCompare(b?.code ?? '', 'ja', { numeric: true, sensitivity: 'base' }));
   };
 
   const getBomSlotNameSuggestions = () => {
@@ -1150,8 +1204,15 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
 
     syncBomMatrixSlots();
     const labels = getBomMatrixColumnLabels();
-    const slots = state.drafts.bom.slots ?? [];
-    const slotsByLabel = new Map(slots.map((slot) => [normalizeSlotLabel(slot.label), slot]));
+    const swComponents = getSwComponentsForSelectedLocation();
+
+    if (!swComponents.length) {
+      const empty = document.createElement('div');
+      empty.className = 'sw-empty';
+      empty.textContent = '選択した場所/ラインに名称SWの品番がありません';
+      form.append(empty);
+      return form;
+    }
 
     const matrix = document.createElement('div');
     matrix.className = 'sw-bom-matrix';
@@ -1163,6 +1224,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     const headRow = document.createElement('tr');
     const corner = document.createElement('th');
     corner.className = 'sw-bom-matrix__corner';
+    corner.textContent = 'SW';
     headRow.append(corner);
     labels.forEach((labelText) => {
       const th = document.createElement('th');
@@ -1173,49 +1235,58 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     table.append(thead);
 
     const tbody = document.createElement('tbody');
-    const bodyRow = document.createElement('tr');
-    const rowHeader = document.createElement('th');
-    rowHeader.className = 'sw-bom-matrix__row-header';
-    rowHeader.textContent = 'SW';
-    bodyRow.append(rowHeader);
 
-    labels.forEach((labelText) => {
-      const key = normalizeSlotLabel(labelText);
-      const slot = slotsByLabel.get(key);
-      const cell = document.createElement('td');
-      const input = document.createElement('input');
-      input.type = 'text';
-      input.placeholder = `${labelText}の品番`;
-      input.value = slot?.childCode ?? '';
+    swComponents.forEach((swComponent) => {
+      const parentCode = (swComponent?.code ?? '').toString().trim();
+      if (!parentCode) {
+        return;
+      }
 
-      const datalist = document.createElement('datalist');
-      const listId = `sw-bom-matrix-${key}-codes`;
-      datalist.id = listId;
+      const bodyRow = document.createElement('tr');
+      const rowHeader = document.createElement('th');
+      rowHeader.className = 'sw-bom-matrix__row-header';
+      const version = normalizeSlotLabel(swComponent?.version);
+      rowHeader.textContent = version ? `${parentCode} (${version})` : parentCode;
+      bodyRow.append(rowHeader);
 
-      const renderSuggestions = (keyword) => {
-        const suggestions = getBomCodeSuggestions(keyword);
-        datalist.replaceChildren();
-        suggestions.forEach((item) => {
-          const option = document.createElement('option');
-          option.value = item.code;
-          option.label = item.name || item.code;
-          datalist.append(option);
+      labels.forEach((labelText) => {
+        const key = normalizeSlotLabel(labelText);
+        const parentKey = normalizeSlotLabel(parentCode);
+        const cell = document.createElement('td');
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.placeholder = `${labelText}の品番`;
+        input.value = getBomMatrixCellValue(parentCode, labelText);
+
+        const datalist = document.createElement('datalist');
+        const listId = `sw-bom-matrix-${parentKey || 'sw'}-${key}-codes`;
+        datalist.id = listId;
+
+        const renderSuggestions = (keyword) => {
+          const suggestions = getBomCodeSuggestions(keyword);
+          datalist.replaceChildren();
+          suggestions.forEach((item) => {
+            const option = document.createElement('option');
+            option.value = item.code;
+            option.label = item.name || item.code;
+            datalist.append(option);
+          });
+        };
+
+        renderSuggestions(input.value || labelText);
+        input.setAttribute('list', listId);
+        input.addEventListener('input', (event) => {
+          setBomMatrixCellValue(parentCode, labelText, event.target.value);
+          renderSuggestions(event.target.value || labelText);
         });
-      };
 
-      renderSuggestions(input.value || labelText);
-      input.setAttribute('list', listId);
-      input.addEventListener('input', (event) => {
-        if (slot) {
-          updateBomSlotField(slot.id, 'childCode', event.target.value);
-        }
+        cell.append(input, datalist);
+        bodyRow.append(cell);
       });
 
-      cell.append(input, datalist);
-      bodyRow.append(cell);
+      tbody.append(bodyRow);
     });
 
-    tbody.append(bodyRow);
     table.append(tbody);
     matrix.append(table);
     form.append(matrix);
