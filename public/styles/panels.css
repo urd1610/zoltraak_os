@@ -718,16 +718,26 @@
 }
 
 .sw-bom-matrix__table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
   background: rgba(110, 231, 255, 0.06);
   font-weight: 700;
 }
 
 .sw-bom-matrix__corner {
-  background: transparent;
+  position: sticky;
+  top: 0;
+  left: 0;
+  z-index: 3;
+  background: rgba(110, 231, 255, 0.06);
   border-right: 1px solid rgba(110, 231, 255, 0.12);
 }
 
 .sw-bom-matrix__row-header {
+  position: sticky;
+  left: 0;
+  z-index: 1;
   background: rgba(255, 255, 255, 0.05);
   font-weight: 700;
 }
