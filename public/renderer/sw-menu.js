@@ -1061,6 +1061,12 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     if (!normalizedLocation) {
       return [];
     }
+    const bomMatrixActive = state.bomMatrix.locationKey === normalizedLocation;
+    if (bomMatrixActive && !state.bomMatrix.isLoadingSwComponents && !state.bomMatrix.lastError) {
+      const components = Array.isArray(state.bomMatrix.swComponents) ? state.bomMatrix.swComponents : [];
+      return [...components]
+        .sort((a, b) => (a?.code ?? '').localeCompare(b?.code ?? '', 'ja', { numeric: true, sensitivity: 'base' }));
+    }
     const components = Array.isArray(state.overview.components) ? state.overview.components : [];
     return components
       .filter((component) => (
