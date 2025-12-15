@@ -239,6 +239,14 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
       },
       flow: { componentCode: '', quantity: '', status: 'in-stock', updatedBy: 'operator' },
     },
+    bomMatrix: {
+      locationKey: '',
+      swComponents: [],
+      total: 0,
+      limit: null,
+      isLoadingSwComponents: false,
+      lastError: null,
+    },
     bomFormats: initialBomFormats,
     editing: {
       componentCode: null,
@@ -381,6 +389,14 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
       matrixCells: {},
       sharedNote: '',
       newSlotLabel: '',
+    };
+    state.bomMatrix = {
+      locationKey: '',
+      swComponents: [],
+      total: 0,
+      limit: null,
+      isLoadingSwComponents: false,
+      lastError: null,
     };
   };
 
