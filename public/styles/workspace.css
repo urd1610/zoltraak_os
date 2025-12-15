@@ -125,10 +125,11 @@
 .sw-menu-surface {
   position: absolute;
   inset: 0;
-  z-index: 0;
+  z-index: 2;
   display: flex;
-  justify-content: center;
-  padding: 12px 12px 16px;
+  justify-content: flex-start;
+  align-items: stretch;
+  padding: 0;
   opacity: 0;
   pointer-events: none;
   background: radial-gradient(circle at 12% 18%, rgba(59, 130, 246, 0.16), transparent 38%),
@@ -149,15 +150,18 @@
 .sw-menu-surface__inner {
   position: relative;
   z-index: 1;
-  width: min(1200px, 100%);
-  max-height: calc(100% - 12px);
-  margin: 4px auto;
-  padding: 18px;
-  overflow: hidden auto;
-  border-radius: 18px;
+  width: 100%;
+  height: 100%;
+  max-height: 100%;
+  margin: 0;
+  padding: 12px;
+  overflow: hidden;
+  border-radius: 0;
+  display: flex;
+  flex-direction: column;
   background: linear-gradient(180deg, rgba(8, 12, 24, 0.88), rgba(7, 11, 22, 0.94));
   border: 1px solid rgba(110, 231, 255, 0.12);
-  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.5);
+  box-shadow: none;
   backdrop-filter: blur(18px);
 }
 
@@ -214,9 +218,12 @@
 }
 
 .sw-menu-surface__grid {
+  flex: 1;
+  min-height: 0;
   margin-top: 14px;
   display: grid;
   gap: 14px;
+  overflow: auto;
 }
 
 .sw-view-nav {
