@@ -1279,11 +1279,13 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     locationInput.setAttribute('list', locationList.id);
     locationInput.addEventListener('input', (event) => {
       setBomMatrixLocation(event.target.value);
+      scheduleBomMatrixSwComponentsHydration(event.target.value);
       render();
     });
     locationField.append(locationLabel, locationInput, locationList);
     const locationChips = buildSuggestionChips('場所/ライン候補', locationOptions, (value) => {
       setBomMatrixLocation(value);
+      scheduleBomMatrixSwComponentsHydration(value);
       render();
     });
     if (locationChips) {
@@ -1303,14 +1305,33 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
 
     syncBomMatrixSlots();
     const labels = getBomMatrixColumnLabels();
+    const activeLocationKey = normalizeTextQuery(state.drafts.bom.parentLocation);
+    const bomMatrixActive = activeLocationKey && state.bomMatrix.locationKey === activeLocationKey;
     const swComponents = getSwComponentsForSelectedLocation();
 
     if (!swComponents.length) {
       const empty = document.createElement('div');
       empty.className = 'sw-empty';
-      empty.textContent = '選択した場所/ラインに名称SWの品番がありません';
+      if (bomMatrixActive && state.bomMatrix.lastError) {
+        empty.textContent = state.bomMatrix.lastError;
+      } else if (bomMatrixActive && state.bomMatrix.isLoadingSwComponents) {
+        empty.textContent = 'SW品番を読み込み中...';
+      } else {
+        empty.textContent = '選択した場所/ラインに名称SWの品番がありません';
+      }
       form.append(empty);
       return form;
+    }
+
+    if (bomMatrixActive && !state.bomMatrix.isLoadingSwComponents) {
+      const limit = Number(state.bomMatrix.limit ?? 0);
+      const total = Number(state.bomMatrix.total ?? 0);
+      if (limit > 0 && total > limit) {
+        const notice = document.createElement('p');
+        notice.className = 'sw-bom-lead';
+        notice.textContent = `SW品番: ${swComponents.length}件表示 / ${total}件 (上限${limit}件)`;
+        form.append(notice);
+      }
     }
 
     const matrix = document.createElement('div');
