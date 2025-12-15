@@ -765,6 +765,89 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     }
   };
 
+  let bomMatrixSwComponentsRequestId = 0;
+  let bomMatrixSwComponentsDebounceTimer = null;
+
+  const hydrateBomMatrixSwComponents = async (location, requestId) => {
+    const locationKey = normalizeTextQuery(location);
+    if (!locationKey) {
+      return;
+    }
+    if (!ensureBridge('getSwMenuBomMatrixSwComponents')) {
+      if (requestId !== bomMatrixSwComponentsRequestId) return;
+      state.bomMatrix = {
+        ...buildDefaultBomMatrixState(),
+        locationKey,
+        isLoadingSwComponents: false,
+        lastError: 'SW品番の取得ブリッジが利用できません',
+      };
+      render();
+      return;
+    }
+
+    try {
+      const result = await window.desktopBridge.getSwMenuBomMatrixSwComponents({ location });
+      if (requestId !== bomMatrixSwComponentsRequestId) return;
+      if (result?.ok) {
+        state.bomMatrix = {
+          ...buildDefaultBomMatrixState(),
+          locationKey,
+          swComponents: result.components ?? [],
+          total: result.total ?? 0,
+          limit: result.limit ?? null,
+          isLoadingSwComponents: false,
+          lastError: null,
+        };
+        return;
+      }
+      state.bomMatrix = {
+        ...buildDefaultBomMatrixState(),
+        locationKey,
+        isLoadingSwComponents: false,
+        lastError: result?.error || 'SW品番の取得に失敗しました',
+      };
+    } catch (error) {
+      if (requestId !== bomMatrixSwComponentsRequestId) return;
+      state.bomMatrix = {
+        ...buildDefaultBomMatrixState(),
+        locationKey,
+        isLoadingSwComponents: false,
+        lastError: error?.message || 'SW品番の取得中にエラーが発生しました',
+      };
+    } finally {
+      if (requestId === bomMatrixSwComponentsRequestId) {
+        render();
+      }
+    }
+  };
+
+  const scheduleBomMatrixSwComponentsHydration = (location) => {
+    if (bomMatrixSwComponentsDebounceTimer) {
+      clearTimeout(bomMatrixSwComponentsDebounceTimer);
+      bomMatrixSwComponentsDebounceTimer = null;
+    }
+
+    const locationKey = normalizeTextQuery(location);
+    const requestId = ++bomMatrixSwComponentsRequestId;
+
+    if (!locationKey) {
+      state.bomMatrix = buildDefaultBomMatrixState();
+      return;
+    }
+
+    state.bomMatrix = {
+      ...buildDefaultBomMatrixState(),
+      locationKey,
+      isLoadingSwComponents: true,
+      lastError: null,
+    };
+
+    bomMatrixSwComponentsDebounceTimer = setTimeout(() => {
+      bomMatrixSwComponentsDebounceTimer = null;
+      void hydrateBomMatrixSwComponents(location, requestId);
+    }, 250);
+  };
+
   const hydrate = async () => {
     state.view = DEFAULT_VIEW;
     resetComponentDraft({ keepRender: true });
