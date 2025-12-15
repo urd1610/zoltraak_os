@@ -600,6 +600,49 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     state.drafts.bom.matrixCells[parentKey][labelKey] = (value ?? '').toString();
   };
 
+  const buildBomMatrixPayloads = () => {
+    if (!normalizeSlotLabel(state.drafts.bom.parentLocation)) {
+      throw new Error('場所/ラインを選択してください');
+    }
+
+    const swComponents = getSwComponentsForSelectedLocation();
+    if (!swComponents.length) {
+      throw new Error('選択した場所/ラインに名称SWの親品番がありません');
+    }
+
+    syncBomMatrixSlots();
+    const labels = getBomMatrixColumnLabels();
+    const sharedNote = normalizeSlotLabel(state.drafts.bom.sharedNote);
+
+    const payloads = [];
+    swComponents.forEach((swComponent) => {
+      const parentCode = (swComponent?.code ?? '').toString().trim();
+      if (!parentCode) {
+        return;
+      }
+      labels.forEach((labelText) => {
+        const slotLabel = normalizeSlotLabel(labelText);
+        if (!slotLabel) {
+          return;
+        }
+        const rawChild = getBomMatrixCellValue(parentCode, slotLabel);
+        const childCode = resolveComponentCode(rawChild, state.drafts.bom.parentLocation);
+        if (!childCode) {
+          return;
+        }
+        const noteParts = [slotLabel, sharedNote].filter(Boolean);
+        payloads.push({
+          parentCode,
+          childCode,
+          quantity: 1,
+          note: noteParts.join(' / ') || slotLabel,
+        });
+      });
+    });
+
+    return payloads;
+  };
+
   const resetBomMatrixValues = () => {
     state.drafts.bom.slots = (state.drafts.bom.slots ?? []).map((slot) => ({
       ...slot,
