@@ -644,12 +644,17 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
   };
 
   const resetBomMatrixValues = () => {
-    state.drafts.bom.slots = (state.drafts.bom.slots ?? []).map((slot) => ({
-      ...slot,
-      childCode: '',
-      quantity: '1',
-      note: '',
-    }));
+    const swComponents = getSwComponentsForSelectedLocation();
+    const matrixCells = state.drafts.bom.matrixCells;
+    if (matrixCells && typeof matrixCells === 'object') {
+      swComponents.forEach((swComponent) => {
+        const parentKey = normalizeSlotLabel(swComponent?.code);
+        if (!parentKey) {
+          return;
+        }
+        delete matrixCells[parentKey];
+      });
+    }
     state.drafts.bom.sharedNote = '';
     state.drafts.bom.newSlotLabel = '';
   };
