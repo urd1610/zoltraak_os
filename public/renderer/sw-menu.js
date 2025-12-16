@@ -2307,13 +2307,19 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     leftColumn.className = 'sw-column';
     leftColumn.append(
       buildSection('接続ステータス', buildStatusGrid()),
-      buildList('流動数（最新）', state.overview.flows, buildFlowRow, '流動数はまだ登録されていません'),
+      buildList(
+        '流動数（最新）',
+        state.overview.flows,
+        buildFlowRow,
+        '流動数はまだ登録されていません',
+        { scroll: true },
+      ),
     );
 
     const rightColumn = document.createElement('div');
     rightColumn.className = 'sw-column';
     rightColumn.append(
-      buildSection('流動数を登録', buildFlowForm()),
+      buildSection('流動数を登録', buildFlowForm(), { scroll: true }),
       buildList(
         '参照用: 構成（最新）',
         (state.overview.components ?? []).slice(0, 5),
