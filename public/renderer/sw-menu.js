@@ -2343,7 +2343,6 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     const leftColumn = document.createElement('div');
     leftColumn.className = 'sw-column';
     leftColumn.append(
-      buildSection('接続ステータス', buildStatusGrid()),
       buildList(
         '品番一覧',
         filteredComponents,
