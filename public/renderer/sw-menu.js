@@ -2392,7 +2392,6 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     const leftColumn = document.createElement('div');
     leftColumn.className = 'sw-column';
     leftColumn.append(
-      buildSection('接続ステータス', buildStatusGrid()),
       buildList(
         '流動数（最新）',
         state.overview.flows,
