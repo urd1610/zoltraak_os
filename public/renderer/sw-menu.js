@@ -1427,7 +1427,27 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
   const buildBomForm = () => {
     const form = document.createElement('form');
     form.className = 'sw-form sw-form--bom-matrix';
-    form.addEventListener('submit', submitBom);
+
+    const bomMatrixSubmitHotkeyState = { lastEnterAt: 0, isCtrlEnter: false };
+    form.addEventListener(
+      'keydown',
+      (event) => {
+        if (event.key !== 'Enter' || event.isComposing) {
+          return;
+        }
+        bomMatrixSubmitHotkeyState.lastEnterAt = Date.now();
+        bomMatrixSubmitHotkeyState.isCtrlEnter = event.ctrlKey;
+      },
+      true,
+    );
+    form.addEventListener('submit', (event) => {
+      const isRecentEnter = Date.now() - bomMatrixSubmitHotkeyState.lastEnterAt < 100;
+      if (isRecentEnter && !bomMatrixSubmitHotkeyState.isCtrlEnter) {
+        event.preventDefault();
+        return;
+      }
+      submitBom(event);
+    });
 
     const lead = document.createElement('p');
     lead.className = 'sw-bom-lead';
@@ -1647,7 +1667,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     submitButton.type = 'submit';
     submitButton.className = 'primary';
     submitButton.disabled = state.flags.isSavingBom;
-    submitButton.textContent = state.flags.isSavingBom ? '登録中…' : 'BOMを登録';
+    submitButton.textContent = state.flags.isSavingBom ? '登録中…' : 'BOMを登録（Ctrl+Enter）';
     actions.append(resetButton, submitButton);
     form.append(actions);
 
