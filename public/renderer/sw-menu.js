@@ -1485,11 +1485,42 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     const headRow = document.createElement('tr');
     const corner = document.createElement('th');
     corner.className = 'sw-bom-matrix__corner';
-    corner.textContent = 'SW';
+    const cornerHeader = document.createElement('div');
+    cornerHeader.className = 'sw-bom-matrix__header';
+    const swFilterInput = document.createElement('input');
+    swFilterInput.id = 'sw-bom-matrix-filter-sw';
+    swFilterInput.type = 'text';
+    swFilterInput.placeholder = 'SW検索';
+    swFilterInput.value = getBomMatrixSwFilter();
+    swFilterInput.addEventListener('input', (event) => {
+      setBomMatrixSwFilter(event.target.value);
+      render();
+    });
+    const cornerLabel = document.createElement('div');
+    cornerLabel.className = 'sw-bom-matrix__header-label';
+    cornerLabel.textContent = 'SW';
+    cornerHeader.append(swFilterInput, cornerLabel);
+    corner.append(cornerHeader);
     headRow.append(corner);
-    labels.forEach((labelText) => {
+    labels.forEach((labelText, index) => {
       const th = document.createElement('th');
-      th.textContent = labelText;
+      const header = document.createElement('div');
+      header.className = 'sw-bom-matrix__header';
+      const filterInput = document.createElement('input');
+      const labelKey = normalizeSlotLabel(labelText);
+      filterInput.id = `sw-bom-matrix-filter-${index}-${encodeURIComponent(labelKey || 'col')}`;
+      filterInput.type = 'text';
+      filterInput.placeholder = '検索';
+      filterInput.value = getBomMatrixColumnFilter(labelText);
+      filterInput.addEventListener('input', (event) => {
+        setBomMatrixColumnFilter(labelText, event.target.value);
+        render();
+      });
+      const label = document.createElement('div');
+      label.className = 'sw-bom-matrix__header-label';
+      label.textContent = labelText;
+      header.append(filterInput, label);
+      th.append(header);
       headRow.append(th);
     });
     thead.append(headRow);
