@@ -734,6 +734,42 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     }
   };
 
+  const getBomMatrixActiveFilterQueries = (labels = []) => {
+    const swQuery = normalizeCodeQuery(getBomMatrixSwFilter());
+    const columnQueries = (Array.isArray(labels) ? labels : []).reduce((acc, labelText) => {
+      const query = normalizeCodeQuery(getBomMatrixColumnFilter(labelText));
+      if (query) {
+        acc.push({ labelText, query });
+      }
+      return acc;
+    }, []);
+    return { swQuery, columnQueries };
+  };
+
+  const filterBomMatrixSwComponents = (swComponents = [], labels = []) => {
+    const { swQuery, columnQueries } = getBomMatrixActiveFilterQueries(labels);
+    if (!swQuery && !columnQueries.length) {
+      return swComponents;
+    }
+    const source = Array.isArray(swComponents) ? swComponents : [];
+    return source.filter((swComponent) => {
+      const parentCode = (swComponent?.code ?? '').toString().trim();
+      if (!parentCode) {
+        return false;
+      }
+      if (swQuery && !normalizeCodeQuery(parentCode).includes(swQuery)) {
+        return false;
+      }
+      for (const { labelText, query } of columnQueries) {
+        const value = getBomMatrixCellValue(parentCode, labelText);
+        if (!normalizeCodeQuery(value).includes(query)) {
+          return false;
+        }
+      }
+      return true;
+    });
+  };
+
   const buildBomMatrixPayloads = () => {
     if (!normalizeSlotLabel(state.drafts.bom.parentLocation)) {
       throw new Error('場所/ラインを選択してください');
