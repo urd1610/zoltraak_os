@@ -519,18 +519,11 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
       !hasSlotLabelFilter || normalizeTextQuery(value).includes(normalizedSlotLabel)
     );
 
-    let componentCandidates = components;
-    if (shouldFilterByContext) {
-      componentCandidates = components.filter((component) => (
+    const componentCandidates = shouldFilterByContext
+      ? components.filter((component) => (
         matchesLocation(component?.location) && matchesSlotLabel(component?.name)
-      ));
-      if (!componentCandidates.length && hasLocationFilter) {
-        componentCandidates = components.filter((component) => matchesLocation(component?.location));
-      }
-      if (!componentCandidates.length && !hasLocationFilter && hasSlotLabelFilter) {
-        componentCandidates = components;
-      }
-    }
+      ))
+      : components;
 
     componentCandidates.forEach((item) => addCode(item.code, item.name));
 
@@ -569,19 +562,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
         return true;
       };
 
-      let bomCandidates = boms;
-      if (shouldFilterByContext) {
-        bomCandidates = boms.filter(bomMatchesContext);
-        if (!bomCandidates.length && swParentCodeKeys) {
-          bomCandidates = boms.filter((bom) => {
-            const parentKey = normalizeCodeQuery(bom?.parent_code);
-            return parentKey && swParentCodeKeys.has(parentKey);
-          });
-        }
-        if (!bomCandidates.length && !hasLocationFilter) {
-          bomCandidates = boms;
-        }
-      }
+      const bomCandidates = shouldFilterByContext ? boms.filter(bomMatchesContext) : boms;
 
       bomCandidates.forEach((bom) => {
         if (hasSlotLabelFilter) {
