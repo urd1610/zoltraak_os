@@ -703,6 +703,7 @@
 
 .sw-form--bom-matrix {
   gap: 14px;
+  align-content: start;
 }
 
 .sw-bom-row--matrix {
