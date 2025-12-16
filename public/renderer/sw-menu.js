@@ -140,7 +140,8 @@ const buildStatusRow = (label, value, type) => {
 const buildList = (title, items, renderItem, emptyText = 'データがありません', options = {}) => {
   const section = document.createElement('div');
   section.className = 'sw-section';
-  const { headerContent = null, beforeList = null } = options || {};
+  const { headerContent = null, beforeList = null, scroll = false } = options || {};
+  section.classList.toggle('sw-section--scroll', Boolean(scroll));
 
   const header = document.createElement('div');
   header.className = 'sw-section-header';
@@ -151,6 +152,9 @@ const buildList = (title, items, renderItem, emptyText = 'データがありま�
   if (headerContent) {
     header.append(headerContent);
   }
+
+  const body = document.createElement('div');
+  body.className = 'sw-section-body';
 
   const list = document.createElement('div');
   list.className = 'sw-list';
@@ -168,7 +172,8 @@ const buildList = (title, items, renderItem, emptyText = 'データがありま�
   }
 
   const beforeItems = Array.isArray(beforeList) ? beforeList.filter(Boolean) : beforeList ? [beforeList] : [];
-  section.append(header, ...beforeItems, list);
+  body.append(...beforeItems, list);
+  section.append(header, body);
   return section;
 };
 
