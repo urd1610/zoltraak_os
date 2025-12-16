@@ -180,8 +180,9 @@ const buildList = (title, items, renderItem, emptyText = 'データがありま�
 const buildSection = (title, content, options = {}) => {
   const section = document.createElement('div');
   section.className = 'sw-section';
-  const { scroll = false } = options || {};
+  const { scroll = false, fill = false } = options || {};
   section.classList.toggle('sw-section--scroll', Boolean(scroll));
+  section.classList.toggle('sw-section--fill', Boolean(fill));
   const header = document.createElement('div');
   header.className = 'sw-section-header';
   const heading = document.createElement('div');
