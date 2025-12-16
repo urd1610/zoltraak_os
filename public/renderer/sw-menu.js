@@ -1465,7 +1465,10 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
         datalist.id = listId;
 
         const renderSuggestions = (keyword) => {
-          const suggestions = getBomCodeSuggestions(keyword);
+          const suggestions = getBomCodeSuggestions(keyword, {
+            location: state.drafts.bom.parentLocation,
+            slotLabel: labelText,
+          });
           datalist.replaceChildren();
           suggestions.forEach((item) => {
             const option = document.createElement('option');
@@ -1475,11 +1478,11 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
           });
         };
 
-        renderSuggestions(input.value || labelText);
+        renderSuggestions(input.value);
         input.setAttribute('list', listId);
         input.addEventListener('input', (event) => {
           setBomMatrixCellValue(parentCode, labelText, event.target.value);
-          renderSuggestions(event.target.value || labelText);
+          renderSuggestions(event.target.value);
         });
 
         cell.append(input, datalist);
