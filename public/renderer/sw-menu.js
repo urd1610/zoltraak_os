@@ -2287,7 +2287,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
         buildComponentForm(),
         { scroll: true, fill: true },
       ),
-      buildSection('CSVで一括登録', buildComponentImportPanel()),
+      buildSection('CSVで一括登録', buildComponentImportPanel(), { scroll: true }),
     );
 
     layout.append(leftColumn, rightColumn);
