@@ -2380,7 +2380,6 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     const layout = document.createElement('div');
     layout.className = 'sw-column';
     layout.append(
-      buildSection('接続ステータス', buildStatusGrid()),
       buildSection('SW BOM表を編集', buildBomForm(), { scroll: true, fill: true }),
     );
     return layout;
