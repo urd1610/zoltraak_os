@@ -2317,14 +2317,14 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
         state.overview.flows,
         buildFlowRow,
         '流動数はまだ登録されていません',
-        { scroll: true },
+        { scroll: true, fill: true },
       ),
     );
 
     const rightColumn = document.createElement('div');
     rightColumn.className = 'sw-column';
     rightColumn.append(
-      buildSection('流動数を登録', buildFlowForm(), { scroll: true }),
+      buildSection('流動数を登録', buildFlowForm(), { scroll: true, fill: true }),
       buildList(
         '参照用: 構成（最新）',
         (state.overview.components ?? []).slice(0, 5),
