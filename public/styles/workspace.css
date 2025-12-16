@@ -224,7 +224,7 @@
   display: grid;
   gap: 14px;
   grid-template-rows: auto minmax(0, 1fr);
-  overflow: auto;
+  overflow: hidden;
   align-content: stretch;
 }
 
