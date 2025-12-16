@@ -693,6 +693,47 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     state.drafts.bom.matrixCells[parentKey][labelKey] = (value ?? '').toString();
   };
 
+  const ensureBomMatrixFilters = () => {
+    if (!state.drafts.bom.matrixFilters || typeof state.drafts.bom.matrixFilters !== 'object') {
+      state.drafts.bom.matrixFilters = buildDefaultBomMatrixFilters();
+    }
+    if (!state.drafts.bom.matrixFilters.columns || typeof state.drafts.bom.matrixFilters.columns !== 'object') {
+      state.drafts.bom.matrixFilters.columns = {};
+    }
+    if (typeof state.drafts.bom.matrixFilters.sw !== 'string') {
+      state.drafts.bom.matrixFilters.sw = '';
+    }
+    return state.drafts.bom.matrixFilters;
+  };
+
+  const getBomMatrixSwFilter = () => ensureBomMatrixFilters().sw || '';
+
+  const setBomMatrixSwFilter = (value) => {
+    ensureBomMatrixFilters().sw = (value ?? '').toString();
+  };
+
+  const getBomMatrixColumnFilter = (labelText) => {
+    const key = normalizeSlotLabel(labelText);
+    if (!key) {
+      return '';
+    }
+    return ensureBomMatrixFilters().columns?.[key] ?? '';
+  };
+
+  const setBomMatrixColumnFilter = (labelText, value) => {
+    const key = normalizeSlotLabel(labelText);
+    if (!key) {
+      return;
+    }
+    const nextValue = (value ?? '').toString();
+    const columns = ensureBomMatrixFilters().columns;
+    if (normalizeSlotLabel(nextValue)) {
+      columns[key] = nextValue;
+    } else {
+      delete columns[key];
+    }
+  };
+
   const buildBomMatrixPayloads = () => {
     if (!normalizeSlotLabel(state.drafts.bom.parentLocation)) {
       throw new Error('場所/ラインを選択してください');
