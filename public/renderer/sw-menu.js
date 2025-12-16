@@ -172,16 +172,23 @@ const buildList = (title, items, renderItem, emptyText = 'データがありま�
   return section;
 };
 
-const buildSection = (title, content) => {
+const buildSection = (title, content, options = {}) => {
   const section = document.createElement('div');
   section.className = 'sw-section';
+  const { scroll = false } = options || {};
+  section.classList.toggle('sw-section--scroll', Boolean(scroll));
   const header = document.createElement('div');
   header.className = 'sw-section-header';
   const heading = document.createElement('div');
   heading.className = 'forward-label';
   heading.textContent = title;
   header.append(heading);
-  section.append(header, content);
+  const body = document.createElement('div');
+  body.className = 'sw-section-body';
+  if (content) {
+    body.append(content);
+  }
+  section.append(header, body);
   return section;
 };
 
