@@ -2269,6 +2269,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
         {
           headerContent: buildComponentSearch(filteredComponents.length, allComponents.length),
           beforeList: searchHints,
+          scroll: true,
         },
       ),
     );
@@ -2279,6 +2280,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
       buildSection(
         isEditingComponent() ? '品番を編集' : '品番を登録',
         buildComponentForm(),
+        { scroll: true },
       ),
       buildSection('CSVで一括登録', buildComponentImportPanel()),
     );
