@@ -140,7 +140,9 @@ const buildStatusRow = (label, value, type) => {
 const buildList = (title, items, renderItem, emptyText = 'データがありません', options = {}) => {
   const section = document.createElement('div');
   section.className = 'sw-section';
-  const { headerContent = null, beforeList = null } = options || {};
+  const { headerContent = null, beforeList = null, scroll = false, fill = false } = options || {};
+  section.classList.toggle('sw-section--scroll', Boolean(scroll));
+  section.classList.toggle('sw-section--fill', Boolean(fill));
 
   const header = document.createElement('div');
   header.className = 'sw-section-header';
@@ -151,6 +153,9 @@ const buildList = (title, items, renderItem, emptyText = 'データがありま�
   if (headerContent) {
     header.append(headerContent);
   }
+
+  const body = document.createElement('div');
+  body.className = 'sw-section-body';
 
   const list = document.createElement('div');
   list.className = 'sw-list';
@@ -168,20 +173,29 @@ const buildList = (title, items, renderItem, emptyText = 'データがありま�
   }
 
   const beforeItems = Array.isArray(beforeList) ? beforeList.filter(Boolean) : beforeList ? [beforeList] : [];
-  section.append(header, ...beforeItems, list);
+  body.append(...beforeItems, list);
+  section.append(header, body);
   return section;
 };
 
-const buildSection = (title, content) => {
+const buildSection = (title, content, options = {}) => {
   const section = document.createElement('div');
   section.className = 'sw-section';
+  const { scroll = false, fill = false } = options || {};
+  section.classList.toggle('sw-section--scroll', Boolean(scroll));
+  section.classList.toggle('sw-section--fill', Boolean(fill));
   const header = document.createElement('div');
   header.className = 'sw-section-header';
   const heading = document.createElement('div');
   heading.className = 'forward-label';
   heading.textContent = title;
   header.append(heading);
-  section.append(header, content);
+  const body = document.createElement('div');
+  body.className = 'sw-section-body';
+  if (content) {
+    body.append(content);
+  }
+  section.append(header, body);
   return section;
 };
 
@@ -2000,12 +2014,14 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
           activeCode: state.editing.componentCode,
         }),
         '構成がありません',
+        { scroll: true },
       ),
       buildList(
         '最新の流動数',
         (state.overview.flows ?? []).slice(0, surfaceLimit),
         buildFlowRow,
         '流動数がありません',
+        { scroll: true },
       ),
     );
 
@@ -2257,6 +2273,8 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
         {
           headerContent: buildComponentSearch(filteredComponents.length, allComponents.length),
           beforeList: searchHints,
+          scroll: true,
+          fill: true,
         },
       ),
     );
@@ -2267,8 +2285,9 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
       buildSection(
         isEditingComponent() ? '品番を編集' : '品番を登録',
         buildComponentForm(),
+        { scroll: true, fill: true },
       ),
-      buildSection('CSVで一括登録', buildComponentImportPanel()),
+      buildSection('CSVで一括登録', buildComponentImportPanel(), { scroll: true }),
     );
 
     layout.append(leftColumn, rightColumn);
@@ -2280,7 +2299,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     layout.className = 'sw-column';
     layout.append(
       buildSection('接続ステータス', buildStatusGrid()),
-      buildSection('SW BOM表を編集', buildBomForm()),
+      buildSection('SW BOM表を編集', buildBomForm(), { scroll: true, fill: true }),
     );
     return layout;
   };
@@ -2293,13 +2312,19 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     leftColumn.className = 'sw-column';
     leftColumn.append(
       buildSection('接続ステータス', buildStatusGrid()),
-      buildList('流動数（最新）', state.overview.flows, buildFlowRow, '流動数はまだ登録されていません'),
+      buildList(
+        '流動数（最新）',
+        state.overview.flows,
+        buildFlowRow,
+        '流動数はまだ登録されていません',
+        { scroll: true, fill: true },
+      ),
     );
 
     const rightColumn = document.createElement('div');
     rightColumn.className = 'sw-column';
     rightColumn.append(
-      buildSection('流動数を登録', buildFlowForm()),
+      buildSection('流動数を登録', buildFlowForm(), { scroll: true, fill: true }),
       buildList(
         '参照用: 構成（最新）',
         (state.overview.components ?? []).slice(0, 5),
