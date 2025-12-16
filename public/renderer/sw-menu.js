@@ -140,8 +140,9 @@ const buildStatusRow = (label, value, type) => {
 const buildList = (title, items, renderItem, emptyText = 'データがありません', options = {}) => {
   const section = document.createElement('div');
   section.className = 'sw-section';
-  const { headerContent = null, beforeList = null, scroll = false } = options || {};
+  const { headerContent = null, beforeList = null, scroll = false, fill = false } = options || {};
   section.classList.toggle('sw-section--scroll', Boolean(scroll));
+  section.classList.toggle('sw-section--fill', Boolean(fill));
 
   const header = document.createElement('div');
   header.className = 'sw-section-header';
