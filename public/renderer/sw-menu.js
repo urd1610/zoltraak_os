@@ -36,6 +36,10 @@ const buildDefaultComponentSearch = () => ({
   name: '',
   location: '',
 });
+const buildDefaultBomMatrixFilters = () => ({
+  sw: '',
+  columns: {},
+});
 const buildDefaultBomMatrixState = () => ({
   locationKey: '',
   swComponents: [],
@@ -256,6 +260,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
         formatLocation: DEFAULT_BOM_FORMAT_KEY,
         slots: buildBomSlotsFromLabels(initialBomLabels),
         matrixCells: {},
+        matrixFilters: buildDefaultBomMatrixFilters(),
         sharedNote: '',
         newSlotLabel: '',
       },
@@ -402,6 +407,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
       formatLocation: formatKey,
       slots: buildBomSlotsFromLabels(labels),
       matrixCells: {},
+      matrixFilters: buildDefaultBomMatrixFilters(),
       sharedNote: '',
       newSlotLabel: '',
     };
