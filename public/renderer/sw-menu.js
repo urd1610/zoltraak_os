@@ -1564,7 +1564,18 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
 
     const tbody = document.createElement('tbody');
 
-    swComponents.forEach((swComponent) => {
+    const filteredSwComponents = filterBomMatrixSwComponents(swComponents, labels);
+    if (!filteredSwComponents.length) {
+      const emptyRow = document.createElement('tr');
+      const emptyCell = document.createElement('td');
+      emptyCell.colSpan = labels.length + 1;
+      emptyCell.className = 'sw-bom-matrix__empty';
+      emptyCell.textContent = '絞り込み条件に一致するSW品番がありません';
+      emptyRow.append(emptyCell);
+      tbody.append(emptyRow);
+    }
+
+    filteredSwComponents.forEach((swComponent) => {
       const parentCode = (swComponent?.code ?? '').toString().trim();
       if (!parentCode) {
         return;
