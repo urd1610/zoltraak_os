@@ -2343,7 +2343,6 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     const leftColumn = document.createElement('div');
     leftColumn.className = 'sw-column';
     leftColumn.append(
-      buildSection('接続ステータス', buildStatusGrid()),
       buildList(
         '品番一覧',
         filteredComponents,
@@ -2381,7 +2380,6 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     const layout = document.createElement('div');
     layout.className = 'sw-column';
     layout.append(
-      buildSection('接続ステータス', buildStatusGrid()),
       buildSection('SW BOM表を編集', buildBomForm(), { scroll: true, fill: true }),
     );
     return layout;
@@ -2394,7 +2392,6 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     const leftColumn = document.createElement('div');
     leftColumn.className = 'sw-column';
     leftColumn.append(
-      buildSection('接続ステータス', buildStatusGrid()),
       buildList(
         '流動数（最新）',
         state.overview.flows,
