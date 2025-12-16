@@ -1138,11 +1138,28 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     if (!normalizedLocation) {
       return [];
     }
+    const compareSwComponents = (left, right) => {
+      const leftCode = (left?.code ?? '').toString().trim();
+      const rightCode = (right?.code ?? '').toString().trim();
+      const leftKey = normalizeCodeQuery(leftCode);
+      const rightKey = normalizeCodeQuery(rightCode);
+      const codeComparison = leftKey.localeCompare(rightKey, 'ja', { numeric: true, sensitivity: 'base' });
+      if (codeComparison !== 0) {
+        return codeComparison;
+      }
+      const rawComparison = leftCode.localeCompare(rightCode, 'ja', { numeric: true, sensitivity: 'base' });
+      if (rawComparison !== 0) {
+        return rawComparison;
+      }
+      const leftVersion = normalizeSlotLabel(left?.version);
+      const rightVersion = normalizeSlotLabel(right?.version);
+      return leftVersion.localeCompare(rightVersion, 'ja', { numeric: true, sensitivity: 'base' });
+    };
     const bomMatrixActive = state.bomMatrix.locationKey === normalizedLocation;
     if (bomMatrixActive && !state.bomMatrix.isLoadingSwComponents && !state.bomMatrix.lastError) {
       const components = Array.isArray(state.bomMatrix.swComponents) ? state.bomMatrix.swComponents : [];
       return [...components]
-        .sort((a, b) => (a?.code ?? '').localeCompare(b?.code ?? '', 'ja', { numeric: true, sensitivity: 'base' }));
+        .sort(compareSwComponents);
     }
     const components = Array.isArray(state.overview.components) ? state.overview.components : [];
     return components
@@ -1150,7 +1167,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
         normalizeTextQuery(component?.location) === normalizedLocation
         && normalizeTextQuery(component?.name) === 'sw'
       ))
-      .sort((a, b) => (a?.code ?? '').localeCompare(b?.code ?? '', 'ja', { numeric: true, sensitivity: 'base' }));
+      .sort(compareSwComponents);
   };
 
   const getBomSlotNameSuggestions = () => {
