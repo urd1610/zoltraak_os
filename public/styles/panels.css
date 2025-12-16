@@ -759,6 +759,24 @@
   font-weight: 700;
 }
 
+.sw-bom-matrix__header {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: stretch;
+}
+
+.sw-bom-matrix__header-label {
+  text-align: center;
+  line-height: 1.2;
+}
+
+.sw-bom-matrix__empty {
+  padding: 18px 10px;
+  text-align: center;
+  color: var(--muted);
+}
+
 .sw-bom-matrix__table input {
   width: 100%;
   min-width: 140px;
