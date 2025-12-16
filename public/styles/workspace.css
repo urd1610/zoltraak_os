@@ -253,7 +253,7 @@
   min-height: 0;
 }
 
-.sw-menu-surface .sw-column > .sw-section--scroll {
+.sw-menu-surface .sw-column > .sw-section--fill {
   flex: 1 1 auto;
 }
 
