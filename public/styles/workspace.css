@@ -369,6 +369,14 @@
   font-size: 12px;
 }
 
+.sw-menu-surface .sw-bom-matrix__header {
+  gap: 4px;
+}
+
+.sw-menu-surface .sw-bom-matrix__empty {
+  padding: 14px 8px;
+}
+
 .sw-menu-surface .feature-actions button {
   min-height: 28px;
 }

@@ -36,6 +36,10 @@ const buildDefaultComponentSearch = () => ({
   name: '',
   location: '',
 });
+const buildDefaultBomMatrixFilters = () => ({
+  sw: '',
+  columns: {},
+});
 const buildDefaultBomMatrixState = () => ({
   locationKey: '',
   swComponents: [],
@@ -256,6 +260,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
         formatLocation: DEFAULT_BOM_FORMAT_KEY,
         slots: buildBomSlotsFromLabels(initialBomLabels),
         matrixCells: {},
+        matrixFilters: buildDefaultBomMatrixFilters(),
         sharedNote: '',
         newSlotLabel: '',
       },
@@ -402,6 +407,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
       formatLocation: formatKey,
       slots: buildBomSlotsFromLabels(labels),
       matrixCells: {},
+      matrixFilters: buildDefaultBomMatrixFilters(),
       sharedNote: '',
       newSlotLabel: '',
     };
@@ -685,6 +691,83 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
       state.drafts.bom.matrixCells[parentKey] = {};
     }
     state.drafts.bom.matrixCells[parentKey][labelKey] = (value ?? '').toString();
+  };
+
+  const ensureBomMatrixFilters = () => {
+    if (!state.drafts.bom.matrixFilters || typeof state.drafts.bom.matrixFilters !== 'object') {
+      state.drafts.bom.matrixFilters = buildDefaultBomMatrixFilters();
+    }
+    if (!state.drafts.bom.matrixFilters.columns || typeof state.drafts.bom.matrixFilters.columns !== 'object') {
+      state.drafts.bom.matrixFilters.columns = {};
+    }
+    if (typeof state.drafts.bom.matrixFilters.sw !== 'string') {
+      state.drafts.bom.matrixFilters.sw = '';
+    }
+    return state.drafts.bom.matrixFilters;
+  };
+
+  const getBomMatrixSwFilter = () => ensureBomMatrixFilters().sw || '';
+
+  const setBomMatrixSwFilter = (value) => {
+    ensureBomMatrixFilters().sw = (value ?? '').toString();
+  };
+
+  const getBomMatrixColumnFilter = (labelText) => {
+    const key = normalizeSlotLabel(labelText);
+    if (!key) {
+      return '';
+    }
+    return ensureBomMatrixFilters().columns?.[key] ?? '';
+  };
+
+  const setBomMatrixColumnFilter = (labelText, value) => {
+    const key = normalizeSlotLabel(labelText);
+    if (!key) {
+      return;
+    }
+    const nextValue = (value ?? '').toString();
+    const columns = ensureBomMatrixFilters().columns;
+    if (normalizeSlotLabel(nextValue)) {
+      columns[key] = nextValue;
+    } else {
+      delete columns[key];
+    }
+  };
+
+  const getBomMatrixActiveFilterQueries = (labels = []) => {
+    const swQuery = normalizeCodeQuery(getBomMatrixSwFilter());
+    const columnQueries = (Array.isArray(labels) ? labels : []).reduce((acc, labelText) => {
+      const query = normalizeCodeQuery(getBomMatrixColumnFilter(labelText));
+      if (query) {
+        acc.push({ labelText, query });
+      }
+      return acc;
+    }, []);
+    return { swQuery, columnQueries };
+  };
+
+  const filterBomMatrixSwComponents = (swComponents = [], labels = []) => {
+    const { swQuery, columnQueries } = getBomMatrixActiveFilterQueries(labels);
+    if (!swQuery && !columnQueries.length) {
+      return swComponents;
+    }
+    const source = Array.isArray(swComponents) ? swComponents : [];
+    return source.filter((swComponent) => {
+      const parentCode = (swComponent?.code ?? '').toString().trim();
+      if (!parentCode) {
+        return false;
+      }
+      if (swQuery && !normalizeCodeQuery(parentCode).includes(swQuery)) {
+        return false;
+      }
+      for (const { labelText, query } of columnQueries) {
+        const value = getBomMatrixCellValue(parentCode, labelText);
+        if (!normalizeCodeQuery(value).includes(query)) {
+          return false;
+        }
+      }
+      return true;
+    });
   };
 
   const buildBomMatrixPayloads = () => {
@@ -1438,11 +1521,42 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     const headRow = document.createElement('tr');
     const corner = document.createElement('th');
     corner.className = 'sw-bom-matrix__corner';
-    corner.textContent = 'SW';
+    const cornerHeader = document.createElement('div');
+    cornerHeader.className = 'sw-bom-matrix__header';
+    const swFilterInput = document.createElement('input');
+    swFilterInput.id = 'sw-bom-matrix-filter-sw';
+    swFilterInput.type = 'text';
+    swFilterInput.placeholder = 'SW検索';
+    swFilterInput.value = getBomMatrixSwFilter();
+    swFilterInput.addEventListener('input', (event) => {
+      setBomMatrixSwFilter(event.target.value);
+      render();
+    });
+    const cornerLabel = document.createElement('div');
+    cornerLabel.className = 'sw-bom-matrix__header-label';
+    cornerLabel.textContent = 'SW';
+    cornerHeader.append(swFilterInput, cornerLabel);
+    corner.append(cornerHeader);
     headRow.append(corner);
-    labels.forEach((labelText) => {
+    labels.forEach((labelText, index) => {
       const th = document.createElement('th');
-      th.textContent = labelText;
+      const header = document.createElement('div');
+      header.className = 'sw-bom-matrix__header';
+      const filterInput = document.createElement('input');
+      const labelKey = normalizeSlotLabel(labelText);
+      filterInput.id = `sw-bom-matrix-filter-${index}-${encodeURIComponent(labelKey || 'col')}`;
+      filterInput.type = 'text';
+      filterInput.placeholder = '検索';
+      filterInput.value = getBomMatrixColumnFilter(labelText);
+      filterInput.addEventListener('input', (event) => {
+        setBomMatrixColumnFilter(labelText, event.target.value);
+        render();
+      });
+      const label = document.createElement('div');
+      label.className = 'sw-bom-matrix__header-label';
+      label.textContent = labelText;
+      header.append(filterInput, label);
+      th.append(header);
       headRow.append(th);
     });
     thead.append(headRow);
@@ -1450,7 +1564,18 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
 
     const tbody = document.createElement('tbody');
 
-    swComponents.forEach((swComponent) => {
+    const filteredSwComponents = filterBomMatrixSwComponents(swComponents, labels);
+    if (!filteredSwComponents.length) {
+      const emptyRow = document.createElement('tr');
+      const emptyCell = document.createElement('td');
+      emptyCell.colSpan = labels.length + 1;
+      emptyCell.className = 'sw-bom-matrix__empty';
+      emptyCell.textContent = '絞り込み条件に一致するSW品番がありません';
+      emptyRow.append(emptyCell);
+      tbody.append(emptyRow);
+    }
+
+    filteredSwComponents.forEach((swComponent) => {
       const parentCode = (swComponent?.code ?? '').toString().trim();
       if (!parentCode) {
         return;
