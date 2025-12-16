@@ -2012,12 +2012,14 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
           activeCode: state.editing.componentCode,
         }),
         '構成がありません',
+        { scroll: true },
       ),
       buildList(
         '最新の流動数',
         (state.overview.flows ?? []).slice(0, surfaceLimit),
         buildFlowRow,
         '流動数がありません',
+        { scroll: true },
       ),
     );
 
