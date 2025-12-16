@@ -510,7 +510,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
   const normalizeTextQuery = (value) => (value ?? '').toString().trim().toLowerCase();
   const normalizeCodeQuery = (value) => (value ?? '').toString().trim().toLowerCase().replace(/-/g, '');
 
-  const getBomCodeSuggestions = (keyword = '') => {
+  const getBomCodeSuggestions = (keyword = '', context = {}) => {
     const codes = new Map();
     const addCode = (code, name) => {
       const trimmed = (code ?? '').toString().trim();
@@ -519,11 +519,74 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
       codes.set(trimmed, (name ?? '').toString().trim());
     };
 
-    (state.overview.components ?? []).forEach((item) => addCode(item.code, item.name));
-    (state.overview.boms ?? []).forEach((bom) => {
-      addCode(bom.parent_code);
-      addCode(bom.child_code);
-    });
+    const normalizedLocation = normalizeTextQuery(context?.location);
+    const normalizedSlotLabel = normalizeTextQuery(context?.slotLabel);
+    const hasLocationFilter = Boolean(normalizedLocation);
+    const hasSlotLabelFilter = Boolean(normalizedSlotLabel);
+    const shouldFilterByContext = hasLocationFilter || hasSlotLabelFilter;
+    const components = Array.isArray(state.overview.components) ? state.overview.components : [];
+
+    const matchesLocation = (value) => (
+      !hasLocationFilter || normalizeTextQuery(value) === normalizedLocation
+    );
+    const matchesSlotLabel = (value) => (
+      !hasSlotLabelFilter || normalizeTextQuery(value).includes(normalizedSlotLabel)
+    );
+
+    const componentCandidates = shouldFilterByContext
+      ? components.filter((component) => (
+        matchesLocation(component?.location) && matchesSlotLabel(component?.name)
+      ))
+      : components;
+
+    componentCandidates.forEach((item) => addCode(item.code, item.name));
+
+    const boms = Array.isArray(state.overview.boms) ? state.overview.boms : [];
+    const swParentCodeKeys = (() => {
+      if (!hasLocationFilter) return null;
+      const keys = new Set();
+      const addKey = (value) => {
+        const normalized = normalizeCodeQuery(value);
+        if (normalized) {
+          keys.add(normalized);
+        }
+      };
+      if (state.bomMatrix?.locationKey === normalizedLocation) {
+        (state.bomMatrix?.swComponents ?? []).forEach((component) => addKey(component?.code));
+      }
+      components
+        .filter((component) => (
+          matchesLocation(component?.location) && normalizeTextQuery(component?.name) === 'sw'
+        ))
+        .forEach((component) => addKey(component?.code));
+      return keys.size ? keys : null;
+    })();
+    const shouldIncludeBoms = !shouldFilterByContext || !hasLocationFilter || Boolean(swParentCodeKeys);
+
+    if (shouldIncludeBoms) {
+      const bomMatchesContext = (bom) => {
+        if (swParentCodeKeys) {
+          const parentKey = normalizeCodeQuery(bom?.parent_code);
+          if (!parentKey || !swParentCodeKeys.has(parentKey)) return false;
+        }
+        if (hasSlotLabelFilter) {
+          const note = normalizeTextQuery(bom?.note);
+          if (!note || !note.includes(normalizedSlotLabel)) return false;
+        }
+        return true;
+      };
+
+      const bomCandidates = shouldFilterByContext ? boms.filter(bomMatchesContext) : boms;
+
+      bomCandidates.forEach((bom) => {
+        if (hasSlotLabelFilter) {
+          addCode(bom?.child_code);
+          return;
+        }
+        addCode(bom?.parent_code);
+        addCode(bom?.child_code);
+      });
+    }
 
     const query = normalizeCodeQuery(keyword);
     const filtered = Array.from(codes.entries())
@@ -1397,7 +1460,10 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
         datalist.id = listId;
 
         const renderSuggestions = (keyword) => {
-          const suggestions = getBomCodeSuggestions(keyword);
+          const suggestions = getBomCodeSuggestions(keyword, {
+            location: state.drafts.bom.parentLocation,
+            slotLabel: labelText,
+          });
           datalist.replaceChildren();
           suggestions.forEach((item) => {
             const option = document.createElement('option');
@@ -1407,11 +1473,11 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
           });
         };
 
-        renderSuggestions(input.value || labelText);
+        renderSuggestions(input.value);
         input.setAttribute('list', listId);
         input.addEventListener('input', (event) => {
           setBomMatrixCellValue(parentCode, labelText, event.target.value);
-          renderSuggestions(event.target.value || labelText);
+          renderSuggestions(event.target.value);
         });
 
         cell.append(input, datalist);
