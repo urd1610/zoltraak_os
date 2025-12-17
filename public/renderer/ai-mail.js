@@ -37,6 +37,8 @@ export const createAiMailFeature = ({ createWindowShell, setActionActive, isActi
   });
   const aiMailStatus = {
     forwardTo: '',
+    lastResolvedForwardTo: null,
+    lastResolvedForwardSource: null,
     lastCheckedAt: null,
     lastForwardedAt: null,
     lastError: null,
