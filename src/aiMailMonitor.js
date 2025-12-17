@@ -332,15 +332,11 @@ class AiMailMonitor {
     if (!this.state.running && !force) {
       return this.getStatus();
     }
-    if (!this.state.forwardTo) {
-      this.state.lastError = '転送先メールアドレスが設定されていません';
-      this.state.lastCheckedAt = new Date().toISOString();
-      await this.persistState();
-      return this.getStatus();
-    }
 
     let hadSaveError = false;
     let hadAiError = false;
+    let hadForwardToError = false;
+    let forwardedThisRun = 0;
 
     try {
       const newMessages = await this.fetchNewMessages();
@@ -352,12 +348,19 @@ class AiMailMonitor {
         if (result?.aiFailed) {
           hadAiError = true;
         }
+        if (result?.missingForwardTo) {
+          hadForwardToError = true;
+        } else {
+          forwardedThisRun += 1;
+        }
       }
-      if (newMessages.length > 0) {
+      if (forwardedThisRun > 0) {
         this.state.lastForwardedAt = new Date().toISOString();
       }
       if (hadSaveError) {
         this.state.lastError = 'メールの保存に失敗しました';
+      } else if (hadForwardToError) {
+        this.state.lastError = '本文の「AI解読用」から返信先メールアドレスを取得できませんでした';
       } else if (hadAiError) {
         this.state.lastError = 'AI整形に失敗したため原文を転送しました';
       } else {
