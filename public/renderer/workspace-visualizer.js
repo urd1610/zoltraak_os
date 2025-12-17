@@ -153,6 +153,7 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
     if (!meta) return;
     const menu = ensureWorkspaceContextMenu();
     workspaceContextMenuMeta = meta;
+    setWorkspaceFocusedMeta(meta);
     const title = menu.querySelector('.workspace-context-menu__title');
     if (title) {
       const label = meta?.data?.name || meta?.data?.id || 'node';
