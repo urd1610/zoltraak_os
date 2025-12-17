@@ -471,7 +471,7 @@ export const createAiMailFeature = ({ createWindowShell, setActionActive, isActi
   const openAiMailForwardWindow = () => {
     aiMailForwardDraft = aiMailStatus.forwardTo ?? '';
     aiMailForwardDirty = false;
-    const { body, close } = createWindowShell('ai-mail-forward', '転送先メールアドレス', () => {
+    const { body, close } = createWindowShell('ai-mail-forward', '予備転送先メールアドレス', () => {
       aiMailForwardWindow = null;
     });
     const closeWindow = () => {
@@ -480,7 +480,7 @@ export const createAiMailFeature = ({ createWindowShell, setActionActive, isActi
     };
 
     const description = document.createElement('p');
-    description.textContent = 'POP3監視で使用する転送先メールアドレスを設定します。';
+    description.textContent = '本文の「AI解読用」に記載された返信先メールアドレスを優先して転送します。ここでは返信先が取得できない場合の予備転送先を設定できます（空欄で解除）。';
     body.append(description);
 
     const forwardSection = document.createElement('div');
@@ -488,7 +488,7 @@ export const createAiMailFeature = ({ createWindowShell, setActionActive, isActi
 
     const forwardLabel = document.createElement('div');
     forwardLabel.className = 'forward-label';
-    forwardLabel.textContent = '転送先メールアドレス';
+    forwardLabel.textContent = '予備転送先メールアドレス';
 
     const forwardForm = document.createElement('form');
     forwardForm.className = 'forward-form';
@@ -524,7 +524,7 @@ export const createAiMailFeature = ({ createWindowShell, setActionActive, isActi
 
     const forwardHint = document.createElement('div');
     forwardHint.className = 'forward-hint';
-    forwardHint.textContent = '監視を開始するには転送先を設定してください。';
+    forwardHint.textContent = '予備転送先は未設定です（空欄で解除）。';
 
     const forwardError = document.createElement('div');
     forwardError.className = 'form-error';
