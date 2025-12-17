@@ -268,7 +268,7 @@ export const createAiMailFeature = ({ createWindowShell, setActionActive, isActi
     const trimmed = draft.trim();
 
     if (!window.desktopBridge?.updateAiMailForward) {
-      updateAiMailStatus({ lastError: '転送先設定のブリッジが見つかりません' });
+      updateAiMailStatus({ lastError: '予備転送先設定のブリッジが見つかりません' });
       renderWithWindows();
       if (onFinally) {
         onFinally();
@@ -276,16 +276,7 @@ export const createAiMailFeature = ({ createWindowShell, setActionActive, isActi
       return;
     }
 
-    if (!trimmed) {
-      updateAiMailStatus({ lastError: '転送先メールアドレスを入力してください' });
-      renderWithWindows();
-      if (onFinally) {
-        onFinally();
-      }
-      return;
-    }
-
-    if (!isValidEmail(trimmed)) {
+    if (trimmed && !isValidEmail(trimmed)) {
       updateAiMailStatus({ lastError: 'メールアドレスの形式が正しくありません' });
       renderWithWindows();
       if (onFinally) {
@@ -311,10 +302,10 @@ export const createAiMailFeature = ({ createWindowShell, setActionActive, isActi
         }
         return;
       }
-      updateAiMailStatus({ forwardTo: trimmed, lastError: '転送先の更新が反映されませんでした' });
+      updateAiMailStatus({ forwardTo: trimmed, lastError: '予備転送先の更新が反映されませんでした' });
     } catch (error) {
       console.error('Failed to update ai mail forward address', error);
-      updateAiMailStatus({ lastError: '転送先の更新に失敗しました' });
+      updateAiMailStatus({ lastError: '予備転送先の更新に失敗しました' });
     } finally {
       isSavingAiMailForward = false;
       renderWithWindows();
