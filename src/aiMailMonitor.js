@@ -468,6 +468,7 @@ class AiMailMonitor {
     const rawBuffer = this.stripPop3Envelope(this.normalizeRawEmail(message.raw));
     let saveFailed = false;
     let aiFailed = false;
+    let missingForwardTo = false;
     try {
       await this.saveRawEmail(rawBuffer);
     } catch (error) {
@@ -501,9 +502,23 @@ class AiMailMonitor {
     const formattedSubject = aiResult?.subject || parsed.subject;
     const formattedText = aiText || restoredText;
     const formattedHtml = aiResult?.html ?? (aiText ? this.buildHtmlFromText(aiText) : restoredHtml);
+
+    const resolvedForward = resolveForwardToFromBody({
+      text: restoredText,
+      html: restoredHtml,
+      fallback: this.state.forwardTo,
+    });
+    this.state.lastResolvedForwardTo = resolvedForward.address;
+    this.state.lastResolvedForwardSource = resolvedForward.source;
+
+    if (!resolvedForward.address) {
+      missingForwardTo = true;
+      return { saveFailed, aiFailed, missingForwardTo };
+    }
+
     const mailOptions = {
       from: this.credentials.user,
-      to: this.state.forwardTo,
+      to: resolvedForward.address,
       subject: formattedSubject ? `[FW] ${formattedSubject}` : '転送メール',
       text: formattedText ?? '(本文なし)',
       html: formattedHtml ?? undefined,
@@ -537,7 +552,7 @@ class AiMailMonitor {
     this.state.forwardedCount += 1;
     this.state.seenUids.add(message.uid);
     this.trimSeenUids();
-    return { saveFailed, aiFailed };
+    return { saveFailed, aiFailed, missingForwardTo };
   }
 
   trimSeenUids() {
