@@ -694,6 +694,8 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
 
     (workspaceScene.nodeMeta ?? []).forEach((meta) => {
       if (!meta?.mesh || !meta.basePosition) return;
+      const isAnchor = workspaceScene.orbitAnchor === meta;
+      const isFocused = workspaceScene.focusedMeta === meta;
       const wobble = Math.sin(t * meta.wobbleSpeed + meta.wobblePhase) * meta.wobbleAmp;
       meta.mesh.position.set(
         meta.basePosition.x,
@@ -716,8 +718,9 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
           const facingFade = 0.35 + facing * 0.65;
           const distanceFade = 1 - THREE.MathUtils.smoothstep(distanceToLabel, fadeNear, fadeFar);
           const baseOpacity = meta.label.userData?.baseOpacity ?? meta.label.material.opacity ?? 0.8;
-          meta.label.material.opacity = baseOpacity
-            * THREE.MathUtils.clamp(distanceFade * facingFade, 0.18, 1);
+          const labelOpacity = baseOpacity * THREE.MathUtils.clamp(distanceFade * facingFade, 0.18, 1);
+          const boostedOpacity = labelOpacity * (isFocused ? 1.28 : isAnchor ? 1.12 : 1);
+          meta.label.material.opacity = Math.min(1, boostedOpacity);
         }
         const viewportHeight = workspaceScene.renderer?.domElement?.height ?? 0;
         if (viewportHeight && Number.isFinite(distanceToLabel)) {
@@ -733,23 +736,69 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
         }
       }
 
-      const isAnchor = workspaceScene.orbitAnchor === meta;
       if (isAnchor && workspaceScene.controls?.focusTarget && meta.mesh?.position) {
         workspaceScene.controls.focusTarget.lerp(meta.mesh.position, 0.2);
       }
       const baseScale = meta.baseScale ?? 1;
-      const targetScale = isAnchor ? baseScale * 1.16 : baseScale;
+      const focusPulse = isFocused ? 1 + Math.sin(t * 2.4 + meta.wobblePhase) * 0.025 : 1;
+      const targetScale = isFocused
+        ? baseScale * 1.24 * focusPulse
+        : isAnchor
+          ? baseScale * 1.16
+          : baseScale;
       const nextScale = THREE.MathUtils.lerp(meta.mesh.scale.x, targetScale, 0.14);
       meta.mesh.scale.setScalar(nextScale);
 
       if (meta.core?.material) {
         const baseEmissive = meta.baseEmissive ?? meta.core.material.emissiveIntensity ?? 1;
-        const targetEmissive = isAnchor ? baseEmissive * 1.35 : baseEmissive;
+        const targetEmissive = isFocused
+          ? baseEmissive * 1.75
+          : isAnchor
+            ? baseEmissive * 1.35
+            : baseEmissive;
         meta.core.material.emissiveIntensity = THREE.MathUtils.lerp(
           meta.core.material.emissiveIntensity,
           targetEmissive,
           0.16,
         );
+
+        const baseOpacity = meta.baseOpacity ?? meta.core.material.opacity ?? 1;
+        const targetOpacity = isFocused
+          ? Math.min(1, baseOpacity * 1.12)
+          : isAnchor
+            ? Math.min(1, baseOpacity * 1.06)
+            : baseOpacity;
+        meta.core.material.opacity = THREE.MathUtils.lerp(
+          meta.core.material.opacity,
+          targetOpacity,
+          0.18,
+        );
+      }
+
+      if (meta.glow?.material) {
+        const baseGlowOpacity = meta.baseGlowOpacity ?? meta.glow.material.opacity ?? 0.5;
+        const glowPulse = isFocused ? 1 + Math.sin(t * 2.6 + meta.wobblePhase) * 0.12 : 1;
+        const targetGlowOpacity = isFocused
+          ? Math.min(1, baseGlowOpacity * 1.8 * glowPulse)
+          : isAnchor
+            ? Math.min(1, baseGlowOpacity * 1.35)
+            : baseGlowOpacity;
+        meta.glow.material.opacity = THREE.MathUtils.lerp(
+          meta.glow.material.opacity,
+          targetGlowOpacity,
+          0.18,
+        );
+      }
+
+      if (meta.glow) {
+        const baseGlowScale = meta.baseGlowScale ?? meta.glow.scale.x ?? 1;
+        const targetGlowScale = isFocused
+          ? baseGlowScale * (1.08 + Math.sin(t * 2.2 + meta.wobblePhase) * 0.015)
+          : isAnchor
+            ? baseGlowScale * 1.04
+            : baseGlowScale;
+        const nextGlowScale = THREE.MathUtils.lerp(meta.glow.scale.x, targetGlowScale, 0.14);
+        meta.glow.scale.set(nextGlowScale, nextGlowScale, 1);
       }
     });
 
