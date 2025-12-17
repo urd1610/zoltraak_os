@@ -874,7 +874,13 @@ export const createAiMailFeature = ({ createWindowShell, setActionActive, isActi
     };
 
     statusGrid.append(
-      makeRow('転送先', aiMailStatus.forwardTo || '未設定'),
+      makeRow(
+        '自動転送先',
+        aiMailStatus.lastResolvedForwardTo
+          ? `${aiMailStatus.lastResolvedForwardTo}${aiMailStatus.lastResolvedForwardSource ? ` (${aiMailStatus.lastResolvedForwardSource})` : ''}`
+          : '未判定',
+      ),
+      makeRow('予備転送先', aiMailStatus.forwardTo || '未設定'),
       makeRow('最終チェック', formatDateTime(aiMailStatus.lastCheckedAt)),
       makeRow('最終転送', formatDateTime(aiMailStatus.lastForwardedAt)),
       makeRow('累計転送', `${aiMailStatus.forwardedCount ?? 0}件`),
@@ -888,7 +894,7 @@ export const createAiMailFeature = ({ createWindowShell, setActionActive, isActi
     configActions.className = 'feature-actions';
     const forwardButton = document.createElement('button');
     forwardButton.className = 'ghost';
-    forwardButton.textContent = '転送先を設定';
+    forwardButton.textContent = '予備転送先を設定';
     forwardButton.addEventListener('click', openAiMailForwardWindow);
     const formattingButton = document.createElement('button');
     formattingButton.className = 'ghost';
@@ -925,7 +931,7 @@ export const createAiMailFeature = ({ createWindowShell, setActionActive, isActi
     const fetchBtn = document.createElement('button');
     fetchBtn.className = 'ghost';
     fetchBtn.textContent = isFetchingAiMailOnce ? '手動取得中…' : '手動取得';
-    fetchBtn.disabled = isFetchingAiMailOnce || !aiMailStatus.forwardTo;
+    fetchBtn.disabled = isFetchingAiMailOnce;
     fetchBtn.addEventListener('click', () => { void fetchAiMailOnce(); });
 
     actions.append(toggleBtn, refreshBtn, fetchBtn);
