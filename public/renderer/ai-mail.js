@@ -66,6 +66,14 @@ export const createAiMailFeature = ({ createWindowShell, setActionActive, isActi
     return /.+@.+\..+/.test(target);
   };
 
+  const formatForwardSourceLabel = (source) => {
+    if (!source) return '';
+    if (source === 'ai-decode:text') return '本文(AI解読用)';
+    if (source === 'ai-decode:html') return 'HTML(AI解読用)';
+    if (source === 'fallback') return '予備転送先';
+    return String(source);
+  };
+
   const render = () => {
     if (typeof renderUi === 'function') {
       renderUi();
@@ -868,7 +876,7 @@ export const createAiMailFeature = ({ createWindowShell, setActionActive, isActi
       makeRow(
         '自動転送先',
         aiMailStatus.lastResolvedForwardTo
-          ? `${aiMailStatus.lastResolvedForwardTo}${aiMailStatus.lastResolvedForwardSource ? ` (${aiMailStatus.lastResolvedForwardSource})` : ''}`
+          ? `${aiMailStatus.lastResolvedForwardTo}${aiMailStatus.lastResolvedForwardSource ? ` (${formatForwardSourceLabel(aiMailStatus.lastResolvedForwardSource)})` : ''}`
           : '未判定',
       ),
       makeRow('予備転送先', aiMailStatus.forwardTo || '未設定'),
