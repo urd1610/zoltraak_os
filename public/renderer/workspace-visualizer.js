@@ -297,6 +297,7 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
 
   const focusOrbitOnNode = (meta) => {
     if (!meta || !workspaceScene?.controls || typeof THREE === 'undefined') return;
+    setWorkspaceFocusedMeta(meta);
     workspaceScene.orbitAnchor = meta;
     const controls = workspaceScene.controls;
     const focus = meta.mesh?.position
