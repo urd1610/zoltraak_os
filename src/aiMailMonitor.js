@@ -5,6 +5,7 @@ const nodemailer = require('nodemailer');
 const MailComposer = require('nodemailer/lib/mail-composer');
 const { simpleParser } = require('mailparser');
 const { AiFormatter } = require('./aiFormatter');
+const { resolveForwardToFromBody } = require('./aiMailForwardToResolver');
 
 class AiMailMonitor {
   constructor(options = {}) {
@@ -34,6 +35,8 @@ class AiMailMonitor {
 
     this.state = {
       forwardTo: options.forwardTo ?? '',
+      lastResolvedForwardTo: null,
+      lastResolvedForwardSource: null,
       lastCheckedAt: null,
       lastForwardedAt: null,
       lastError: null,
