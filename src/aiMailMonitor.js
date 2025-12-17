@@ -483,6 +483,19 @@ class AiMailMonitor {
     const restoredText = this.restoreStrippedUtf8(parsed.text);
     const restoredHtml = this.restoreStrippedUtf8(parsed.html);
 
+    const resolvedForward = resolveForwardToFromBody({
+      text: restoredText,
+      html: restoredHtml,
+      fallback: this.state.forwardTo,
+    });
+    this.state.lastResolvedForwardTo = resolvedForward.address;
+    this.state.lastResolvedForwardSource = resolvedForward.source;
+
+    if (!resolvedForward.address) {
+      missingForwardTo = true;
+      return { saveFailed, aiFailed, missingForwardTo };
+    }
+
     let aiResult = null;
     if (this.state.formatting?.enabled && this.aiFormatter?.formatEmail) {
       try {
@@ -505,19 +518,6 @@ class AiMailMonitor {
     const formattedSubject = aiResult?.subject || parsed.subject;
     const formattedText = aiText || restoredText;
     const formattedHtml = aiResult?.html ?? (aiText ? this.buildHtmlFromText(aiText) : restoredHtml);
-
-    const resolvedForward = resolveForwardToFromBody({
-      text: restoredText,
-      html: restoredHtml,
-      fallback: this.state.forwardTo,
-    });
-    this.state.lastResolvedForwardTo = resolvedForward.address;
-    this.state.lastResolvedForwardSource = resolvedForward.source;
-
-    if (!resolvedForward.address) {
-      missingForwardTo = true;
-      return { saveFailed, aiFailed, missingForwardTo };
-    }
 
     const mailOptions = {
       from: this.credentials.user,
