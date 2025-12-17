@@ -135,13 +135,13 @@ export const createAiMailFeature = ({ createWindowShell, setActionActive, isActi
       input.disabled = isSavingAiMailForward;
     }
     if (saveButton) {
-      saveButton.disabled = isSavingAiMailForward || !trimmedDraft || trimmedDraft === savedForward;
+      saveButton.disabled = isSavingAiMailForward || trimmedDraft === savedForward;
       saveButton.textContent = isSavingAiMailForward ? '保存中…' : '保存';
     }
     if (hint) {
       hint.textContent = savedForward
-        ? `現在の転送先: ${savedForward}`
-        : '監視を開始するには転送先を設定してください。';
+        ? `現在の予備転送先: ${savedForward}（空欄で解除）`
+        : '予備転送先は未設定です（本文の「AI解読用」返信先を優先して転送します）。';
     }
     if (errorText) {
       errorText.textContent = aiMailStatus.lastError ?? '';
