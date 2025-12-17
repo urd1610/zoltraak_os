@@ -567,6 +567,8 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
         baseScale: nodeGroup.scale.x,
         baseEmissive: material.emissiveIntensity,
         baseOpacity: material.opacity,
+        baseGlowOpacity: glow?.material?.opacity ?? null,
+        baseGlowScale: glow?.scale?.x ?? null,
       };
       nodeGroup.userData.nodeMeta = meta;
       core.userData.nodeMeta = meta;
