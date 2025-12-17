@@ -652,6 +652,7 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
       raycaster: new THREE.Raycaster(),
       pointerNdc: new THREE.Vector2(),
       orbitAnchor: null,
+      focusedMeta: null,
       labelFadeScratch: {
         cameraDir: new THREE.Vector3(),
         toLabel: new THREE.Vector3(),
