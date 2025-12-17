@@ -86,6 +86,8 @@ class AiMailMonitor {
   getStatus() {
     return {
       forwardTo: this.state.forwardTo,
+      lastResolvedForwardTo: this.state.lastResolvedForwardTo,
+      lastResolvedForwardSource: this.state.lastResolvedForwardSource,
       lastCheckedAt: this.state.lastCheckedAt,
       lastForwardedAt: this.state.lastForwardedAt,
       lastError: this.state.lastError,
