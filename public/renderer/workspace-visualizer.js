@@ -695,7 +695,7 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
     (workspaceScene.nodeMeta ?? []).forEach((meta) => {
       if (!meta?.mesh || !meta.basePosition) return;
       const isAnchor = workspaceScene.orbitAnchor === meta;
-      const isFocused = workspaceScene.focusedMeta === meta;
+      const isFocused = workspaceScene.focusedMeta === meta || (!workspaceScene.focusedMeta && isAnchor);
       const wobble = Math.sin(t * meta.wobbleSpeed + meta.wobblePhase) * meta.wobbleAmp;
       meta.mesh.position.set(
         meta.basePosition.x,
