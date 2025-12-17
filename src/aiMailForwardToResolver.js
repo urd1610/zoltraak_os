@@ -82,8 +82,45 @@ const extractReplyToFromAiDecodeSection = (bodyText, options = {}) => {
   return null;
 };
 
+const stripHtmlToText = (html) => {
+  if (!html) return '';
+  return String(html)
+    .replace(/<\s*br\s*\/?>/gi, '\n')
+    .replace(/<\/\s*p\s*>/gi, '\n')
+    .replace(/<\/\s*div\s*>/gi, '\n')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\u00a0/g, ' ')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+};
+
+const resolveForwardToFromBody = (payload) => {
+  const text = payload?.text ?? '';
+  const html = payload?.html ?? '';
+  const fallback = payload?.fallback ?? '';
+
+  const replyToFromText = extractReplyToFromAiDecodeSection(text);
+  if (replyToFromText) {
+    return { address: replyToFromText, source: 'ai-decode:text' };
+  }
+
+  const replyToFromHtml = extractReplyToFromAiDecodeSection(stripHtmlToText(html));
+  if (replyToFromHtml) {
+    return { address: replyToFromHtml, source: 'ai-decode:html' };
+  }
+
+  const trimmedFallback = String(fallback).trim();
+  if (trimmedFallback) {
+    return { address: trimmedFallback, source: 'fallback' };
+  }
+
+  return { address: null, source: 'none' };
+};
+
 module.exports = {
   extractEmailAddresses,
   extractReplyToFromAiDecodeSection,
+  resolveForwardToFromBody,
   normalizeForSearch,
 };
