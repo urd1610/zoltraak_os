@@ -938,8 +938,8 @@ export const createAiMailFeature = ({ createWindowShell, setActionActive, isActi
     const desc = document.createElement('div');
     desc.className = 'feature-desc';
     desc.textContent = aiMailStatus.running
-      ? 'wx105.wadax-sv.jp のPOP3(110/STARTTLS)を監視し、新着をSMTP(587/STARTTLS)で転送します。'
-      : '監視を開始すると受信メールを検知し、指定先へ自動で転送します。';
+      ? 'wx105.wadax-sv.jp のPOP3(995/TLS)を監視し、新着をSMTP(587/STARTTLS)で転送します。'
+      : '監視を開始すると受信メールを検知し、本文の「AI解読用」返信先へ自動転送します（取得できない場合は予備転送先）。';
 
     card.append(header, statusGrid, configActions, actions, desc);
     return card;
