@@ -37,6 +37,8 @@ export const createAiMailFeature = ({ createWindowShell, setActionActive, isActi
   });
   const aiMailStatus = {
     forwardTo: '',
+    lastResolvedForwardTo: null,
+    lastResolvedForwardSource: null,
     lastCheckedAt: null,
     lastForwardedAt: null,
     lastError: null,
@@ -62,6 +64,14 @@ export const createAiMailFeature = ({ createWindowShell, setActionActive, isActi
     const target = String(value ?? '').trim();
     if (!target) return false;
     return /.+@.+\..+/.test(target);
+  };
+
+  const formatForwardSourceLabel = (source) => {
+    if (!source) return '';
+    if (source === 'ai-decode:text') return '本文(AI解読用)';
+    if (source === 'ai-decode:html') return 'HTML(AI解読用)';
+    if (source === 'fallback') return '予備転送先';
+    return String(source);
   };
 
   const render = () => {
@@ -133,13 +143,13 @@ export const createAiMailFeature = ({ createWindowShell, setActionActive, isActi
       input.disabled = isSavingAiMailForward;
     }
     if (saveButton) {
-      saveButton.disabled = isSavingAiMailForward || !trimmedDraft || trimmedDraft === savedForward;
+      saveButton.disabled = isSavingAiMailForward || trimmedDraft === savedForward;
       saveButton.textContent = isSavingAiMailForward ? '保存中…' : '保存';
     }
     if (hint) {
       hint.textContent = savedForward
-        ? `現在の転送先: ${savedForward}`
-        : '監視を開始するには転送先を設定してください。';
+        ? `現在の予備転送先: ${savedForward}（空欄で解除）`
+        : '予備転送先は未設定です（本文の「AI解読用」返信先を優先して転送します）。';
     }
     if (errorText) {
       errorText.textContent = aiMailStatus.lastError ?? '';
@@ -266,7 +276,7 @@ export const createAiMailFeature = ({ createWindowShell, setActionActive, isActi
     const trimmed = draft.trim();
 
     if (!window.desktopBridge?.updateAiMailForward) {
-      updateAiMailStatus({ lastError: '転送先設定のブリッジが見つかりません' });
+      updateAiMailStatus({ lastError: '予備転送先設定のブリッジが見つかりません' });
       renderWithWindows();
       if (onFinally) {
         onFinally();
@@ -274,16 +284,7 @@ export const createAiMailFeature = ({ createWindowShell, setActionActive, isActi
       return;
     }
 
-    if (!trimmed) {
-      updateAiMailStatus({ lastError: '転送先メールアドレスを入力してください' });
-      renderWithWindows();
-      if (onFinally) {
-        onFinally();
-      }
-      return;
-    }
-
-    if (!isValidEmail(trimmed)) {
+    if (trimmed && !isValidEmail(trimmed)) {
       updateAiMailStatus({ lastError: 'メールアドレスの形式が正しくありません' });
       renderWithWindows();
       if (onFinally) {
@@ -309,10 +310,10 @@ export const createAiMailFeature = ({ createWindowShell, setActionActive, isActi
         }
         return;
       }
-      updateAiMailStatus({ forwardTo: trimmed, lastError: '転送先の更新が反映されませんでした' });
+      updateAiMailStatus({ forwardTo: trimmed, lastError: '予備転送先の更新が反映されませんでした' });
     } catch (error) {
       console.error('Failed to update ai mail forward address', error);
-      updateAiMailStatus({ lastError: '転送先の更新に失敗しました' });
+      updateAiMailStatus({ lastError: '予備転送先の更新に失敗しました' });
     } finally {
       isSavingAiMailForward = false;
       renderWithWindows();
@@ -469,7 +470,7 @@ export const createAiMailFeature = ({ createWindowShell, setActionActive, isActi
   const openAiMailForwardWindow = () => {
     aiMailForwardDraft = aiMailStatus.forwardTo ?? '';
     aiMailForwardDirty = false;
-    const { body, close } = createWindowShell('ai-mail-forward', '転送先メールアドレス', () => {
+    const { body, close } = createWindowShell('ai-mail-forward', '予備転送先メールアドレス', () => {
       aiMailForwardWindow = null;
     });
     const closeWindow = () => {
@@ -478,7 +479,7 @@ export const createAiMailFeature = ({ createWindowShell, setActionActive, isActi
     };
 
     const description = document.createElement('p');
-    description.textContent = 'POP3監視で使用する転送先メールアドレスを設定します。';
+    description.textContent = '本文の「AI解読用」に記載された返信先メールアドレスを優先して転送します。ここでは返信先が取得できない場合の予備転送先を設定できます（空欄で解除）。';
     body.append(description);
 
     const forwardSection = document.createElement('div');
@@ -486,7 +487,7 @@ export const createAiMailFeature = ({ createWindowShell, setActionActive, isActi
 
     const forwardLabel = document.createElement('div');
     forwardLabel.className = 'forward-label';
-    forwardLabel.textContent = '転送先メールアドレス';
+    forwardLabel.textContent = '予備転送先メールアドレス';
 
     const forwardForm = document.createElement('form');
     forwardForm.className = 'forward-form';
@@ -522,7 +523,7 @@ export const createAiMailFeature = ({ createWindowShell, setActionActive, isActi
 
     const forwardHint = document.createElement('div');
     forwardHint.className = 'forward-hint';
-    forwardHint.textContent = '監視を開始するには転送先を設定してください。';
+    forwardHint.textContent = '予備転送先は未設定です（空欄で解除）。';
 
     const forwardError = document.createElement('div');
     forwardError.className = 'form-error';
@@ -872,7 +873,13 @@ export const createAiMailFeature = ({ createWindowShell, setActionActive, isActi
     };
 
     statusGrid.append(
-      makeRow('転送先', aiMailStatus.forwardTo || '未設定'),
+      makeRow(
+        '自動転送先',
+        aiMailStatus.lastResolvedForwardTo
+          ? `${aiMailStatus.lastResolvedForwardTo}${aiMailStatus.lastResolvedForwardSource ? ` (${formatForwardSourceLabel(aiMailStatus.lastResolvedForwardSource)})` : ''}`
+          : '未判定',
+      ),
+      makeRow('予備転送先', aiMailStatus.forwardTo || '未設定'),
       makeRow('最終チェック', formatDateTime(aiMailStatus.lastCheckedAt)),
       makeRow('最終転送', formatDateTime(aiMailStatus.lastForwardedAt)),
       makeRow('累計転送', `${aiMailStatus.forwardedCount ?? 0}件`),
@@ -886,7 +893,7 @@ export const createAiMailFeature = ({ createWindowShell, setActionActive, isActi
     configActions.className = 'feature-actions';
     const forwardButton = document.createElement('button');
     forwardButton.className = 'ghost';
-    forwardButton.textContent = '転送先を設定';
+    forwardButton.textContent = '予備転送先を設定';
     forwardButton.addEventListener('click', openAiMailForwardWindow);
     const formattingButton = document.createElement('button');
     formattingButton.className = 'ghost';
@@ -923,7 +930,7 @@ export const createAiMailFeature = ({ createWindowShell, setActionActive, isActi
     const fetchBtn = document.createElement('button');
     fetchBtn.className = 'ghost';
     fetchBtn.textContent = isFetchingAiMailOnce ? '手動取得中…' : '手動取得';
-    fetchBtn.disabled = isFetchingAiMailOnce || !aiMailStatus.forwardTo;
+    fetchBtn.disabled = isFetchingAiMailOnce;
     fetchBtn.addEventListener('click', () => { void fetchAiMailOnce(); });
 
     actions.append(toggleBtn, refreshBtn, fetchBtn);
@@ -931,8 +938,8 @@ export const createAiMailFeature = ({ createWindowShell, setActionActive, isActi
     const desc = document.createElement('div');
     desc.className = 'feature-desc';
     desc.textContent = aiMailStatus.running
-      ? 'wx105.wadax-sv.jp のPOP3(110/STARTTLS)を監視し、新着をSMTP(587/STARTTLS)で転送します。'
-      : '監視を開始すると受信メールを検知し、指定先へ自動で転送します。';
+      ? 'wx105.wadax-sv.jp のPOP3(995/TLS)を監視し、新着をSMTP(587/STARTTLS)で転送します。'
+      : '監視を開始すると受信メールを検知し、本文の「AI解読用」返信先へ自動転送します（取得できない場合は予備転送先）。';
 
     card.append(header, statusGrid, configActions, actions, desc);
     return card;

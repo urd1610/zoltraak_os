@@ -5,6 +5,7 @@ const nodemailer = require('nodemailer');
 const MailComposer = require('nodemailer/lib/mail-composer');
 const { simpleParser } = require('mailparser');
 const { AiFormatter } = require('./aiFormatter');
+const { resolveForwardToFromBody } = require('./aiMailForwardToResolver');
 
 class AiMailMonitor {
   constructor(options = {}) {
@@ -34,6 +35,8 @@ class AiMailMonitor {
 
     this.state = {
       forwardTo: options.forwardTo ?? '',
+      lastResolvedForwardTo: null,
+      lastResolvedForwardSource: null,
       lastCheckedAt: null,
       lastForwardedAt: null,
       lastError: null,
@@ -83,6 +86,8 @@ class AiMailMonitor {
   getStatus() {
     return {
       forwardTo: this.state.forwardTo,
+      lastResolvedForwardTo: this.state.lastResolvedForwardTo,
+      lastResolvedForwardSource: this.state.lastResolvedForwardSource,
       lastCheckedAt: this.state.lastCheckedAt,
       lastForwardedAt: this.state.lastForwardedAt,
       lastError: this.state.lastError,
@@ -327,15 +332,11 @@ class AiMailMonitor {
     if (!this.state.running && !force) {
       return this.getStatus();
     }
-    if (!this.state.forwardTo) {
-      this.state.lastError = '転送先メールアドレスが設定されていません';
-      this.state.lastCheckedAt = new Date().toISOString();
-      await this.persistState();
-      return this.getStatus();
-    }
 
     let hadSaveError = false;
     let hadAiError = false;
+    let hadForwardToError = false;
+    let forwardedThisRun = 0;
 
     try {
       const newMessages = await this.fetchNewMessages();
@@ -347,12 +348,19 @@ class AiMailMonitor {
         if (result?.aiFailed) {
           hadAiError = true;
         }
+        if (result?.missingForwardTo) {
+          hadForwardToError = true;
+        } else {
+          forwardedThisRun += 1;
+        }
       }
-      if (newMessages.length > 0) {
+      if (forwardedThisRun > 0) {
         this.state.lastForwardedAt = new Date().toISOString();
       }
       if (hadSaveError) {
         this.state.lastError = 'メールの保存に失敗しました';
+      } else if (hadForwardToError) {
+        this.state.lastError = '本文の「AI解読用」から返信先メールアドレスを取得できませんでした';
       } else if (hadAiError) {
         this.state.lastError = 'AI整形に失敗したため原文を転送しました';
       } else {
@@ -463,6 +471,7 @@ class AiMailMonitor {
     const rawBuffer = this.stripPop3Envelope(this.normalizeRawEmail(message.raw));
     let saveFailed = false;
     let aiFailed = false;
+    let missingForwardTo = false;
     try {
       await this.saveRawEmail(rawBuffer);
     } catch (error) {
@@ -473,6 +482,19 @@ class AiMailMonitor {
     const parsed = await simpleParser(rawBuffer);
     const restoredText = this.restoreStrippedUtf8(parsed.text);
     const restoredHtml = this.restoreStrippedUtf8(parsed.html);
+
+    const resolvedForward = resolveForwardToFromBody({
+      text: restoredText,
+      html: restoredHtml,
+      fallback: this.state.forwardTo,
+    });
+    this.state.lastResolvedForwardTo = resolvedForward.address;
+    this.state.lastResolvedForwardSource = resolvedForward.source;
+
+    if (!resolvedForward.address) {
+      missingForwardTo = true;
+      return { saveFailed, aiFailed, missingForwardTo };
+    }
 
     let aiResult = null;
     if (this.state.formatting?.enabled && this.aiFormatter?.formatEmail) {
@@ -496,9 +518,10 @@ class AiMailMonitor {
     const formattedSubject = aiResult?.subject || parsed.subject;
     const formattedText = aiText || restoredText;
     const formattedHtml = aiResult?.html ?? (aiText ? this.buildHtmlFromText(aiText) : restoredHtml);
+
     const mailOptions = {
       from: this.credentials.user,
-      to: this.state.forwardTo,
+      to: resolvedForward.address,
       subject: formattedSubject ? `[FW] ${formattedSubject}` : '転送メール',
       text: formattedText ?? '(本文なし)',
       html: formattedHtml ?? undefined,
@@ -532,7 +555,7 @@ class AiMailMonitor {
     this.state.forwardedCount += 1;
     this.state.seenUids.add(message.uid);
     this.trimSeenUids();
-    return { saveFailed, aiFailed };
+    return { saveFailed, aiFailed, missingForwardTo };
   }
 
   trimSeenUids() {
