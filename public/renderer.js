@@ -711,10 +711,10 @@ const toggleAction = (id) => {
   if (!action) return;
   if (id === 'ai-mail-monitor') {
     if (!aiMailFeature) return;
-    if (aiMailFeature.isRunning()) {
-      void aiMailFeature.stopMonitor();
+    if (action.active) {
+      void aiMailFeature.closePanel();
     } else {
-      void aiMailFeature.startMonitor();
+      void aiMailFeature.openPanel();
     }
     return;
   }
