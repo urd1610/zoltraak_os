@@ -568,6 +568,8 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
         glow,
         data: node,
         baseScale: nodeGroup.scale.x,
+        baseCoreColor: material.color?.clone?.() ?? null,
+        baseEmissiveColor: material.emissive?.clone?.() ?? null,
         baseEmissive: material.emissiveIntensity,
         baseOpacity: material.opacity,
         baseGlowOpacity: glow?.material?.opacity ?? null,
@@ -778,6 +780,24 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
       meta.mesh.scale.setScalar(nextScale);
 
       if (meta.core?.material) {
+        if (!workspaceScene.focusCoreColor) {
+          workspaceScene.focusCoreColor = new THREE.Color(NODE_FOCUS_RING_COLOR);
+        }
+        if (!meta.baseCoreColor?.isColor && meta.core.material.color?.clone) {
+          meta.baseCoreColor = meta.core.material.color.clone();
+        }
+        if (!meta.baseEmissiveColor?.isColor && meta.core.material.emissive?.clone) {
+          meta.baseEmissiveColor = meta.core.material.emissive.clone();
+        }
+        const targetCoreColor = isFocused ? workspaceScene.focusCoreColor : meta.baseCoreColor;
+        if (targetCoreColor?.isColor && meta.core.material.color?.lerp) {
+          meta.core.material.color.lerp(targetCoreColor, 0.22);
+        }
+        const targetEmissiveColor = isFocused ? workspaceScene.focusCoreColor : meta.baseEmissiveColor;
+        if (targetEmissiveColor?.isColor && meta.core.material.emissive?.lerp) {
+          meta.core.material.emissive.lerp(targetEmissiveColor, 0.22);
+        }
+
         const baseEmissive = meta.baseEmissive ?? meta.core.material.emissiveIntensity ?? 1;
         const targetEmissive = isFocused ? baseEmissive * 1.75 : baseEmissive;
         meta.core.material.emissiveIntensity = THREE.MathUtils.lerp(
