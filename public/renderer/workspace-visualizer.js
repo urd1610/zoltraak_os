@@ -1,5 +1,6 @@
 import { computeWorkspaceLayout } from './workspace-layout.js';
 import {
+  buildNodeFocusRingSprite,
   buildNodeGlowSprite,
   buildWorkspaceLabelSprite,
   ensureWorkspaceLabelFontReady,
@@ -54,6 +55,7 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
     moved: false,
   };
   const CLICK_MOVE_THRESHOLD = 6;
+  const NODE_FOCUS_RING_COLOR = '#6ee7ff';
 
   const getWorkspaceVisualizerStatusEl = () => {
     if (!workspaceVisualizer) return null;
@@ -557,6 +559,7 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
         mesh: nodeGroup,
         label,
         labelOffset,
+        radius,
         basePosition: pos,
         wobbleSpeed: 0.32 + Math.random() * 0.18,
         wobbleAmp: 0.12 + Math.random() * 0.14,
@@ -575,6 +578,15 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
       interactiveNodes.push(core);
       nodeMeta.push(meta);
     });
+
+    const focusRing = buildNodeFocusRingSprite(NODE_FOCUS_RING_COLOR, 1, 1.2);
+    if (focusRing) {
+      focusRing.userData.ignoreHit = true;
+      focusRing.visible = false;
+      focusRing.userData.baseOpacity = focusRing.material?.opacity ?? 0.55;
+      focusRing.userData.baseScale = focusRing.scale?.x ?? 1;
+      groups.nodes.add(focusRing);
+    }
 
     const linePositions = [];
     const positionMap = layout.positions;
@@ -658,6 +670,7 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
       radius: layout.radius,
       controls: orbitControls,
       interactiveNodes,
+      focusRing,
       raycaster: new THREE.Raycaster(),
       pointerNdc: new THREE.Vector2(),
       orbitAnchor: null,
