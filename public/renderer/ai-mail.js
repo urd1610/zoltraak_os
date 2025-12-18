@@ -467,6 +467,13 @@ export const createAiMailFeature = ({ createWindowShell, setActionActive, isActi
     stopAiMailAutoRefresh();
   };
 
+  const openAiMailPanel = async () => {
+    setActionActive?.('ai-mail-monitor', true);
+    render();
+    ensureAiMailAutoRefresh();
+    await hydrateAiMailStatus();
+  };
+
   const openAiMailForwardWindow = () => {
     aiMailForwardDraft = aiMailStatus.forwardTo ?? '';
     aiMailForwardDirty = false;
@@ -971,6 +978,7 @@ export const createAiMailFeature = ({ createWindowShell, setActionActive, isActi
     buildCard: buildAiMailCard,
     startMonitor: startAiMailMonitor,
     stopMonitor: stopAiMailMonitor,
+    openPanel: openAiMailPanel,
     closePanel: closeAiMailPanel,
     hydrate,
     isWarning,
