@@ -55,7 +55,7 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
     moved: false,
   };
   const CLICK_MOVE_THRESHOLD = 6;
-  const NODE_FOCUS_RING_COLOR = '#6ee7ff';
+  const NODE_FOCUS_RING_COLOR = '#f97316';
 
   const getWorkspaceVisualizerStatusEl = () => {
     if (!workspaceVisualizer) return null;
