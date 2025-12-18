@@ -568,6 +568,8 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
         glow,
         data: node,
         baseScale: nodeGroup.scale.x,
+        baseCoreColor: material.color?.clone?.() ?? null,
+        baseEmissiveColor: material.emissive?.clone?.() ?? null,
         baseEmissive: material.emissiveIntensity,
         baseOpacity: material.opacity,
         baseGlowOpacity: glow?.material?.opacity ?? null,
