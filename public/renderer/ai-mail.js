@@ -971,7 +971,7 @@ export const createAiMailFeature = ({ createWindowShell, setActionActive, isActi
     await hydrateAiMailStatus();
   };
 
-  const isWarning = (actionActive) => actionActive && aiMailMonitorStartedOnce && !aiMailStatus.running;
+  const isWarning = (actionActive) => actionActive && !aiMailStatus.running;
   const isRunning = () => aiMailStatus.running;
 
   return {
