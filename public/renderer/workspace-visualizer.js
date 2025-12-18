@@ -1,5 +1,6 @@
 import { computeWorkspaceLayout } from './workspace-layout.js';
 import {
+  buildNodeFocusRingSprite,
   buildNodeGlowSprite,
   buildWorkspaceLabelSprite,
   ensureWorkspaceLabelFontReady,
@@ -54,6 +55,7 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
     moved: false,
   };
   const CLICK_MOVE_THRESHOLD = 6;
+  const NODE_FOCUS_RING_COLOR = '#f97316';
 
   const getWorkspaceVisualizerStatusEl = () => {
     if (!workspaceVisualizer) return null;
@@ -557,6 +559,7 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
         mesh: nodeGroup,
         label,
         labelOffset,
+        radius,
         basePosition: pos,
         wobbleSpeed: 0.32 + Math.random() * 0.18,
         wobbleAmp: 0.12 + Math.random() * 0.14,
@@ -575,6 +578,15 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
       interactiveNodes.push(core);
       nodeMeta.push(meta);
     });
+
+    const focusRing = buildNodeFocusRingSprite(NODE_FOCUS_RING_COLOR, 1, 1.2);
+    if (focusRing) {
+      focusRing.userData.ignoreHit = true;
+      focusRing.visible = false;
+      focusRing.userData.baseOpacity = focusRing.material?.opacity ?? 0.55;
+      focusRing.userData.baseScale = focusRing.scale?.x ?? 1;
+      groups.nodes.add(focusRing);
+    }
 
     const linePositions = [];
     const positionMap = layout.positions;
@@ -658,6 +670,7 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
       radius: layout.radius,
       controls: orbitControls,
       interactiveNodes,
+      focusRing,
       raycaster: new THREE.Raycaster(),
       pointerNdc: new THREE.Vector2(),
       orbitAnchor: null,
@@ -691,6 +704,25 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
     }
     const fadeNear = workspaceScene.radius * 0.38;
     const fadeFar = workspaceScene.radius * 1.5;
+
+    const focusMeta = workspaceScene.focusedMeta ?? workspaceScene.orbitAnchor;
+    if (workspaceScene.focusRing) {
+      if (focusMeta?.mesh) {
+        if (workspaceScene.focusRing.parent !== focusMeta.mesh) {
+          workspaceScene.focusRing.parent?.remove?.(workspaceScene.focusRing);
+          focusMeta.mesh.add(workspaceScene.focusRing);
+          workspaceScene.focusRing.position.set(0, 0, 0);
+        }
+        workspaceScene.focusRing.visible = true;
+      } else {
+        const root = workspaceScene.groups?.nodes;
+        if (root && workspaceScene.focusRing.parent !== root) {
+          workspaceScene.focusRing.parent?.remove?.(workspaceScene.focusRing);
+          root.add(workspaceScene.focusRing);
+          workspaceScene.focusRing.position.set(0, 0, 0);
+        }
+      }
+    }
 
     (workspaceScene.nodeMeta ?? []).forEach((meta) => {
       if (!meta?.mesh || !meta.basePosition) return;
@@ -783,6 +815,38 @@ export const createWorkspaceVisualizer = (workspaceVisualizer) => {
         meta.glow.scale.set(nextGlowScale, nextGlowScale, 1);
       }
     });
+
+    if (workspaceScene.focusRing?.material) {
+      const baseOpacity = workspaceScene.focusRing.userData?.baseOpacity
+        ?? workspaceScene.focusRing.material.opacity
+        ?? 0.65;
+      const pulse = focusMeta
+        ? 1 + Math.sin(t * 3.1 + (focusMeta.wobblePhase ?? 0)) * 0.18
+        : 1;
+      const targetOpacity = focusMeta ? Math.min(1, baseOpacity * 1.1 * pulse) : 0;
+      workspaceScene.focusRing.material.opacity = THREE.MathUtils.lerp(
+        workspaceScene.focusRing.material.opacity,
+        targetOpacity,
+        0.22,
+      );
+
+      if (!focusMeta && workspaceScene.focusRing.material.opacity < 0.02) {
+        workspaceScene.focusRing.visible = false;
+      }
+    }
+
+    if (workspaceScene.focusRing) {
+      const baseScale = workspaceScene.focusRing.userData?.baseScale
+        ?? workspaceScene.focusRing.scale?.x
+        ?? 1;
+      const radius = focusMeta?.radius ?? 1;
+      const pulse = focusMeta
+        ? 1 + Math.sin(t * 2.4 + (focusMeta.wobblePhase ?? 0)) * 0.06
+        : 1;
+      const targetScale = focusMeta ? baseScale * radius * 1.15 * pulse : baseScale;
+      const nextScale = THREE.MathUtils.lerp(workspaceScene.focusRing.scale.x, targetScale, 0.18);
+      workspaceScene.focusRing.scale.set(nextScale, nextScale, 1);
+    }
 
     const lineMeshes = Array.isArray(workspaceScene.lines)
       ? workspaceScene.lines

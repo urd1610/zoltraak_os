@@ -127,3 +127,42 @@ export const buildNodeGlowSprite = (color, radius = 3, intensity = 1) => {
   sprite.userData.dispose = () => texture.dispose();
   return sprite;
 };
+
+export const buildNodeFocusRingSprite = (color, radius = 3, intensity = 1) => {
+  if (typeof THREE === 'undefined') return null;
+  const canvas = document.createElement('canvas');
+  const size = 256;
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  const center = size / 2;
+  const gradient = ctx.createRadialGradient(center, center, size * 0.12, center, center, center);
+  gradient.addColorStop(0, `${color}00`);
+  gradient.addColorStop(0.25, `${color}00`);
+  gradient.addColorStop(0.46, `${color}10`);
+  gradient.addColorStop(0.58, `${color}70`);
+  gradient.addColorStop(0.72, `${color}26`);
+  gradient.addColorStop(1, `${color}00`);
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, size, size);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.minFilter = THREE.LinearFilter;
+  texture.magFilter = THREE.LinearFilter;
+  texture.generateMipmaps = false;
+
+  const material = new THREE.SpriteMaterial({
+    map: texture,
+    color,
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+    opacity: 0.55 * intensity,
+    toneMapped: false,
+  });
+  const sprite = new THREE.Sprite(material);
+  const spriteScale = radius * 5.2;
+  sprite.scale.set(spriteScale, spriteScale, 1);
+  sprite.userData.dispose = () => texture.dispose();
+  return sprite;
+};
