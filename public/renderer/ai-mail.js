@@ -47,7 +47,6 @@ export const createAiMailFeature = ({ createWindowShell, setActionActive, isActi
     formatting: buildDefaultAiFormatting(),
   };
 
-  let aiMailMonitorStartedOnce = false;
   let aiMailForwardDraft = '';
   let aiMailForwardDirty = false;
   let isSavingAiMailForward = false;
@@ -252,9 +251,6 @@ export const createAiMailFeature = ({ createWindowShell, setActionActive, isActi
   const syncAiMailUiFromStatus = (status) => {
     if (!status) return;
     const shouldActivate = Boolean(status.running || isAiMailActionActive());
-    if (status.running) {
-      aiMailMonitorStartedOnce = true;
-    }
     updateAiMailStatus(status);
     if (!aiMailForwardDirty || isSavingAiMailForward) {
       aiMailForwardDraft = status.forwardTo ?? '';
@@ -971,7 +967,7 @@ export const createAiMailFeature = ({ createWindowShell, setActionActive, isActi
     await hydrateAiMailStatus();
   };
 
-  const isWarning = (actionActive) => actionActive && aiMailMonitorStartedOnce && !aiMailStatus.running;
+  const isWarning = (actionActive) => actionActive && !aiMailStatus.running;
   const isRunning = () => aiMailStatus.running;
 
   return {
