@@ -484,9 +484,10 @@ export const createAiModelSettings = ({ createWindowShell, onSettingsSaved }) =>
     aiModelDraft = normalizeDraft(cloneSettings(aiModelSettings));
     aiModelDirty = false;
 
-    const { body, close } = createWindowShell('ai-model-settings', 'AIモデル設定', () => {
+    const { windowEl, body, close } = createWindowShell('ai-model-settings', 'AIモデル設定', () => {
       aiSettingsWindow = null;
     });
+    windowEl.classList.add('window--wide', 'window--scrollable');
 
     const description = document.createElement('p');
     description.textContent = '機能ごとに利用するAIモデルを切り替え、プロバイダ設定を管理できます。';
