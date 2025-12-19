@@ -118,6 +118,20 @@
   overflow: hidden;
 }
 
+.window--wide {
+  width: 720px;
+  max-width: 100%;
+}
+
+.window--scrollable {
+  max-height: 80vh;
+}
+
+.window--scrollable .window-body {
+  min-height: 0;
+  overflow: auto;
+}
+
 .window.dragging {
   user-select: none;
 }
