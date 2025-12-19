@@ -129,6 +129,8 @@ contextBridge.exposeInMainWorld('desktopBridge', {
   updateAiMailFormatting: (formatting) => ipcRenderer.invoke('ai-mail:update-formatting', formatting),
   getAiMailDefaultPrompt: () => ipcRenderer.invoke('ai-mail:get-default-prompt'),
   saveAiMailDefaultPrompt: (prompt) => ipcRenderer.invoke('ai-mail:save-default-prompt', prompt),
+  getAiModelSettings: () => ipcRenderer.invoke('ai-models:get'),
+  saveAiModelSettings: (settings) => ipcRenderer.invoke('ai-models:save', settings),
   ensureSwMenuSetup: () => ipcRenderer.invoke('sw-menu:init'),
   getSwMenuStatus: () => ipcRenderer.invoke('sw-menu:status'),
   getSwMenuOverview: () => ipcRenderer.invoke('sw-menu:overview'),
