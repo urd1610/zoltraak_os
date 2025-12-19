@@ -404,10 +404,13 @@ export const createAiModelSettings = ({ createWindowShell, onSettingsSaved }) =>
 
   const updateAiSettingsWindowState = () => {
     if (!aiSettingsWindow) return;
-    const { saveButton, errorText } = aiSettingsWindow;
+    const { saveButton, errorText, addButton } = aiSettingsWindow;
     if (saveButton) {
       saveButton.disabled = !aiModelDirty || isSaving;
       saveButton.textContent = isSaving ? '保存中…' : '保存';
+    }
+    if (addButton) {
+      addButton.disabled = isSaving;
     }
     if (errorText) {
       errorText.hidden = !errorText.textContent;
