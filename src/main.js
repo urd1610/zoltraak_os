@@ -197,7 +197,6 @@ const getAiModelProviderLabel = (provider) => {
 };
 
 const buildDefaultAiModelProfiles = (legacyFormatting = {}) => {
-  const legacyProvider = String(legacyFormatting?.provider ?? '').toLowerCase();
   const legacyOpenRouter = legacyFormatting?.openRouter ?? {};
   const legacyLmStudio = legacyFormatting?.lmStudio ?? {};
 
@@ -388,6 +387,46 @@ const saveAiMailSettings = async (patch) => {
   const nextSettings = { ...settings, aiMail: nextAiMail };
   await writeSettings(nextSettings);
   return nextAiMail;
+};
+
+const buildAiModelProfileSummary = (profile) => {
+  if (!profile) return null;
+  return {
+    id: profile.id,
+    label: profile.label,
+    provider: profile.provider,
+    model: profile.model,
+    endpoint: profile.endpoint,
+  };
+};
+
+const buildAiMailStatusWithModel = async (status) => {
+  if (!status) return status;
+  const aiModelSettings = await getAiModelSettings();
+  const modelProfile = resolveAiModelProfile('ai-mail-monitor', aiModelSettings);
+  return {
+    ...status,
+    modelProfile: buildAiModelProfileSummary(modelProfile),
+  };
+};
+
+const syncAiMailModelSettings = async (aiModelSettings) => {
+  if (!aiMailMonitor) return null;
+  const aiMailState = await getAiMailSettings();
+  if (!aiMailState?.formatting) {
+    return aiMailMonitor.getStatus();
+  }
+  return aiMailMonitor.updateFormatting(aiMailState.formatting);
+};
+
+const saveAiModelSettings = async (payload) => {
+  const settings = await readSettings();
+  const legacyFormatting = settings.aiMail?.formatting ?? {};
+  const normalized = normalizeAiModelSettings(payload ?? {}, legacyFormatting);
+  const nextSettings = { ...settings, aiModels: normalized };
+  await writeSettings(nextSettings);
+  await syncAiMailModelSettings(normalized);
+  return normalized;
 };
 
 const ensurePromptDirectory = async () => {
@@ -788,18 +827,21 @@ app.whenReady().then(async () => {
     const { buffer, mimeType } = payload ?? {};
     return saveRecordingBuffer(buffer, mimeType);
   });
-  ipcMain.handle('ai-mail:get-status', async () => monitor?.getStatus());
-  ipcMain.handle('ai-mail:update-forward', async (_event, forwardTo) => monitor?.updateForwardTo(forwardTo));
-  ipcMain.handle('ai-mail:update-formatting', async (_event, formatting) => monitor?.updateFormatting(formatting));
-  ipcMain.handle('ai-mail:start', async () => monitor?.start());
-  ipcMain.handle('ai-mail:stop', async () => monitor?.stop());
-  ipcMain.handle('ai-mail:refresh', async () => monitor?.pollOnce());
-  ipcMain.handle('ai-mail:fetch-once', async () => monitor?.pollOnce({ force: true }));
+  const withAiMailModelProfile = async (statusOrPromise) => buildAiMailStatusWithModel(await statusOrPromise);
+  ipcMain.handle('ai-mail:get-status', async () => withAiMailModelProfile(monitor?.getStatus()));
+  ipcMain.handle('ai-mail:update-forward', async (_event, forwardTo) => withAiMailModelProfile(monitor?.updateForwardTo(forwardTo)));
+  ipcMain.handle('ai-mail:update-formatting', async (_event, formatting) => withAiMailModelProfile(monitor?.updateFormatting(formatting)));
+  ipcMain.handle('ai-mail:start', async () => withAiMailModelProfile(monitor?.start()));
+  ipcMain.handle('ai-mail:stop', async () => withAiMailModelProfile(monitor?.stop()));
+  ipcMain.handle('ai-mail:refresh', async () => withAiMailModelProfile(monitor?.pollOnce()));
+  ipcMain.handle('ai-mail:fetch-once', async () => withAiMailModelProfile(monitor?.pollOnce({ force: true })));
   ipcMain.handle('ai-mail:get-default-prompt', async () => readDefaultFormattingPrompt());
   ipcMain.handle('ai-mail:save-default-prompt', async (_event, prompt) => {
     const { prompt: saved } = await registerDefaultFormattingPrompt(prompt);
     return saved;
   });
+  ipcMain.handle('ai-models:get', async () => getAiModelSettings());
+  ipcMain.handle('ai-models:save', async (_event, payload) => saveAiModelSettings(payload));
   ipcMain.handle('sw-menu:init', async () => swMenuService?.ensureSchema());
   ipcMain.handle('sw-menu:status', async () => swMenuService?.getStatus());
   ipcMain.handle('sw-menu:overview', async () => swMenuService?.getOverview());
