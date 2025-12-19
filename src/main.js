@@ -410,7 +410,7 @@ const buildAiMailStatusWithModel = async (status) => {
   };
 };
 
-const syncAiMailModelSettings = async (aiModelSettings) => {
+const syncAiMailModelSettings = async () => {
   if (!aiMailMonitor) return null;
   const aiMailState = await getAiMailSettings();
   if (!aiMailState?.formatting) {
@@ -425,7 +425,7 @@ const saveAiModelSettings = async (payload) => {
   const normalized = normalizeAiModelSettings(payload ?? {}, legacyFormatting);
   const nextSettings = { ...settings, aiModels: normalized };
   await writeSettings(nextSettings);
-  await syncAiMailModelSettings(normalized);
+  await syncAiMailModelSettings();
   return normalized;
 };
 
