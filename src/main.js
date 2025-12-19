@@ -326,16 +326,50 @@ const getAiModelSettings = async () => {
   return normalizeAiModelSettings(settings.aiModels, legacyFormatting);
 };
 
+const resolveAiModelProfile = (featureId, aiModelSettings) => {
+  if (!aiModelSettings) return null;
+  const profiles = Array.isArray(aiModelSettings.profiles) ? aiModelSettings.profiles : [];
+  const featureMap = aiModelSettings.featureMap ?? {};
+  const preferredId = featureMap?.[featureId] ?? '';
+  const resolvedId = resolveAiModelProfileId(featureId, preferredId, profiles);
+  return profiles.find((profile) => profile.id === resolvedId) ?? null;
+};
+
+const applyAiModelProfileToFormatting = (formatting, modelProfile, defaultPrompt = DEFAULT_FORMATTING_PROMPT) => {
+  if (!modelProfile) {
+    return normalizeFormattingSettings(formatting, defaultPrompt);
+  }
+  const provider = modelProfile.provider === 'lmstudio' ? 'lmstudio' : 'openrouter';
+  const next = { ...formatting, provider };
+  if (provider === 'lmstudio') {
+    next.lmStudio = {
+      ...(formatting.lmStudio ?? {}),
+      endpoint: modelProfile.endpoint || formatting.lmStudio?.endpoint || DEFAULT_LM_STUDIO_ENDPOINT,
+      model: modelProfile.model || formatting.lmStudio?.model || DEFAULT_AI_MODEL_BY_PROVIDER.lmstudio,
+    };
+  } else {
+    next.openRouter = {
+      ...(formatting.openRouter ?? {}),
+      apiKey: typeof modelProfile.apiKey === 'string' ? modelProfile.apiKey : (formatting.openRouter?.apiKey ?? ''),
+      model: modelProfile.model || formatting.openRouter?.model || DEFAULT_AI_MODEL_BY_PROVIDER.openrouter,
+    };
+  }
+  return normalizeFormattingSettings(next, defaultPrompt);
+};
+
 const getAiMailSettings = async () => {
   const settings = await readSettings();
   const aiMail = settings.aiMail ?? {};
   const defaultPrompt = await readDefaultFormattingPrompt();
   const defaultFormatting = buildDefaultFormattingSettings(defaultPrompt);
+  const formatting = normalizeFormattingSettings(aiMail.formatting ?? defaultFormatting, defaultPrompt);
+  const aiModelSettings = await getAiModelSettings();
+  const modelProfile = resolveAiModelProfile('ai-mail-monitor', aiModelSettings);
   return {
     forwardTo: aiMail.forwardTo ?? '',
     forwardedCount: aiMail.forwardedCount ?? 0,
     seenUids: Array.isArray(aiMail.seenUids) ? aiMail.seenUids : [],
-    formatting: normalizeFormattingSettings(aiMail.formatting ?? defaultFormatting, defaultPrompt),
+    formatting: applyAiModelProfileToFormatting(formatting, modelProfile, defaultPrompt),
   };
 };
 
