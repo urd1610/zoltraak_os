@@ -272,7 +272,8 @@ export const createAiModelSettings = ({ createWindowShell, onSettingsSaved }) =>
       nameInput.dataset.profileId = profile.id;
       nameInput.addEventListener('input', (event) => {
         const nextLabel = event.target.value;
-        cardTitle.textContent = nextLabel.trim() || getProviderLabel(profile.provider);
+        const providerLabel = getProviderLabel(normalizeProvider(providerSelect?.value));
+        cardTitle.textContent = nextLabel.trim() || providerLabel;
         updateDraft({
           ...aiModelDraft,
           profiles: (aiModelDraft?.profiles ?? []).map((item) => (
@@ -298,7 +299,8 @@ export const createAiModelSettings = ({ createWindowShell, onSettingsSaved }) =>
       providerSelect.value = profile.provider ?? 'openrouter';
       providerSelect.addEventListener('change', (event) => {
         const nextProvider = normalizeProvider(event.target.value);
-        const nextModel = profile.model?.trim() || DEFAULT_MODEL_BY_PROVIDER[nextProvider];
+        const currentProfile = (aiModelDraft?.profiles ?? []).find((item) => item.id === profile.id) ?? profile;
+        const nextModel = currentProfile.model?.trim() || DEFAULT_MODEL_BY_PROVIDER[nextProvider];
         updateDraft({
           ...aiModelDraft,
           profiles: (aiModelDraft?.profiles ?? []).map((item) => (
