@@ -27,6 +27,18 @@ const GRAPH_IGNORE_NAMES = new Set([
   'build',
   '.worktrees',
 ]);
+const AI_MODEL_PROVIDERS = new Set(['openrouter', 'lmstudio', 'openai', 'gemini']);
+const AI_MODEL_FEATURES = {
+  'ai-mail-monitor': { providers: new Set(['openrouter', 'lmstudio']) },
+  chat: { providers: new Set(['openrouter', 'lmstudio', 'openai', 'gemini']) },
+};
+const DEFAULT_LM_STUDIO_ENDPOINT = 'http://localhost:1234/v1/chat/completions';
+const DEFAULT_AI_MODEL_BY_PROVIDER = {
+  openrouter: 'gpt-4o-mini',
+  lmstudio: 'gpt-4o-mini',
+  openai: 'gpt-4o-mini',
+  gemini: 'gemini-1.5-flash',
+};
 let workspaceWatcher = null;
 let workspaceWatcherDebounce = null;
 
@@ -170,16 +182,193 @@ const normalizeFormattingSettings = (value, defaultPrompt = DEFAULT_FORMATTING_P
   return formatter.getOptions();
 };
 
+const getAiModelProviderLabel = (provider) => {
+  switch (provider) {
+    case 'lmstudio':
+      return 'LM Studio';
+    case 'openai':
+      return 'ChatGPT (OpenAI)';
+    case 'gemini':
+      return 'Gemini';
+    case 'openrouter':
+    default:
+      return 'OpenRouter';
+  }
+};
+
+const buildDefaultAiModelProfiles = (legacyFormatting = {}) => {
+  const legacyOpenRouter = legacyFormatting?.openRouter ?? {};
+  const legacyLmStudio = legacyFormatting?.lmStudio ?? {};
+
+  return [
+    {
+      id: 'local-lm',
+      label: 'ローカルLLM (LM Studio)',
+      provider: 'lmstudio',
+      model: legacyLmStudio.model ?? DEFAULT_AI_MODEL_BY_PROVIDER.lmstudio,
+      endpoint: legacyLmStudio.endpoint ?? DEFAULT_LM_STUDIO_ENDPOINT,
+      apiKey: '',
+    },
+    {
+      id: 'openrouter-default',
+      label: 'OpenRouter',
+      provider: 'openrouter',
+      model: legacyOpenRouter.model ?? DEFAULT_AI_MODEL_BY_PROVIDER.openrouter,
+      apiKey: legacyOpenRouter.apiKey ?? '',
+    },
+    {
+      id: 'chatgpt-default',
+      label: 'ChatGPT (OpenAI)',
+      provider: 'openai',
+      model: DEFAULT_AI_MODEL_BY_PROVIDER.openai,
+      apiKey: '',
+    },
+    {
+      id: 'gemini-default',
+      label: 'Gemini',
+      provider: 'gemini',
+      model: DEFAULT_AI_MODEL_BY_PROVIDER.gemini,
+      apiKey: '',
+    },
+  ];
+};
+
+const buildDefaultAiModelFeatureMap = (legacyFormatting = {}) => {
+  const legacyProvider = String(legacyFormatting?.provider ?? '').toLowerCase();
+  const aiMailProfile = legacyProvider === 'openrouter' ? 'openrouter-default' : 'local-lm';
+  return {
+    'ai-mail-monitor': aiMailProfile,
+    chat: 'chatgpt-default',
+  };
+};
+
+const normalizeAiModelProfile = (profile = {}, fallback = {}, index = 0) => {
+  const rawProvider = String(profile.provider ?? fallback.provider ?? 'openrouter').toLowerCase();
+  const provider = AI_MODEL_PROVIDERS.has(rawProvider) ? rawProvider : 'openrouter';
+  const defaultModel = DEFAULT_AI_MODEL_BY_PROVIDER[provider] ?? DEFAULT_AI_MODEL_BY_PROVIDER.openrouter;
+  const idCandidate = String(profile.id ?? fallback.id ?? '').trim();
+  const id = idCandidate || `profile-${index + 1}`;
+  const labelCandidate = String(profile.label ?? fallback.label ?? '').trim();
+  const label = labelCandidate || getAiModelProviderLabel(provider);
+  const modelCandidate = String(profile.model ?? fallback.model ?? '').trim();
+  const model = modelCandidate || defaultModel;
+  const endpointCandidate = String(profile.endpoint ?? fallback.endpoint ?? '').trim();
+  const endpoint = provider === 'lmstudio'
+    ? (endpointCandidate || DEFAULT_LM_STUDIO_ENDPOINT)
+    : endpointCandidate;
+  const apiKey = typeof profile.apiKey === 'string'
+    ? profile.apiKey
+    : typeof fallback.apiKey === 'string'
+      ? fallback.apiKey
+      : '';
+  return {
+    id,
+    label,
+    provider,
+    model,
+    endpoint,
+    apiKey,
+  };
+};
+
+const normalizeAiModelProfiles = (profiles = [], fallbackProfiles = []) => {
+  const normalized = profiles.map((profile, index) => normalizeAiModelProfile(profile, fallbackProfiles[index], index));
+  const seen = new Set();
+  return normalized.map((profile, index) => {
+    let nextId = profile.id;
+    if (!nextId || seen.has(nextId)) {
+      nextId = `profile-${index + 1}`;
+    }
+    seen.add(nextId);
+    if (nextId === profile.id) {
+      return profile;
+    }
+    return { ...profile, id: nextId };
+  });
+};
+
+const resolveAiModelProfileId = (featureId, preferredId, profiles) => {
+  const feature = AI_MODEL_FEATURES[featureId];
+  const allowedProviders = feature?.providers ?? null;
+  const preferredProfile = profiles.find((profile) => profile.id === preferredId);
+  if (preferredProfile && (!allowedProviders || allowedProviders.has(preferredProfile.provider))) {
+    return preferredProfile.id;
+  }
+  const fallback = profiles.find((profile) => !allowedProviders || allowedProviders.has(profile.provider));
+  return fallback?.id ?? '';
+};
+
+const normalizeAiModelSettings = (value = {}, legacyFormatting = {}) => {
+  const fallbackProfiles = buildDefaultAiModelProfiles(legacyFormatting);
+  const fallbackFeatureMap = buildDefaultAiModelFeatureMap(legacyFormatting);
+  const profilesInput = Array.isArray(value.profiles) && value.profiles.length > 0
+    ? value.profiles
+    : fallbackProfiles;
+  const profiles = normalizeAiModelProfiles(profilesInput, fallbackProfiles);
+  const featureMapInput = value.featureMap && typeof value.featureMap === 'object'
+    ? value.featureMap
+    : {};
+  const featureMap = {};
+  Object.keys(AI_MODEL_FEATURES).forEach((featureId) => {
+    const preferredId = featureMapInput[featureId] ?? fallbackFeatureMap[featureId] ?? '';
+    featureMap[featureId] = resolveAiModelProfileId(featureId, preferredId, profiles);
+  });
+  return { profiles, featureMap };
+};
+
+const getAiModelSettings = async () => {
+  const settings = await readSettings();
+  const legacyFormatting = settings.aiMail?.formatting ?? {};
+  if (!settings.aiModels) {
+    return normalizeAiModelSettings({}, legacyFormatting);
+  }
+  return normalizeAiModelSettings(settings.aiModels, legacyFormatting);
+};
+
+const resolveAiModelProfile = (featureId, aiModelSettings) => {
+  if (!aiModelSettings) return null;
+  const profiles = Array.isArray(aiModelSettings.profiles) ? aiModelSettings.profiles : [];
+  const featureMap = aiModelSettings.featureMap ?? {};
+  const preferredId = featureMap?.[featureId] ?? '';
+  const resolvedId = resolveAiModelProfileId(featureId, preferredId, profiles);
+  return profiles.find((profile) => profile.id === resolvedId) ?? null;
+};
+
+const applyAiModelProfileToFormatting = (formatting, modelProfile, defaultPrompt = DEFAULT_FORMATTING_PROMPT) => {
+  if (!modelProfile) {
+    return normalizeFormattingSettings(formatting, defaultPrompt);
+  }
+  const provider = modelProfile.provider === 'lmstudio' ? 'lmstudio' : 'openrouter';
+  const next = { ...formatting, provider };
+  if (provider === 'lmstudio') {
+    next.lmStudio = {
+      ...(formatting.lmStudio ?? {}),
+      endpoint: modelProfile.endpoint || formatting.lmStudio?.endpoint || DEFAULT_LM_STUDIO_ENDPOINT,
+      model: modelProfile.model || formatting.lmStudio?.model || DEFAULT_AI_MODEL_BY_PROVIDER.lmstudio,
+    };
+  } else {
+    next.openRouter = {
+      ...(formatting.openRouter ?? {}),
+      apiKey: typeof modelProfile.apiKey === 'string' ? modelProfile.apiKey : (formatting.openRouter?.apiKey ?? ''),
+      model: modelProfile.model || formatting.openRouter?.model || DEFAULT_AI_MODEL_BY_PROVIDER.openrouter,
+    };
+  }
+  return normalizeFormattingSettings(next, defaultPrompt);
+};
+
 const getAiMailSettings = async () => {
   const settings = await readSettings();
   const aiMail = settings.aiMail ?? {};
   const defaultPrompt = await readDefaultFormattingPrompt();
   const defaultFormatting = buildDefaultFormattingSettings(defaultPrompt);
+  const formatting = normalizeFormattingSettings(aiMail.formatting ?? defaultFormatting, defaultPrompt);
+  const aiModelSettings = await getAiModelSettings();
+  const modelProfile = resolveAiModelProfile('ai-mail-monitor', aiModelSettings);
   return {
     forwardTo: aiMail.forwardTo ?? '',
     forwardedCount: aiMail.forwardedCount ?? 0,
     seenUids: Array.isArray(aiMail.seenUids) ? aiMail.seenUids : [],
-    formatting: normalizeFormattingSettings(aiMail.formatting ?? defaultFormatting, defaultPrompt),
+    formatting: applyAiModelProfileToFormatting(formatting, modelProfile, defaultPrompt),
   };
 };
 
@@ -198,6 +387,46 @@ const saveAiMailSettings = async (patch) => {
   const nextSettings = { ...settings, aiMail: nextAiMail };
   await writeSettings(nextSettings);
   return nextAiMail;
+};
+
+const buildAiModelProfileSummary = (profile) => {
+  if (!profile) return null;
+  return {
+    id: profile.id,
+    label: profile.label,
+    provider: profile.provider,
+    model: profile.model,
+    endpoint: profile.endpoint,
+  };
+};
+
+const buildAiMailStatusWithModel = async (status) => {
+  if (!status) return status;
+  const aiModelSettings = await getAiModelSettings();
+  const modelProfile = resolveAiModelProfile('ai-mail-monitor', aiModelSettings);
+  return {
+    ...status,
+    modelProfile: buildAiModelProfileSummary(modelProfile),
+  };
+};
+
+const syncAiMailModelSettings = async () => {
+  if (!aiMailMonitor) return null;
+  const aiMailState = await getAiMailSettings();
+  if (!aiMailState?.formatting) {
+    return aiMailMonitor.getStatus();
+  }
+  return aiMailMonitor.updateFormatting(aiMailState.formatting);
+};
+
+const saveAiModelSettings = async (payload) => {
+  const settings = await readSettings();
+  const legacyFormatting = settings.aiMail?.formatting ?? {};
+  const normalized = normalizeAiModelSettings(payload ?? {}, legacyFormatting);
+  const nextSettings = { ...settings, aiModels: normalized };
+  await writeSettings(nextSettings);
+  await syncAiMailModelSettings();
+  return normalized;
 };
 
 const ensurePromptDirectory = async () => {
@@ -598,18 +827,21 @@ app.whenReady().then(async () => {
     const { buffer, mimeType } = payload ?? {};
     return saveRecordingBuffer(buffer, mimeType);
   });
-  ipcMain.handle('ai-mail:get-status', async () => monitor?.getStatus());
-  ipcMain.handle('ai-mail:update-forward', async (_event, forwardTo) => monitor?.updateForwardTo(forwardTo));
-  ipcMain.handle('ai-mail:update-formatting', async (_event, formatting) => monitor?.updateFormatting(formatting));
-  ipcMain.handle('ai-mail:start', async () => monitor?.start());
-  ipcMain.handle('ai-mail:stop', async () => monitor?.stop());
-  ipcMain.handle('ai-mail:refresh', async () => monitor?.pollOnce());
-  ipcMain.handle('ai-mail:fetch-once', async () => monitor?.pollOnce({ force: true }));
+  const withAiMailModelProfile = async (statusOrPromise) => buildAiMailStatusWithModel(await statusOrPromise);
+  ipcMain.handle('ai-mail:get-status', async () => withAiMailModelProfile(monitor?.getStatus()));
+  ipcMain.handle('ai-mail:update-forward', async (_event, forwardTo) => withAiMailModelProfile(monitor?.updateForwardTo(forwardTo)));
+  ipcMain.handle('ai-mail:update-formatting', async (_event, formatting) => withAiMailModelProfile(monitor?.updateFormatting(formatting)));
+  ipcMain.handle('ai-mail:start', async () => withAiMailModelProfile(monitor?.start()));
+  ipcMain.handle('ai-mail:stop', async () => withAiMailModelProfile(monitor?.stop()));
+  ipcMain.handle('ai-mail:refresh', async () => withAiMailModelProfile(monitor?.pollOnce()));
+  ipcMain.handle('ai-mail:fetch-once', async () => withAiMailModelProfile(monitor?.pollOnce({ force: true })));
   ipcMain.handle('ai-mail:get-default-prompt', async () => readDefaultFormattingPrompt());
   ipcMain.handle('ai-mail:save-default-prompt', async (_event, prompt) => {
     const { prompt: saved } = await registerDefaultFormattingPrompt(prompt);
     return saved;
   });
+  ipcMain.handle('ai-models:get', async () => getAiModelSettings());
+  ipcMain.handle('ai-models:save', async (_event, payload) => saveAiModelSettings(payload));
   ipcMain.handle('sw-menu:init', async () => swMenuService?.ensureSchema());
   ipcMain.handle('sw-menu:status', async () => swMenuService?.getStatus());
   ipcMain.handle('sw-menu:overview', async () => swMenuService?.getOverview());

@@ -310,6 +310,119 @@
   color: #fef08a;
 }
 
+.ai-settings-section {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 12px;
+  background: linear-gradient(160deg, rgba(17, 27, 47, 0.6), rgba(17, 27, 47, 0.5));
+  border: 1px solid rgba(110, 231, 255, 0.1);
+}
+
+.ai-settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ai-feature-list,
+.ai-model-list {
+  display: grid;
+  gap: 10px;
+}
+
+.ai-feature-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 240px;
+  gap: 12px;
+  align-items: center;
+  padding: 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(110, 231, 255, 0.08);
+}
+
+.ai-feature-info {
+  display: grid;
+  gap: 4px;
+}
+
+.ai-feature-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+}
+
+.ai-feature-desc {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.ai-model-card {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(110, 231, 255, 0.12);
+}
+
+.ai-model-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ai-model-card-title {
+  font-weight: 700;
+}
+
+.ai-model-remove {
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+.ai-model-usage {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.ai-settings-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ai-settings-actions .form-error {
+  margin-right: auto;
+}
+
+.ai-model-field {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ai-model-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ai-model-field button {
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
 .sw-grid {
   display: grid;
   grid-template-columns: 1.05fr 0.95fr;
@@ -319,6 +432,12 @@
 
 @media (max-width: 1180px) {
   .sw-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 860px) {
+  .ai-feature-row {
     grid-template-columns: 1fr;
   }
 }

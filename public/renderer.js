@@ -2,6 +2,7 @@ import { createWindowShell } from './renderer/window-layer.js';
 import { createWorkspaceVisualizer } from './renderer/workspace-visualizer.js';
 import { formatDuration } from './renderer/utils/time.js';
 import { createAiMailFeature } from './renderer/ai-mail.js';
+import { createAiModelSettings } from './renderer/ai-model-settings.js';
 import { createSwMenuFeature } from './renderer/sw-menu.js';
 
 const workspaceChip = document.getElementById('workspace-chip');
@@ -9,6 +10,7 @@ const systemChip = document.getElementById('system-chip');
 const clockChip = document.getElementById('clock-chip');
 const quickActionsContainer = document.getElementById('quick-actions');
 const quickActionsToggle = document.getElementById('quick-actions-toggle');
+const aiSettingsButton = document.getElementById('ai-settings-button');
 const brandButton = document.getElementById('brand-button');
 const workspaceVisualizer = document.getElementById('workspace-visualizer');
 const swMenuSurface = document.getElementById('sw-menu-surface');
@@ -48,6 +50,7 @@ let isSavingRecording = false;
 let resizeTimerId = null;
 let quickActionsResizeObserver = null;
 let aiMailFeature = null;
+let aiModelSettingsFeature = null;
 let swMenuFeature = null;
 let swMenuSurfaceActive = false;
 let wasWorkspaceVisualizerActiveForSwMenu = false;
@@ -438,12 +441,24 @@ const renderUi = () => {
   renderSwMenuSurface();
 };
 
+const initializeAiModelSettings = () => {
+  aiModelSettingsFeature = createAiModelSettings({
+    createWindowShell,
+    onSettingsSaved: () => {
+      void aiMailFeature?.hydrate?.();
+    },
+  });
+};
+
 const initializeAiMailFeature = () => {
   aiMailFeature = createAiMailFeature({
     createWindowShell,
     setActionActive,
     isActionActive,
     renderUi,
+    openAiSettings: () => {
+      aiModelSettingsFeature?.openPanel?.();
+    },
   });
   void aiMailFeature.hydrate();
 };
@@ -863,6 +878,7 @@ const loadPositions = () => {
 
 const boot = () => {
   loadPositions();
+  initializeAiModelSettings();
   initializeAiMailFeature();
   initializeSwMenuFeature();
   setQuickActionsVisibility(loadQuickActionsVisibility(), { skipSave: true });
@@ -875,6 +891,9 @@ const boot = () => {
   setInterval(updateClock, 30000);
   workspaceChip?.addEventListener('click', () => void handleWorkspaceChange());
   quickActionsToggle?.addEventListener('click', toggleQuickActionsVisibility);
+  aiSettingsButton?.addEventListener('click', () => {
+    aiModelSettingsFeature?.openPanel?.();
+  });
   dockQuickToggle?.addEventListener('click', toggleQuickActionsVisibility);
   brandButton?.addEventListener('dblclick', () => {
     if (isActionActive('sw-menu')) {
