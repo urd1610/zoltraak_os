@@ -11,7 +11,13 @@ const DEFAULT_AI_MAIL_PROMPT = [
   '- 出力は必ずUTF-8のJSON文字列のみ。余分なテキストやコードブロックは付けない',
 ].join('\n');
 
-export const createAiMailFeature = ({ createWindowShell, setActionActive, isActionActive, renderUi }) => {
+export const createAiMailFeature = ({
+  createWindowShell,
+  setActionActive,
+  isActionActive,
+  renderUi,
+  openAiSettings,
+}) => {
   let aiMailDefaultPrompt = DEFAULT_AI_MAIL_PROMPT;
   let isSyncingAiMailDefaultPrompt = false;
   const normalizeAiMailTimeout = (value, provider = 'openrouter') => {
@@ -44,6 +50,7 @@ export const createAiMailFeature = ({ createWindowShell, setActionActive, isActi
     lastError: null,
     running: false,
     forwardedCount: 0,
+    modelProfile: null,
     formatting: buildDefaultAiFormatting(),
   };
 
@@ -71,6 +78,18 @@ export const createAiMailFeature = ({ createWindowShell, setActionActive, isActi
     if (source === 'ai-decode:html') return 'HTML(AI解読用)';
     if (source === 'fallback') return '予備転送先';
     return String(source);
+  };
+
+  const buildAiMailModelSummary = (modelProfile, formatting) => {
+    if (modelProfile?.label) {
+      const model = modelProfile.model ? ` / ${modelProfile.model}` : '';
+      return `${modelProfile.label}${model}`;
+    }
+    const providerLabel = formatting?.provider === 'lmstudio' ? 'LM Studio' : 'OpenRouter';
+    const model = formatting?.provider === 'lmstudio'
+      ? formatting?.lmStudio?.model
+      : formatting?.openRouter?.model;
+    return model ? `${providerLabel} / ${model}` : providerLabel;
   };
 
   const render = () => {
@@ -101,19 +120,10 @@ export const createAiMailFeature = ({ createWindowShell, setActionActive, isActi
 
   const normalizeAiMailFormattingPayload = () => {
     const draft = getAiMailFormattingDraft();
-    const provider = draft.provider === 'lmstudio' ? 'lmstudio' : 'openrouter';
+    const provider = aiMailStatus.formatting?.provider === 'lmstudio' ? 'lmstudio' : 'openrouter';
     return {
       enabled: draft.enabled !== false,
-      provider,
       prompt: draft.prompt?.trim() || aiMailDefaultPrompt,
-      openRouter: {
-        apiKey: draft.openRouter?.apiKey ?? '',
-        model: draft.openRouter?.model || 'gpt-4o-mini',
-      },
-      lmStudio: {
-        endpoint: draft.lmStudio?.endpoint || 'http://localhost:1234/v1/chat/completions',
-        model: draft.lmStudio?.model || 'gpt-4o-mini',
-      },
       timeoutMs: normalizeAiMailTimeout(draft.timeoutMs, provider),
     };
   };
@@ -159,17 +169,12 @@ export const createAiMailFeature = ({ createWindowShell, setActionActive, isActi
   const updateAiMailFormattingWindowState = () => {
     if (!aiMailFormattingWindow) return;
     const draft = getAiMailFormattingDraft();
-    const provider = draft.provider === 'lmstudio' ? 'lmstudio' : 'openrouter';
+    const provider = aiMailStatus.formatting?.provider === 'lmstudio' ? 'lmstudio' : 'openrouter';
     const {
       enableInput,
-      providerSelect,
-      openRouterRow,
-      openRouterKey,
-      openRouterModel,
-      lmStudioRow,
-      lmStudioEndpoint,
-      lmStudioModel,
       timeoutInput,
+      modelValue,
+      modelButton,
       promptInput,
       promptResetButton,
       promptRegisterButton,
@@ -182,10 +187,6 @@ export const createAiMailFeature = ({ createWindowShell, setActionActive, isActi
       enableInput.checked = draft.enabled;
       enableInput.disabled = isSavingAiMailFormatting;
     }
-    if (providerSelect) {
-      providerSelect.value = provider;
-      providerSelect.disabled = isSavingAiMailFormatting;
-    }
     if (timeoutInput) {
       const normalizedTimeout = normalizeAiMailTimeout(draft.timeoutMs, provider);
       const minTimeout = provider === 'lmstudio' ? 60000 : 30000;
@@ -193,27 +194,11 @@ export const createAiMailFeature = ({ createWindowShell, setActionActive, isActi
       timeoutInput.min = String(minTimeout);
       timeoutInput.disabled = isSavingAiMailFormatting;
     }
-    if (openRouterRow) {
-      openRouterRow.hidden = provider !== 'openrouter';
+    if (modelValue) {
+      modelValue.textContent = buildAiMailModelSummary(aiMailStatus.modelProfile, aiMailStatus.formatting ?? draft);
     }
-    if (lmStudioRow) {
-      lmStudioRow.hidden = provider !== 'lmstudio';
-    }
-    if (openRouterKey) {
-      openRouterKey.value = draft.openRouter?.apiKey ?? '';
-      openRouterKey.disabled = isSavingAiMailFormatting;
-    }
-    if (openRouterModel) {
-      openRouterModel.value = draft.openRouter?.model || 'gpt-4o-mini';
-      openRouterModel.disabled = isSavingAiMailFormatting;
-    }
-    if (lmStudioEndpoint) {
-      lmStudioEndpoint.value = draft.lmStudio?.endpoint || 'http://localhost:1234/v1/chat/completions';
-      lmStudioEndpoint.disabled = isSavingAiMailFormatting;
-    }
-    if (lmStudioModel) {
-      lmStudioModel.value = draft.lmStudio?.model || 'gpt-4o-mini';
-      lmStudioModel.disabled = isSavingAiMailFormatting;
+    if (modelButton) {
+      modelButton.disabled = isSavingAiMailFormatting || typeof openAiSettings !== 'function';
     }
     if (promptInput) {
       promptInput.value = draft.prompt ?? '';
@@ -233,8 +218,8 @@ export const createAiMailFeature = ({ createWindowShell, setActionActive, isActi
       saveButton.textContent = isSavingAiMailFormatting ? '保存中…' : '保存';
     }
     if (statusChip) {
-      const providerLabel = provider === 'lmstudio' ? 'LM Studio' : 'OpenRouter';
-      statusChip.textContent = draft.enabled ? `${providerLabel} ON` : 'OFF';
+      const modelSummary = buildAiMailModelSummary(aiMailStatus.modelProfile, aiMailStatus.formatting ?? draft);
+      statusChip.textContent = draft.enabled ? modelSummary : 'AI整形OFF';
       statusChip.classList.toggle('muted', !draft.enabled);
     }
     if (errorText) {
@@ -605,28 +590,27 @@ export const createAiMailFeature = ({ createWindowShell, setActionActive, isActi
     enableRow.append(enableInput, enableText);
     formattingForm.append(enableRow);
 
-    const providerRow = document.createElement('div');
-    providerRow.className = 'formatting-row';
-    const providerLabel = document.createElement('div');
-    providerLabel.className = 'formatting-label';
-    providerLabel.textContent = 'プロバイダ';
-    const providerSelect = document.createElement('select');
-    providerSelect.className = 'formatting-select';
-    providerSelect.value = formattingDraft.provider === 'lmstudio' ? 'lmstudio' : 'openrouter';
-    [
-      { value: 'openrouter', label: 'OpenRouter' },
-      { value: 'lmstudio', label: 'LM Studio' },
-    ].forEach((option) => {
-      const opt = document.createElement('option');
-      opt.value = option.value;
-      opt.textContent = option.label;
-      providerSelect.append(opt);
+    const modelRow = document.createElement('div');
+    modelRow.className = 'formatting-row';
+    const modelLabel = document.createElement('div');
+    modelLabel.className = 'formatting-label';
+    modelLabel.textContent = '使用モデル';
+    const modelField = document.createElement('div');
+    modelField.className = 'ai-model-field';
+    const modelValue = document.createElement('div');
+    modelValue.className = 'ai-model-value';
+    const modelButton = document.createElement('button');
+    modelButton.type = 'button';
+    modelButton.className = 'ghost';
+    modelButton.textContent = 'AI設定を開く';
+    modelButton.addEventListener('click', () => {
+      if (typeof openAiSettings === 'function') {
+        openAiSettings();
+      }
     });
-    providerSelect.addEventListener('change', (event) => {
-      setFormattingDraft({ provider: event.target.value });
-    });
-    providerRow.append(providerLabel, providerSelect);
-    formattingForm.append(providerRow);
+    modelField.append(modelValue, modelButton);
+    modelRow.append(modelLabel, modelField);
+    formattingForm.append(modelRow);
 
     const timeoutRow = document.createElement('div');
     timeoutRow.className = 'formatting-row';
@@ -654,64 +638,6 @@ export const createAiMailFeature = ({ createWindowShell, setActionActive, isActi
     timeoutHint.className = 'forward-hint';
     timeoutHint.textContent = 'LM Studio利用時はモデル読み込みに時間がかかるため60,000ms以上を推奨します。';
     formattingForm.append(timeoutHint);
-
-    const openRouterRow = document.createElement('div');
-    openRouterRow.className = 'formatting-row provider-row';
-    const openRouterLabel = document.createElement('div');
-    openRouterLabel.className = 'formatting-label';
-    openRouterLabel.textContent = 'OpenRouter';
-    const openRouterFields = document.createElement('div');
-    openRouterFields.className = 'formatting-fields';
-    const openRouterKey = document.createElement('input');
-    openRouterKey.type = 'password';
-    openRouterKey.className = 'formatting-input';
-    openRouterKey.placeholder = 'sk-...';
-    openRouterKey.value = formattingDraft.openRouter?.apiKey ?? '';
-    openRouterKey.addEventListener('input', (event) => {
-      const base = getAiMailFormattingDraft().openRouter ?? {};
-      setFormattingDraft({ openRouter: { ...base, apiKey: event.target.value } });
-    });
-    const openRouterModel = document.createElement('input');
-    openRouterModel.type = 'text';
-    openRouterModel.className = 'formatting-input';
-    openRouterModel.placeholder = 'gpt-4o-mini';
-    openRouterModel.value = formattingDraft.openRouter?.model || 'gpt-4o-mini';
-    openRouterModel.addEventListener('input', (event) => {
-      const base = getAiMailFormattingDraft().openRouter ?? {};
-      setFormattingDraft({ openRouter: { ...base, model: event.target.value } });
-    });
-    openRouterFields.append(openRouterKey, openRouterModel);
-    openRouterRow.append(openRouterLabel, openRouterFields);
-    formattingForm.append(openRouterRow);
-
-    const lmStudioRow = document.createElement('div');
-    lmStudioRow.className = 'formatting-row provider-row';
-    const lmStudioLabel = document.createElement('div');
-    lmStudioLabel.className = 'formatting-label';
-    lmStudioLabel.textContent = 'LM Studio';
-    const lmStudioFields = document.createElement('div');
-    lmStudioFields.className = 'formatting-fields';
-    const lmStudioEndpoint = document.createElement('input');
-    lmStudioEndpoint.type = 'text';
-    lmStudioEndpoint.className = 'formatting-input';
-    lmStudioEndpoint.placeholder = 'http://localhost:1234/v1/chat/completions';
-    lmStudioEndpoint.value = formattingDraft.lmStudio?.endpoint || 'http://localhost:1234/v1/chat/completions';
-    lmStudioEndpoint.addEventListener('input', (event) => {
-      const base = getAiMailFormattingDraft().lmStudio ?? {};
-      setFormattingDraft({ lmStudio: { ...base, endpoint: event.target.value } });
-    });
-    const lmStudioModel = document.createElement('input');
-    lmStudioModel.type = 'text';
-    lmStudioModel.className = 'formatting-input';
-    lmStudioModel.placeholder = 'モデル名';
-    lmStudioModel.value = formattingDraft.lmStudio?.model || 'gpt-4o-mini';
-    lmStudioModel.addEventListener('input', (event) => {
-      const base = getAiMailFormattingDraft().lmStudio ?? {};
-      setFormattingDraft({ lmStudio: { ...base, model: event.target.value } });
-    });
-    lmStudioFields.append(lmStudioEndpoint, lmStudioModel);
-    lmStudioRow.append(lmStudioLabel, lmStudioFields);
-    formattingForm.append(lmStudioRow);
 
     const promptLabel = document.createElement('div');
     promptLabel.className = 'forward-label';
@@ -810,13 +736,8 @@ export const createAiMailFeature = ({ createWindowShell, setActionActive, isActi
 
     aiMailFormattingWindow = {
       enableInput,
-      providerSelect,
-      openRouterRow,
-      openRouterKey,
-      openRouterModel,
-      lmStudioRow,
-      lmStudioEndpoint,
-      lmStudioModel,
+      modelValue,
+      modelButton,
       timeoutInput,
       promptInput,
       promptResetButton,
@@ -904,10 +825,10 @@ export const createAiMailFeature = ({ createWindowShell, setActionActive, isActi
     formattingButton.addEventListener('click', openAiMailFormattingWindow);
 
     const formattingState = aiMailStatus.formatting ?? buildDefaultAiFormatting();
-    const providerLabel = formattingState.provider === 'lmstudio' ? 'LM Studio' : 'OpenRouter';
+    const modelSummary = buildAiMailModelSummary(aiMailStatus.modelProfile, formattingState);
     const formattingStatusChip = document.createElement('span');
     formattingStatusChip.className = 'chip tiny';
-    formattingStatusChip.textContent = formattingState.enabled ? `${providerLabel} ON` : 'AI整形OFF';
+    formattingStatusChip.textContent = formattingState.enabled ? modelSummary : 'AI整形OFF';
     formattingStatusChip.classList.toggle('muted', !formattingState.enabled);
 
     configActions.append(forwardButton, formattingButton, formattingStatusChip);
