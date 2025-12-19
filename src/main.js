@@ -27,6 +27,18 @@ const GRAPH_IGNORE_NAMES = new Set([
   'build',
   '.worktrees',
 ]);
+const AI_MODEL_PROVIDERS = new Set(['openrouter', 'lmstudio', 'openai', 'gemini']);
+const AI_MODEL_FEATURES = {
+  'ai-mail-monitor': { providers: new Set(['openrouter', 'lmstudio']) },
+  chat: { providers: new Set(['openrouter', 'lmstudio', 'openai', 'gemini']) },
+};
+const DEFAULT_LM_STUDIO_ENDPOINT = 'http://localhost:1234/v1/chat/completions';
+const DEFAULT_AI_MODEL_BY_PROVIDER = {
+  openrouter: 'gpt-4o-mini',
+  lmstudio: 'gpt-4o-mini',
+  openai: 'gpt-4o-mini',
+  gemini: 'gemini-1.5-flash',
+};
 let workspaceWatcher = null;
 let workspaceWatcherDebounce = null;
 
@@ -168,6 +180,150 @@ const normalizeFormattingSettings = (value, defaultPrompt = DEFAULT_FORMATTING_P
     ...(value ?? {}),
   });
   return formatter.getOptions();
+};
+
+const getAiModelProviderLabel = (provider) => {
+  switch (provider) {
+    case 'lmstudio':
+      return 'LM Studio';
+    case 'openai':
+      return 'ChatGPT (OpenAI)';
+    case 'gemini':
+      return 'Gemini';
+    case 'openrouter':
+    default:
+      return 'OpenRouter';
+  }
+};
+
+const buildDefaultAiModelProfiles = (legacyFormatting = {}) => {
+  const legacyProvider = String(legacyFormatting?.provider ?? '').toLowerCase();
+  const legacyOpenRouter = legacyFormatting?.openRouter ?? {};
+  const legacyLmStudio = legacyFormatting?.lmStudio ?? {};
+
+  return [
+    {
+      id: 'local-lm',
+      label: 'ローカルLLM (LM Studio)',
+      provider: 'lmstudio',
+      model: legacyLmStudio.model ?? DEFAULT_AI_MODEL_BY_PROVIDER.lmstudio,
+      endpoint: legacyLmStudio.endpoint ?? DEFAULT_LM_STUDIO_ENDPOINT,
+      apiKey: '',
+    },
+    {
+      id: 'openrouter-default',
+      label: 'OpenRouter',
+      provider: 'openrouter',
+      model: legacyOpenRouter.model ?? DEFAULT_AI_MODEL_BY_PROVIDER.openrouter,
+      apiKey: legacyOpenRouter.apiKey ?? '',
+    },
+    {
+      id: 'chatgpt-default',
+      label: 'ChatGPT (OpenAI)',
+      provider: 'openai',
+      model: DEFAULT_AI_MODEL_BY_PROVIDER.openai,
+      apiKey: '',
+    },
+    {
+      id: 'gemini-default',
+      label: 'Gemini',
+      provider: 'gemini',
+      model: DEFAULT_AI_MODEL_BY_PROVIDER.gemini,
+      apiKey: '',
+    },
+  ];
+};
+
+const buildDefaultAiModelFeatureMap = (legacyFormatting = {}) => {
+  const legacyProvider = String(legacyFormatting?.provider ?? '').toLowerCase();
+  const aiMailProfile = legacyProvider === 'openrouter' ? 'openrouter-default' : 'local-lm';
+  return {
+    'ai-mail-monitor': aiMailProfile,
+    chat: 'chatgpt-default',
+  };
+};
+
+const normalizeAiModelProfile = (profile = {}, fallback = {}, index = 0) => {
+  const rawProvider = String(profile.provider ?? fallback.provider ?? 'openrouter').toLowerCase();
+  const provider = AI_MODEL_PROVIDERS.has(rawProvider) ? rawProvider : 'openrouter';
+  const defaultModel = DEFAULT_AI_MODEL_BY_PROVIDER[provider] ?? DEFAULT_AI_MODEL_BY_PROVIDER.openrouter;
+  const idCandidate = String(profile.id ?? fallback.id ?? '').trim();
+  const id = idCandidate || `profile-${index + 1}`;
+  const labelCandidate = String(profile.label ?? fallback.label ?? '').trim();
+  const label = labelCandidate || getAiModelProviderLabel(provider);
+  const modelCandidate = String(profile.model ?? fallback.model ?? '').trim();
+  const model = modelCandidate || defaultModel;
+  const endpointCandidate = String(profile.endpoint ?? fallback.endpoint ?? '').trim();
+  const endpoint = provider === 'lmstudio'
+    ? (endpointCandidate || DEFAULT_LM_STUDIO_ENDPOINT)
+    : endpointCandidate;
+  const apiKey = typeof profile.apiKey === 'string'
+    ? profile.apiKey
+    : typeof fallback.apiKey === 'string'
+      ? fallback.apiKey
+      : '';
+  return {
+    id,
+    label,
+    provider,
+    model,
+    endpoint,
+    apiKey,
+  };
+};
+
+const normalizeAiModelProfiles = (profiles = [], fallbackProfiles = []) => {
+  const normalized = profiles.map((profile, index) => normalizeAiModelProfile(profile, fallbackProfiles[index], index));
+  const seen = new Set();
+  return normalized.map((profile, index) => {
+    let nextId = profile.id;
+    if (!nextId || seen.has(nextId)) {
+      nextId = `profile-${index + 1}`;
+    }
+    seen.add(nextId);
+    if (nextId === profile.id) {
+      return profile;
+    }
+    return { ...profile, id: nextId };
+  });
+};
+
+const resolveAiModelProfileId = (featureId, preferredId, profiles) => {
+  const feature = AI_MODEL_FEATURES[featureId];
+  const allowedProviders = feature?.providers ?? null;
+  const preferredProfile = profiles.find((profile) => profile.id === preferredId);
+  if (preferredProfile && (!allowedProviders || allowedProviders.has(preferredProfile.provider))) {
+    return preferredProfile.id;
+  }
+  const fallback = profiles.find((profile) => !allowedProviders || allowedProviders.has(profile.provider));
+  return fallback?.id ?? '';
+};
+
+const normalizeAiModelSettings = (value = {}, legacyFormatting = {}) => {
+  const fallbackProfiles = buildDefaultAiModelProfiles(legacyFormatting);
+  const fallbackFeatureMap = buildDefaultAiModelFeatureMap(legacyFormatting);
+  const profilesInput = Array.isArray(value.profiles) && value.profiles.length > 0
+    ? value.profiles
+    : fallbackProfiles;
+  const profiles = normalizeAiModelProfiles(profilesInput, fallbackProfiles);
+  const featureMapInput = value.featureMap && typeof value.featureMap === 'object'
+    ? value.featureMap
+    : {};
+  const featureMap = {};
+  Object.keys(AI_MODEL_FEATURES).forEach((featureId) => {
+    const preferredId = featureMapInput[featureId] ?? fallbackFeatureMap[featureId] ?? '';
+    featureMap[featureId] = resolveAiModelProfileId(featureId, preferredId, profiles);
+  });
+  return { profiles, featureMap };
+};
+
+const getAiModelSettings = async () => {
+  const settings = await readSettings();
+  const legacyFormatting = settings.aiMail?.formatting ?? {};
+  if (!settings.aiModels) {
+    return normalizeAiModelSettings({}, legacyFormatting);
+  }
+  return normalizeAiModelSettings(settings.aiModels, legacyFormatting);
 };
 
 const getAiMailSettings = async () => {
