@@ -1714,10 +1714,14 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
         const listId = `sw-bom-matrix-${parentKey || 'sw'}-${key}-codes`;
         datalist.id = listId;
 
+        const suggestionContext = {
+          location: state.drafts.bom.parentLocation,
+          slotLabel: labelText,
+        };
         const renderSuggestions = (keyword) => {
           const suggestions = getBomCodeSuggestions(keyword, {
-            location: state.drafts.bom.parentLocation,
-            slotLabel: labelText,
+            location: suggestionContext.location,
+            slotLabel: suggestionContext.slotLabel,
           });
           datalist.replaceChildren();
           suggestions.forEach((item) => {
@@ -1727,12 +1731,17 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
             datalist.append(option);
           });
         };
+        const scheduleSuggestions = () => {
+          scheduleBomCodeSuggestionHydration(suggestionContext, input, datalist, renderSuggestions);
+        };
 
         renderSuggestions(input.value);
+        scheduleSuggestions();
         input.setAttribute('list', listId);
         input.addEventListener('input', (event) => {
           setBomMatrixCellValue(parentCode, labelText, event.target.value);
           renderSuggestions(event.target.value);
+          scheduleSuggestions();
         });
 
         cell.append(input, datalist);
