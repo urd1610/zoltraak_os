@@ -988,6 +988,7 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
           boms: overview.boms ?? [],
           flows: overview.flows ?? [],
         };
+        resetBomCodeSuggestionCache();
         applyStatus({ lastError: null, ready: overview.ready !== false });
       } else if (overview?.error) {
         applyStatus({ lastError: overview.error });
