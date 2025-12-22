@@ -18,6 +18,7 @@ const VIEW_DEFINITIONS = [
 const DEFAULT_VIEW = VIEW_DEFINITIONS[0].id;
 const MAX_SUGGESTION_ITEMS = 50;
 const BOM_CODE_SUGGESTION_LIMIT = MAX_SUGGESTION_ITEMS;
+const BOM_CODE_SUGGESTION_DEBOUNCE_MS = 200;
 const DEFAULT_BOM_FORMAT_KEY = '汎用';
 const BOM_FORMAT_STORAGE_KEY = 'sw-menu:bom-formats';
 const DEFAULT_BOM_FORMAT = ['メイン', 'サブ', 'アクセサリ', '補助'];
@@ -289,6 +290,9 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
       isSearchingComponents: false,
     },
   };
+  const bomCodeSuggestionCache = new Map();
+  const bomCodeSuggestionPending = new Map();
+  const bomCodeSuggestionDebounceTimers = new Map();
 
   const captureFocusSnapshot = () => {
     const activeElement = document.activeElement;
@@ -515,6 +519,91 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
 
   const normalizeTextQuery = (value) => (value ?? '').toString().trim().toLowerCase();
   const normalizeCodeQuery = (value) => (value ?? '').toString().trim().toLowerCase().replace(/-/g, '');
+  const buildBomCodeSuggestionKey = (context = {}) => {
+    const slotKey = normalizeTextQuery(context?.slotLabel);
+    if (!slotKey) {
+      return '';
+    }
+    const locationKey = normalizeTextQuery(context?.location);
+    return `${locationKey}__${slotKey}`;
+  };
+  const getCachedBomCodeSuggestionComponents = (context = {}) => {
+    const key = buildBomCodeSuggestionKey(context);
+    if (!key) {
+      return [];
+    }
+    const entry = bomCodeSuggestionCache.get(key);
+    return Array.isArray(entry?.components) ? entry.components : [];
+  };
+  const resetBomCodeSuggestionCache = () => {
+    bomCodeSuggestionCache.clear();
+    bomCodeSuggestionPending.clear();
+    bomCodeSuggestionDebounceTimers.forEach((timerId) => clearTimeout(timerId));
+    bomCodeSuggestionDebounceTimers.clear();
+  };
+  const ensureBomCodeSuggestionCache = async (context = {}) => {
+    const key = buildBomCodeSuggestionKey(context);
+    if (!key) {
+      return null;
+    }
+    const cached = bomCodeSuggestionCache.get(key);
+    if (cached) {
+      return cached;
+    }
+    const pending = bomCodeSuggestionPending.get(key);
+    if (pending) {
+      return pending;
+    }
+    if (!ensureBridge('searchSwComponents')) {
+      return null;
+    }
+    const payload = {
+      keyword: '',
+      code: '',
+      name: context?.slotLabel ?? '',
+      location: context?.location ?? '',
+    };
+    const request = window.desktopBridge.searchSwComponents(payload)
+      .then((result) => {
+        if (result?.ok) {
+          const entry = { components: result.components ?? [], total: result.total ?? null };
+          bomCodeSuggestionCache.set(key, entry);
+          return entry;
+        }
+        return null;
+      })
+      .catch((error) => {
+        console.warn('Failed to fetch BOM code suggestions', error);
+        return null;
+      })
+      .finally(() => {
+        bomCodeSuggestionPending.delete(key);
+      });
+    bomCodeSuggestionPending.set(key, request);
+    return request;
+  };
+  const scheduleBomCodeSuggestionHydration = (context, inputEl, datalistEl, renderSuggestions) => {
+    const key = buildBomCodeSuggestionKey(context);
+    if (!key) {
+      return;
+    }
+    const existing = bomCodeSuggestionDebounceTimers.get(key);
+    if (existing) {
+      clearTimeout(existing);
+    }
+    const timerId = setTimeout(() => {
+      bomCodeSuggestionDebounceTimers.delete(key);
+      Promise.resolve(ensureBomCodeSuggestionCache(context)).then(() => {
+        if (!inputEl?.isConnected || !datalistEl?.isConnected) {
+          return;
+        }
+        if (typeof renderSuggestions === 'function') {
+          renderSuggestions(inputEl.value);
+        }
+      });
+    }, BOM_CODE_SUGGESTION_DEBOUNCE_MS);
+    bomCodeSuggestionDebounceTimers.set(key, timerId);
+  };
 
   const getBomCodeSuggestions = (keyword = '', context = {}) => {
     const codes = new Map();
