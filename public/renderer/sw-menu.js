@@ -636,6 +636,9 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
 
     componentCandidates.forEach((item) => addCode(item.code, item.name));
 
+    const cachedComponents = getCachedBomCodeSuggestionComponents(context);
+    cachedComponents.forEach((item) => addCode(item.code, item.name));
+
     const boms = Array.isArray(state.overview.boms) ? state.overview.boms : [];
     const swParentCodeKeys = (() => {
       if (!hasLocationFilter) return null;
