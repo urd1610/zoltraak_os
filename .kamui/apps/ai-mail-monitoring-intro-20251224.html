@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AIメール監視システム紹介</title>
+    <link rel="stylesheet" href="./ai-mail-monitoring-intro-20251224.css">
+</head>
+<body>
+    <div class="app">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-title">スライド一覧</div>
+                <div class="sidebar-actions">
+                    <button id="downloadAllBtn" aria-label="全スライドをダウンロード" title="全スライドをダウンロード">
+                        <span class="download-icon" aria-hidden="true"></span>
+                    </button>
+                    <button id="toggleSidebar" aria-label="サイドバーを折りたたむ" aria-expanded="true">
+                        <span class="chevron">◀</span>
+                    </button>
+                </div>
+            </div>
+            <p class="sidebar-caption">クリックでスライドへ移動</p>
+            <ul class="slide-list" id="slideList" aria-label="スライド一覧"></ul>
+        </aside>
+
+        <main class="slides-area">
+            <div class="progress">
+                <span id="slideNumber">1 / 6</span>
+            </div>
+
+            <div class="slide-container">
+                <!-- Slide 1: Title -->
+                <div class="slide active">
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1200' height='800'%3E%3Crect fill='%230f3a7d' width='1200' height='800'/%3E%3Ctext x='600' y='350' font-size='72' font-weight='bold' text-anchor='middle' fill='white' font-family='Arial'%3EAIメール監視システム%3C/text%3E%3Ctext x='600' y='450' font-size='36' text-anchor='middle' fill='%23ffd700' font-family='Arial'%3E革新的なメール監視の未来%3C/text%3E%3C/svg%3E" alt="AIメール監視 - タイトルスライド">
+                </div>
+
+                <!-- Slide 2: Overview -->
+                <div class="slide">
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1200' height='800'%3E%3Crect fill='%23ffffff' width='1200' height='800'/%3E%3Crect fill='%230f3a7d' width='1200' height='100'/%3E%3Ctext x='50' y='65' font-size='48' font-weight='bold' fill='white' font-family='Arial'%3EシステムとNは%3C/text%3E%3Ctext x='100' y='250' font-size='32' font-weight='bold' fill='%230f3a7d' font-family='Arial'%3E• AIを活用した自動メール監視%3C/text%3E%3Ctext x='100' y='330' font-size='32' font-weight='bold' fill='%230f3a7d' font-family='Arial'%3E• リアルタイムの異常検知%3C/text%3E%3Ctext x='100' y='410' font-size='32' font-weight='bold' fill='%230f3a7d' font-family='Arial'%3E• スマート本文生成と分析%3C/text%3E%3Ctext x='100' y='490' font-size='32' font-weight='bold' fill='%230f3a7d' font-family='Arial'%3E• セキュリティと効率性の向上%3C/text%3E%3C/svg%3E" alt="システムの概要">
+                </div>
+
+                <!-- Slide 3: Mail Content Generation (Current Challenges) -->
+                <div class="slide">
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1200' height='800'%3E%3Crect fill='%23fff8e7' width='1200' height='800'/%3E%3Crect fill='%23ffa500' width='1200' height='100'/%3E%3Ctext x='50' y='65' font-size='48' font-weight='bold' fill='white' font-family='Arial'%3E⚡ メール本文生成の精度向上（課題）%3C/text%3E%3Ctext x='100' y='220' font-size='28' font-weight='bold' fill='%23d32f2f' font-family='Arial'%3E現状の課題:%3C/text%3E%3Ctext x='120' y='280' font-size='24' fill='%23111827' font-family='Arial'%3E✗ プロンプトの最適化が必要 %3C/text%3E%3Ctext x='120' y='330' font-size='24' fill='%23111827' font-family='Arial'%3E  → より正確で文脈にあった指示が必要%3C/text%3E%3Ctext x='120' y='400' font-size='24' fill='%23111827' font-family='Arial'%3E✗ 生成結果の精度がイマイチ%3C/text%3E%3Ctext x='120' y='450' font-size='24' fill='%23111827' font-family='Arial'%3E  → 継続的なプロンプト調整で改善予定%3C/text%3E%3Ctext x='100' y='550' font-size='24' font-weight='bold' fill='%230f3a7d' font-family='Arial'%3E計画: 次期バージョンでプロンプト最適化に取り組む%3C/text%3E%3C/svg%3E" alt="メール本文生成の精度向上（課題）">
+                </div>
+
+                <!-- Slide 4: Calculation Precision (Current Challenges) -->
+                <div class="slide">
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1200' height='800'%3E%3Crect fill='%23e3f2fd' width='1200' height='800'/%3E%3Crect fill='%230f3a7d' width='1200' height='100'/%3E%3Ctext x='50' y='65' font-size='48' font-weight='bold' fill='white' font-family='Arial'%3E📊 計算精度の改善課題%3C/text%3E%3Ctext x='100' y='220' font-size='28' font-weight='bold' fill='%230f3a7d' font-family='Arial'%3E現状の改善の余地:%3C/text%3E%3Ctext x='120' y='280' font-size='24' fill='%23111827' font-family='Arial'%3E• メール本文内の数字抽出と計算%3C/text%3E%3Ctext x='120' y='330' font-size='24' fill='%23111827' font-family='Arial'%3E  → 正確性が十分ではない%3C/text%3E%3Ctext x='120' y='400' font-size='24' fill='%23111827' font-family='Arial'%3E• 複雑な計算式への対応が限定的%3C/text%3E%3Ctext x='120' y='450' font-size='24' fill='%23111827' font-family='Arial'%3E  → より堅牢なロジック開発が必要%3C/text%3E%3Ctext x='100' y='550' font-size='24' font-weight='bold' fill='%230f3a7d' font-family='Arial'%3E改善計画: ロジック強化とテスト拡充%3C/text%3E%3C/svg%3E" alt="計算精度の改善課題">
+                </div>
+
+                <!-- Slide 5: Key Features -->
+                <div class="slide">
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1200' height='800'%3E%3Crect fill='%23e8f5e9' width='1200' height='800'/%3E%3Crect fill='%234caf50' width='1200' height='100'/%3E%3Ctext x='50' y='65' font-size='48' font-weight='bold' fill='white' font-family='Arial'%3E✨ 主要機能%3C/text%3E%3Ctext x='100' y='220' font-size='28' font-weight='bold' fill='%234caf50' font-family='Arial'%3E1. リアルタイムメール監視%3C/text%3E%3Ctext x='100' y='290' font-size='28' font-weight='bold' fill='%234caf50' font-family='Arial'%3E2. AI駆動の自動分類%3C/text%3E%3Ctext x='100' y='360' font-size='28' font-weight='bold' fill='%234caf50' font-family='Arial'%3E3. 異常検知エンジン%3C/text%3E%3Ctext x='100' y='430' font-size='28' font-weight='bold' fill='%234caf50' font-family='Arial'%3E4. スマート本文抽出%3C/text%3E%3Ctext x='100' y='500' font-size='28' font-weight='bold' fill='%234caf50' font-family='Arial'%3E5. セキュリティアラート%3C/text%3E%3C/svg%3E" alt="主要機能">
+                </div>
+
+                <!-- Slide 6: Future Roadmap -->
+                <div class="slide">
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1200' height='800'%3E%3Crect fill='%23f3e5f5' width='1200' height='800'/%3E%3Crect fill='%239c27b0' width='1200' height='100'/%3E%3Ctext x='50' y='65' font-size='48' font-weight='bold' fill='white' font-family='Arial'%3E🚀 今後のロードマップ%3C/text%3E%3Ctext x='100' y='220' font-size='26' font-weight='bold' fill='%239c27b0' font-family='Arial'%3E▶ Q1 2025: プロンプト最適化パッケージ%3C/text%3E%3Ctext x='100' y='280' font-size='26' font-weight='bold' fill='%239c27b0' font-family='Arial'%3E▶ Q2 2025: 計算ロジック強化版リリース%3C/text%3E%3Ctext x='100' y='340' font-size='26' font-weight='bold' fill='%239c27b0' font-family='Arial'%3E▶ Q3 2025: 機械学習モデル改善%3C/test%3E%3Ctext x='100' y='400' font-size='26' font-weight='bold' fill='%239c27b0' font-family='Arial'%3E▶ Q4 2025: エンタープライズ対応機能%3C/text%3E%3C/svg%3E" alt="今後のロードマップ">
+                </div>
+            </div>
+
+            <div class="navigation">
+                <button class="nav-btn" id="prevBtn">◀</button>
+                <button class="nav-btn" id="nextBtn">▶</button>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <script src="./ai-mail-monitoring-intro-20251224.js"></script>
+</body>
+</html>

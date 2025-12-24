@@ -5,7 +5,12 @@
   "main": "src/main.js",
   "scripts": {
     "start": "electron .",
-    "init-sw-db": "node scripts/init-sw-db.js"
+    "init-sw-db": "node scripts/init-sw-db.js",
+    "build": "electron-builder",
+    "build-win": "electron-builder --win",
+    "build-mac": "electron-builder --mac",
+    "build-linux": "electron-builder --linux",
+    "dist": "npm run build"
   },
   "keywords": [
     "electron",
@@ -16,7 +21,21 @@
   "license": "ISC",
   "type": "commonjs",
   "devDependencies": {
-    "electron": "^32.2.0"
+    "electron": "^32.2.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.example.zoltraak-desktop-prototype",
+    "copyright": "Copyright 2023",
+    "mac": {
+      "category": "public.app-category.productivity"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "linux": {
+      "target": "deb"
+    }
   },
   "dependencies": {
     "csv-parse": "^6.1.0",

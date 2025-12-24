@@ -1,0 +1,73 @@
+{
+  "app": {
+    "name": "AIメール監視システム紹介",
+    "prefix": "ai-mail-monitoring-intro-20251224",
+    "description": "AIを活用したメール監視システムの紹介スライド。メール本文生成の精度向上とデータ計算精度改善の取り組みを含む",
+    "icon": ".kamui/apps/icons/ai-mail-monitoring-intro-20251224.svg",
+    "version": "1.0.0",
+    "date": "2025-12-24"
+  },
+  "slides": [
+    {
+      "index": 1,
+      "title": "AIメール監視 - タイトルスライド",
+      "current_alt": "AIメール監視 - タイトルスライド",
+      "description": "深い紺背景に、明るい黄金色のテキストで「AIメール監視システム」と「革新的なメール監視の未来」をタイトルとして配置。インパクトのあるオープニング",
+      "image_generation_prompt": "Title slide for AI Mail Monitoring System. Dark navy blue background (#0f3a7d). Large bold white text 'AIメール監視システム' at center. Subtitle in gold (#ffd700) '革新的なメール監視の未来'. Professional, modern design. Aspect ratio 16:9. High resolution presentation slide.",
+      "mcp_note": "t2i-nano-banana-pro で生成後、HTMLの第1スライド img src に URL を上書き"
+    },
+    {
+      "index": 2,
+      "title": "システムの概要",
+      "current_alt": "システムの概要",
+      "description": "白地に紺色のヘッダーバー。4つの主要機能を箇条書きで表示。AIを活用した自動メール監視、リアルタイムの異常検知、スマート本文生成と分析、セキュリティと効率性の向上",
+      "image_generation_prompt": "System overview slide for AI Mail Monitoring. White background with navy header bar. List 4 key features: AI-based automatic email monitoring, Real-time anomaly detection, Smart email content generation and analysis, Security and efficiency improvement. Clean, professional layout. Japanese text. Aspect ratio 16:9.",
+      "mcp_note": "t2i-nano-banana-pro で生成後、HTMLの第2スライド img src に URL を上書き"
+    },
+    {
+      "index": 3,
+      "title": "メール本文生成の精度向上（課題）",
+      "current_alt": "メール本文生成の精度向上（課題）",
+      "description": "オレンジ色のヘッダーバー。警告マーク⚡を含む。「プロンプトの最適化が必要」と「生成結果の精度がイマイチ」という課題を明記。次期バージョンでの改善計画を記載",
+      "image_generation_prompt": "Challenge slide about email content generation accuracy. Warm orange header bar with ⚡ symbol. Highlight current issues: prompt optimization needed, generation accuracy improvement needed. Red text for problems, navy text for solutions. Note improvement plan for next version. Japanese text. Professional warning design. Aspect ratio 16:9.",
+      "mcp_note": "t2i-nano-banana-pro で生成後、HTMLの第3スライド img src に URL を上書き"
+    },
+    {
+      "index": 4,
+      "title": "計算精度の改善課題",
+      "current_alt": "計算精度の改善課題",
+      "description": "薄い青背景に紺色のヘッダーバー。📊シンボル。メール本文内の数字抽出・計算の正確性が不十分、複雑な計算式への対応が限定的という課題を列挙。ロジック強化とテスト拡充の改善計画を記載",
+      "image_generation_prompt": "Challenge slide about calculation precision. Light blue background with navy header and 📊 symbol. List issues: numeric extraction from email content not accurate, complex calculations limited support. Emphasize improvement plans: strengthen logic, expand testing. Navy text for main content. Japanese text. Professional layout. Aspect ratio 16:9.",
+      "mcp_note": "t2i-nano-banana-pro で生成後、HTMLの第4スライド img src に URL を上書き"
+    },
+    {
+      "index": 5,
+      "title": "主要機能",
+      "current_alt": "主要機能",
+      "description": "薄い緑背景に緑色のヘッダーバー。✨シンボル。5つの主要機能を番号付きで表示：リアルタイムメール監視、AI駆動の自動分類、異常検知エンジン、スマート本文抽出、セキュリティアラート",
+      "image_generation_prompt": "Key features slide for AI Mail Monitoring System. Light green background with green header and ✨ symbol. Display 5 main features numbered: 1. Real-time email monitoring 2. AI-driven automatic classification 3. Anomaly detection engine 4. Smart email content extraction 5. Security alerts. Green heading text, dark text for features. Japanese text. Clean design. Aspect ratio 16:9.",
+      "mcp_note": "t2i-nano-banana-pro で生成後、HTMLの第5スライド img src に URL を上書き"
+    },
+    {
+      "index": 6,
+      "title": "今後のロードマップ",
+      "current_alt": "今後のロードマップ",
+      "description": "薄い紫背景に紫色のヘッダーバー。🚀シンボル。4つのクォーター別ロードマップを記載：Q1 2025 プロンプト最適化、Q2 2025 計算ロジック強化、Q3 2025 機械学習改善、Q4 2025 エンタープライズ対応",
+      "image_generation_prompt": "Roadmap slide for AI Mail Monitoring System. Light purple background with purple header and 🚀 symbol. Display 4-quarter roadmap: Q1 2025 Prompt optimization package, Q2 2025 Calculation logic enhancement release, Q3 2025 ML model improvement, Q4 2025 Enterprise features. Purple heading text, dark text for roadmap items. Arrows (▶) for each quarter. Japanese text. Professional timeline layout. Aspect ratio 16:9.",
+      "mcp_note": "t2i-nano-banana-pro で生成後、HTMLの第6スライド img src に URL を上書き"
+    }
+  ],
+  "image_replacement_guide": {
+    "step1": "各スライドの生成プロンプトを確認",
+    "step2": "t2i-nano-banana-pro MCP で順番に画像を生成（1枚ずつまたは一括）",
+    "step3": "生成後の画像URL を取得",
+    "step4": "HTMLファイル内の img src を該当URL に上書き",
+    "step5": "ブラウザで確認、ダウンロードボタンで PDF 化を検証",
+    "example_html_update": "<!-- Before --> <img src=\"data:image/svg+xml,...\" alt=\"...\"> <!-- After --> <img src=\"https://v3b.fal.media/files/b/.../generated-image-id.png\" alt=\"...\">"
+  },
+  "download_button_integrity": {
+    "note": "ダウンロードボタンは絶対に削除・変更しないこと。HTML、CSS、JS の構造変更も禁止",
+    "button_id": "downloadAllBtn",
+    "implementation": "jsPDF ライブラリで全スライドをPDF化。ユーザーは「全スライドをダウンロード」ボタンで一括DL可能"
+  }
+}
