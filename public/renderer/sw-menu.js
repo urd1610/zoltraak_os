@@ -520,6 +520,29 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
 
   const normalizeTextQuery = (value) => (value ?? '').toString().trim().toLowerCase();
   const normalizeCodeQuery = (value) => (value ?? '').toString().trim().toLowerCase().replace(/-/g, '');
+  const getBomMatrixLabelFromNote = (note, labels = null) => {
+    const rawNote = normalizeSlotLabel(note);
+    if (!rawNote) {
+      return '';
+    }
+    const candidate = rawNote.split(/[\/／]/)[0]?.trim() ?? '';
+    if (!labels || !Array.isArray(labels) || !labels.length) {
+      return candidate;
+    }
+    const candidateKey = normalizeTextQuery(candidate);
+    if (candidateKey) {
+      const matched = labels.find((label) => normalizeTextQuery(label) === candidateKey);
+      if (matched) {
+        return matched;
+      }
+    }
+    const normalizedNote = normalizeTextQuery(rawNote);
+    const matches = labels.filter((label) => normalizedNote.includes(normalizeTextQuery(label)));
+    if (matches.length === 1) {
+      return matches[0];
+    }
+    return '';
+  };
   const buildBomCodeSuggestionKey = (context = {}) => {
     const slotKey = normalizeTextQuery(context?.slotLabel);
     if (!slotKey) {
