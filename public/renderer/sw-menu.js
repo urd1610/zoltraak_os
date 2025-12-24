@@ -771,9 +771,23 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
 
   const getBomMatrixColumnLabels = () => {
     const rawLabels = getBomSlotNameSuggestions();
-    const filtered = rawLabels.filter(
-      (label) => normalizeTextQuery(label) !== 'sw',
-    );
+    const bomLabels = (state.bomMatrix?.boms ?? [])
+      .map((bom) => getBomMatrixLabelFromNote(bom?.note))
+      .filter(Boolean);
+    const seen = new Set();
+    const filtered = [];
+    const addLabel = (value) => {
+      const normalized = normalizeSlotLabel(value);
+      if (!normalized) return;
+      const key = normalizeTextQuery(normalized);
+      if (!key || key === 'sw' || seen.has(key)) {
+        return;
+      }
+      seen.add(key);
+      filtered.push(normalized);
+    };
+    rawLabels.forEach(addLabel);
+    bomLabels.forEach(addLabel);
     if (filtered.length) {
       return filtered;
     }
