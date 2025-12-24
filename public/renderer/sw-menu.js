@@ -44,6 +44,7 @@ const buildDefaultBomMatrixFilters = () => ({
 const buildDefaultBomMatrixState = () => ({
   locationKey: '',
   swComponents: [],
+  boms: [],
   total: 0,
   limit: null,
   isLoadingSwComponents: false,
@@ -519,6 +520,29 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
 
   const normalizeTextQuery = (value) => (value ?? '').toString().trim().toLowerCase();
   const normalizeCodeQuery = (value) => (value ?? '').toString().trim().toLowerCase().replace(/-/g, '');
+  const getBomMatrixLabelFromNote = (note, labels = null) => {
+    const rawNote = normalizeSlotLabel(note);
+    if (!rawNote) {
+      return '';
+    }
+    const candidate = rawNote.split(/[\/／]/)[0]?.trim() ?? '';
+    if (!labels || !Array.isArray(labels) || !labels.length) {
+      return candidate;
+    }
+    const candidateKey = normalizeTextQuery(candidate);
+    if (candidateKey) {
+      const matched = labels.find((label) => normalizeTextQuery(label) === candidateKey);
+      if (matched) {
+        return matched;
+      }
+    }
+    const normalizedNote = normalizeTextQuery(rawNote);
+    const matches = labels.filter((label) => normalizedNote.includes(normalizeTextQuery(label)));
+    if (matches.length === 1) {
+      return matches[0];
+    }
+    return '';
+  };
   const buildBomCodeSuggestionKey = (context = {}) => {
     const slotKey = normalizeTextQuery(context?.slotLabel);
     if (!slotKey) {
@@ -747,9 +771,23 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
 
   const getBomMatrixColumnLabels = () => {
     const rawLabels = getBomSlotNameSuggestions();
-    const filtered = rawLabels.filter(
-      (label) => normalizeTextQuery(label) !== 'sw',
-    );
+    const bomLabels = (state.bomMatrix?.boms ?? [])
+      .map((bom) => getBomMatrixLabelFromNote(bom?.note))
+      .filter(Boolean);
+    const seen = new Set();
+    const filtered = [];
+    const addLabel = (value) => {
+      const normalized = normalizeSlotLabel(value);
+      if (!normalized) return;
+      const key = normalizeTextQuery(normalized);
+      if (!key || key === 'sw' || seen.has(key)) {
+        return;
+      }
+      seen.add(key);
+      filtered.push(normalized);
+    };
+    rawLabels.forEach(addLabel);
+    bomLabels.forEach(addLabel);
     if (filtered.length) {
       return filtered;
     }
@@ -759,6 +797,48 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
   const syncBomMatrixSlots = () => {
     const labels = getBomMatrixColumnLabels();
     state.drafts.bom.slots = buildBomSlotsFromLabels(labels, state.drafts.bom.slots);
+  };
+
+  const applyBomMatrixBomsToCells = (boms = [], locationKey = '') => {
+    const activeLocationKey = normalizeTextQuery(state.drafts.bom.parentLocation);
+    if (!activeLocationKey || (locationKey && activeLocationKey !== locationKey)) {
+      return;
+    }
+    const source = Array.isArray(boms) ? boms : [];
+    if (!source.length) {
+      return;
+    }
+    syncBomMatrixSlots();
+    const labels = getBomMatrixColumnLabels();
+    if (!labels.length) {
+      return;
+    }
+    const nextCells = {
+      ...(state.drafts.bom.matrixCells && typeof state.drafts.bom.matrixCells === 'object'
+        ? state.drafts.bom.matrixCells
+        : {}),
+    };
+    source.forEach((bom) => {
+      const parentCode = normalizeSlotLabel(bom?.parent_code ?? bom?.parentCode);
+      const childCode = normalizeSlotLabel(bom?.child_code ?? bom?.childCode);
+      if (!parentCode || !childCode) {
+        return;
+      }
+      const label = getBomMatrixLabelFromNote(bom?.note, labels);
+      if (!label) {
+        return;
+      }
+      const parentKey = normalizeSlotLabel(parentCode);
+      const labelKey = normalizeSlotLabel(label);
+      if (!nextCells[parentKey]) {
+        nextCells[parentKey] = {};
+      }
+      if (normalizeSlotLabel(nextCells[parentKey][labelKey])) {
+        return;
+      }
+      nextCells[parentKey][labelKey] = childCode;
+    });
+    state.drafts.bom.matrixCells = nextCells;
   };
 
   const getBomMatrixCellValue = (parentCode, slotLabel) => {
@@ -1046,11 +1126,13 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
           ...buildDefaultBomMatrixState(),
           locationKey,
           swComponents: result.components ?? [],
+          boms: result.boms ?? [],
           total: result.total ?? 0,
           limit: result.limit ?? null,
           isLoadingSwComponents: false,
           lastError: null,
         };
+        applyBomMatrixBomsToCells(result.boms ?? [], locationKey);
         return;
       }
       state.bomMatrix = {
