@@ -44,6 +44,7 @@ const buildDefaultBomMatrixFilters = () => ({
 const buildDefaultBomMatrixState = () => ({
   locationKey: '',
   swComponents: [],
+  boms: [],
   total: 0,
   limit: null,
   isLoadingSwComponents: false,
