@@ -1126,11 +1126,13 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
           ...buildDefaultBomMatrixState(),
           locationKey,
           swComponents: result.components ?? [],
+          boms: result.boms ?? [],
           total: result.total ?? 0,
           limit: result.limit ?? null,
           isLoadingSwComponents: false,
           lastError: null,
         };
+        applyBomMatrixBomsToCells(result.boms ?? [], locationKey);
         return;
       }
       state.bomMatrix = {
