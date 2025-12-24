@@ -62,6 +62,7 @@ const COMPONENT_OVERVIEW_LIMIT = 1000;
 const COMPONENT_SEARCH_LIMIT = 500;
 const BOM_OVERVIEW_LIMIT = 12;
 const BOM_MATRIX_SW_COMPONENT_LIMIT = 5000;
+const BOM_MATRIX_BOM_LIMIT = 20000;
 const FLOW_OVERVIEW_LIMIT = 20;
 const COMPONENT_SUGGESTION_LIMIT = 50;
 const LOCATION_NAME_SUGGESTION_LIMIT = COMPONENT_SUGGESTION_LIMIT * 5;
@@ -746,9 +747,10 @@ const createSwMenuService = (options = {}) => {
 
       const data = await withConnection(async (conn) => {
         const whereClause = "WHERE LOWER(TRIM(location)) = ? AND LOWER(TRIM(name)) = 'sw'";
+        const bomWhereClause = "WHERE LOWER(TRIM(p.location)) = ? AND LOWER(TRIM(p.name)) = 'sw'";
         const params = [normalizedLocation];
 
-        const [countResult, components] = await Promise.all([
+        const [countResult, components, boms] = await Promise.all([
           conn.query(
             `SELECT COUNT(*) AS total FROM sw_components ${whereClause}`,
             params,
@@ -761,10 +763,19 @@ const createSwMenuService = (options = {}) => {
               LIMIT ${BOM_MATRIX_SW_COMPONENT_LIMIT}`,
             params,
           ),
+          conn.query(
+            `SELECT b.parent_code, b.child_code, b.quantity, b.note, b.updated_at
+              FROM sw_boms b
+              INNER JOIN sw_components p ON p.code = b.parent_code
+              ${bomWhereClause}
+              ORDER BY b.updated_at DESC
+              LIMIT ${BOM_MATRIX_BOM_LIMIT}`,
+            params,
+          ),
         ]);
 
         const total = Number(countResult?.[0]?.total ?? 0);
-        return { components, total };
+        return { components, total, boms };
       });
 
       return {
@@ -773,6 +784,7 @@ const createSwMenuService = (options = {}) => {
         location,
         components: data.components,
         total: data.total,
+        boms: data.boms ?? [],
         limit: BOM_MATRIX_SW_COMPONENT_LIMIT,
       };
     } catch (error) {
