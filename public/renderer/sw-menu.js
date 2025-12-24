@@ -799,6 +799,48 @@ export const createSwMenuFeature = ({ createWindowShell, setActionActive, isActi
     state.drafts.bom.slots = buildBomSlotsFromLabels(labels, state.drafts.bom.slots);
   };
 
+  const applyBomMatrixBomsToCells = (boms = [], locationKey = '') => {
+    const activeLocationKey = normalizeTextQuery(state.drafts.bom.parentLocation);
+    if (!activeLocationKey || (locationKey && activeLocationKey !== locationKey)) {
+      return;
+    }
+    const source = Array.isArray(boms) ? boms : [];
+    if (!source.length) {
+      return;
+    }
+    syncBomMatrixSlots();
+    const labels = getBomMatrixColumnLabels();
+    if (!labels.length) {
+      return;
+    }
+    const nextCells = {
+      ...(state.drafts.bom.matrixCells && typeof state.drafts.bom.matrixCells === 'object'
+        ? state.drafts.bom.matrixCells
+        : {}),
+    };
+    source.forEach((bom) => {
+      const parentCode = normalizeSlotLabel(bom?.parent_code ?? bom?.parentCode);
+      const childCode = normalizeSlotLabel(bom?.child_code ?? bom?.childCode);
+      if (!parentCode || !childCode) {
+        return;
+      }
+      const label = getBomMatrixLabelFromNote(bom?.note, labels);
+      if (!label) {
+        return;
+      }
+      const parentKey = normalizeSlotLabel(parentCode);
+      const labelKey = normalizeSlotLabel(label);
+      if (!nextCells[parentKey]) {
+        nextCells[parentKey] = {};
+      }
+      if (normalizeSlotLabel(nextCells[parentKey][labelKey])) {
+        return;
+      }
+      nextCells[parentKey][labelKey] = childCode;
+    });
+    state.drafts.bom.matrixCells = nextCells;
+  };
+
   const getBomMatrixCellValue = (parentCode, slotLabel) => {
     const parentKey = normalizeSlotLabel(parentCode);
     const labelKey = normalizeSlotLabel(slotLabel);
