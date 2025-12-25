@@ -1,0 +1,90 @@
+{
+  "title": "ローカルLLMの検証報告",
+  "date": "2025-12-26",
+  "totalSlides": 9,
+  "slides": [
+    {
+      "id": 1,
+      "title": "ローカルLLMの検証報告 - タイトル",
+      "description": "プレゼンテーションのタイトルスライド",
+      "imagePrompt": "Professional presentation title slide with large text 'ローカルLLMの検証報告' (Local LLM Verification Report), subtitle '2025年12月26日 報告会', modern technology design, blue gradient background (#1f3a5f to #2d5a8f), clean minimalist layout, corporate style, 16:9 aspect ratio",
+      "imageUrl": "https://v3b.fal.media/files/b/0a87ada4/7EPTLe7_G4L0G8nBR0XHZ.png",
+      "notes": "タイトル、日付、報告者情報を含む"
+    },
+    {
+      "id": 2,
+      "title": "検証の目的と環境",
+      "description": "検証の目的、ハードウェア・ソフトウェア構成を説明",
+      "imagePrompt": "Presentation slide titled '検証の目的と環境', split into two sections: left shows PURPOSE with icon of automation/email, right shows ENVIRONMENT with hardware specs (AMD Ryzen AI 7 350, RTX 5070 8GB, 64GB RAM, Windows 11, LM Studio), modern infographic style, professional blue theme, icons and text layout",
+      "imageUrl": "https://v3b.fal.media/files/b/0a87ada4/YpCkw2GViVgSLqX7CF9y6.png",
+      "notes": "目的：製造リード日数の問い合わせ対応自動化、環境：Windows 11、AMD Ryzen AI 7 350、RTX 5070 (8GB VRAM)、64GB RAM、LM Studio"
+    },
+    {
+      "id": 3,
+      "title": "モデル起動検証結果",
+      "description": "3つのLLMモデルの起動可否と評価結果",
+      "imagePrompt": "Presentation slide titled 'モデル起動検証結果', table showing 3 AI models (gemma 3n E4b, gpt-oss 20B, gpt-oss 120B) with checkmarks and X marks for startup status, green checkmarks for successful models, red X for failed model (120B), evaluation notes in Japanese, data table design, professional layout",
+      "imageUrl": "https://v3b.fal.media/files/b/0a87ada4/METK8c-xyjpiYHfwkI09u.png",
+      "notes": "gemma 3n E4b: 実行可能（数値計算が絶望的）、gpt-oss 20B: 実行可能（プロンプト追従性が高い）、gpt-oss 120B: 起動不可（VRAM不足）"
+    },
+    {
+      "id": 4,
+      "title": "検証方法とフロー",
+      "description": "メール処理の4ステップフローと計算ロジック",
+      "imagePrompt": "Presentation slide titled '検証方法とフロー', flowchart showing 4 connected steps: 1) Email reception icon 2) AI analysis icon 3) Mathematical calculation icon 4) Reply send icon, arrows connecting each step, calculation formula displayed (製造LT差分 = 変更後 - 変更前), business process diagram style, blue and white color scheme",
+      "imageUrl": "https://v3b.fal.media/files/b/0a87ada4/6YMm4eiOjcSAE1sAjykqI.png",
+      "notes": "フロー：メール受信→AI解析→数値計算→返信生成、計算式：製造LT差分 = 変更後 - 変更前"
+    },
+    {
+      "id": 5,
+      "title": "検証結果サマリー",
+      "description": "基本機能の動作確認とモデル別成功率",
+      "imagePrompt": "Presentation slide titled '検証結果サマリー', large prominent bar chart showing gpt-oss 20B model with 70% success rate (green bar) and 30% failure rate (orange bar), gemma 3n E4b with 10% (red bar marked as unusable), clean data visualization, percentage labels, professional business graphics style",
+      "imageUrl": "https://v3b.fal.media/files/b/0a87ada5/ieq9Zxu52svxCm_VOQBx7.png",
+      "notes": "gpt-oss 20B: 約70%成功率（条件付き可）、gemma 3n E4b: 推定10%以下（実用不可）、主な課題：数値計算の不安定性"
+    },
+    {
+      "id": 6,
+      "title": "成功例と失敗例の比較",
+      "description": "出力例の詳細分析と差異",
+      "imagePrompt": "Presentation slide titled '成功例と失敗例の比較', side-by-side comparison with two email outputs, left side marked SUCCESS (green) showing correct values (46 days, 152 days), right side marked FAILURE (red) showing incorrect values (132 days, 238 days), comparison arrows, before/after style layout, professional comparison design",
+      "imageUrl": "https://v3b.fal.media/files/b/0a87ada5/4Gg7AqdTyKMv6IadbCHtR.png",
+      "notes": "成功例：部品在庫ありLT 46日、部品在庫なしLT 152日（正しい計算）、失敗例：132日、238日（誤計算）"
+    },
+    {
+      "id": 7,
+      "title": "課題と考察",
+      "description": "主な課題とLLMの数値計算に関する知見",
+      "imagePrompt": "Presentation slide titled '課題と考察', bullet point list with warning icons: 1) Numerical calculation instability 30%, 2) VRAM constraints (8GB limitation), 3) Text generation focus vs calculation weakness, warning triangle symbols, alert color scheme (orange/red accents), professional problem analysis layout",
+      "imageUrl": "https://v3b.fal.media/files/b/0a87ada5/zWu0zldMYOos3F7A5BXwH.png",
+      "notes": "課題：数値計算の不安定性（30%失敗）、VRAM制約（120B起動不可）、LLMはテキスト生成特化で数値計算苦手"
+    },
+    {
+      "id": 8,
+      "title": "改善提案",
+      "description": "短期的・中長期的な対策",
+      "imagePrompt": "Presentation slide titled '改善提案', roadmap showing improvement strategies in two tiers: SHORT-TERM (prompt engineering, validation mechanism) and LONG-TERM (hybrid approach with LLM + traditional programming, hardware upgrade to 16GB+ VRAM, cloud API integration), timeline or roadmap visualization, solution-oriented design, blue and green color scheme",
+      "imageUrl": "https://v3b.fal.media/files/b/0a87ada5/htwcuaFtysryl71t2Vp3M.png",
+      "notes": "短期：プロンプトエンジニアリング、検証機構導入、中長期：ハイブリッドアプローチ（LLM+プログラム）、ハードウェア強化、外部API検討"
+    },
+    {
+      "id": 9,
+      "title": "結論と推奨される運用方針",
+      "description": "検証結果のまとめと推奨運用方針",
+      "imagePrompt": "Presentation conclusion slide titled '結論と推奨される運用方針', three key recommendations with checkmark bullets: 1) Phased implementation (段階的導入) with human verification initially, 2) Hybrid implementation (ハイブリッド実装) LLM for text + programming for calculations, 3) Continuous verification (継続的な検証), positive conclusion style, green checkmarks, professional summary layout, clean finish",
+      "imageUrl": "https://v3b.fal.media/files/b/0a87ada5/T2ETRRFLDHf5m_KqhNv8y.png",
+      "notes": "結論：基本的な実現可能性確認、gpt-oss 20Bは70%成功率で条件付き実用可能、推奨：段階的導入、ハイブリッド実装、継続的検証"
+    }
+  ],
+  "styleGuide": {
+    "primaryColor": "#1f3a5f",
+    "secondaryColor": "#2d5a8f",
+    "successColor": "#10b981",
+    "warningColor": "#f59e0b",
+    "errorColor": "#ef4444",
+    "textColor": "#ffffff",
+    "aspectRatio": "16:9",
+    "fontFamily": "Arial, sans-serif"
+  },
+  "generationInstructions": "MCPを使用して各スライドの画像を生成する際は、imagePromptを使用してください。生成後、imageUrlを実際の画像URLに置き換えてください。"
+}
