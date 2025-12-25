@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ローカルLLMの検証報告</title>
+    <link rel="stylesheet" href="./llm-verification-report-20251226.css">
+</head>
+<body>
+    <div class="app">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-title">スライド一覧</div>
+                <div class="sidebar-actions">
+                    <button id="downloadAllBtn" aria-label="全スライドをダウンロード" title="全スライドをダウンロード">
+                        <span class="download-icon" aria-hidden="true"></span>
+                    </button>
+                    <button id="toggleSidebar" aria-label="サイドバーを折りたたむ" aria-expanded="true">
+                        <span class="chevron">◀</span>
+                    </button>
+                </div>
+            </div>
+            <p class="sidebar-caption">クリックでスライドへ移動</p>
+            <ul class="slide-list" id="slideList" aria-label="スライド一覧"></ul>
+        </aside>
+
+        <main class="slides-area">
+            <div class="progress">
+                <span id="slideNumber">1 / 9</span>
+            </div>
+
+            <div class="slide-container">
+                <!-- Slide 1-9 -->
+                <div class="slide active">
+                    <img src="https://v3b.fal.media/files/b/0a87ada4/7EPTLe7_G4L0G8nBR0XHZ.png" alt="ローカルLLMの検証報告 - タイトル">
+                </div>
+
+                <div class="slide">
+                    <img src="https://v3b.fal.media/files/b/0a87ada4/YpCkw2GViVgSLqX7CF9y6.png" alt="検証の目的と環境">
+                </div>
+
+                <div class="slide">
+                    <img src="https://v3b.fal.media/files/b/0a87ada4/METK8c-xyjpiYHfwkI09u.png" alt="モデル起動検証結果">
+                </div>
+
+                <div class="slide">
+                    <img src="https://v3b.fal.media/files/b/0a87ada4/6YMm4eiOjcSAE1sAjykqI.png" alt="検証方法とフロー">
+                </div>
+
+                <div class="slide">
+                    <img src="https://v3b.fal.media/files/b/0a87ada5/ieq9Zxu52svxCm_VOQBx7.png" alt="検証結果サマリー">
+                </div>
+
+                <div class="slide">
+                    <img src="https://v3b.fal.media/files/b/0a87ada5/4Gg7AqdTyKMv6IadbCHtR.png" alt="成功例と失敗例の比較">
+                </div>
+
+                <div class="slide">
+                    <img src="https://v3b.fal.media/files/b/0a87ada5/zWu0zldMYOos3F7A5BXwH.png" alt="課題と考察">
+                </div>
+
+                <div class="slide">
+                    <img src="https://v3b.fal.media/files/b/0a87ada5/htwcuaFtysryl71t2Vp3M.png" alt="改善提案">
+                </div>
+
+                <div class="slide">
+                    <img src="https://v3b.fal.media/files/b/0a87ada5/T2ETRRFLDHf5m_KqhNv8y.png" alt="結論と推奨される運用方針">
+                </div>
+            </div>
+
+            <div class="navigation">
+                <button class="nav-btn" id="prevBtn">◀</button>
+                <button class="nav-btn" id="nextBtn">▶</button>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <script src="./llm-verification-report-20251226.js"></script>
+</body>
+</html>
