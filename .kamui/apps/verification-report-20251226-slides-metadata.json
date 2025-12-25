@@ -1,0 +1,168 @@
+{
+  "presentation": {
+    "title": "ローカルLLMの検証報告",
+    "date": "2025年12月26日",
+    "description": "製造リード日数の問い合わせ対応を自動化するため、ローカル環境で動作するLLMの実用性を検証",
+    "htmlFile": "verification-report-20251226.html",
+    "iconFile": "verification-report-20251226.svg",
+    "totalSlides": 5
+  },
+  "slides": [
+    {
+      "slideNumber": 1,
+      "title": "ローカルLLMの検証報告",
+      "altText": "ローカルLLMの検証報告 - タイトル",
+      "currentImageUrl": "https://v3b.fal.media/files/b/panda/w56KXNnWKsTelwQLFUe66.png",
+      "content": {
+        "mainTitle": "ローカルLLMの検証報告",
+        "subtitle": "製造リード日数問い合わせ自動化の実用性評価",
+        "date": "2025年12月26日",
+        "presenter": "検証報告"
+      },
+      "mcpPrompt": "Professional presentation title slide with the text 'ローカルLLMの検証報告' (Local LLM Verification Report) in large Japanese font, subtitle '製造リード日数問い合わせ自動化の実用性評価', date '2025年12月26日'. Modern tech style with blue gradient background, clean and professional layout, high contrast for readability",
+      "imageGenerationNotes": "タイトルスライド。大きなタイトルテキストと日付を含む。ブルー系のプロフェッショナルなデザイン"
+    },
+    {
+      "slideNumber": 2,
+      "title": "検証環境とモデル評価",
+      "altText": "検証環境とモデル評価",
+      "currentImageUrl": "https://v3b.fal.media/files/b/penguin/z_8BgnSmt-C4zRAK3UQ2w.png",
+      "content": {
+        "hardware": {
+          "os": "Windows 11",
+          "cpu": "AMD Ryzen AI 7 350",
+          "ram": "64GB",
+          "gpu": "NVIDIA GeForce RTX 5070 (VRAM: 8GB)"
+        },
+        "models": [
+          {
+            "name": "gemma 3n E4b",
+            "status": "実行可能",
+            "evaluation": "数値計算が絶望的（致命的）"
+          },
+          {
+            "name": "gpt-oss 20B",
+            "status": "実行可能",
+            "evaluation": "約70%の成功率で条件付き可"
+          },
+          {
+            "name": "gpt-oss 120B",
+            "status": "起動不可",
+            "evaluation": "VRAM不足"
+          }
+        ]
+      },
+      "mcpPrompt": "Technical specification slide showing hardware specs (Windows 11, AMD Ryzen AI 7, 64GB RAM, RTX 5070 8GB VRAM) and three AI models comparison table with status indicators. Title '検証環境とモデル評価' in Japanese. Clean infographic style with icons for hardware, professional blue color scheme, checkmarks and X marks for model status",
+      "imageGenerationNotes": "ハードウェア仕様とモデル評価表を視覚化。チェックマークと×マークでステータスを示す"
+    },
+    {
+      "slideNumber": 3,
+      "title": "検証方法とサンプルデータ",
+      "altText": "検証方法とサンプルデータ",
+      "currentImageUrl": "https://v3b.fal.media/files/b/elephant/PnO9qTgouRKGU1WUvkZun.png",
+      "content": {
+        "processFlow": [
+          "1. メール受信（製造リード日数確認）",
+          "2. AIがメール解析・数値抽出",
+          "3. リード日数の再計算実施",
+          "4. 整形メール生成・転送"
+        ],
+        "calculationLogic": {
+          "formula1": "製造LT差分 = 製造LT変更後 - 製造LT変更前",
+          "formula2": "部品在庫ありLT（新） = 部品在庫ありLT（元） + 製造LT差分",
+          "formula3": "部品在庫なしLT（新） = 部品在庫なしLT（元） + 製造LT差分"
+        },
+        "testData": {
+          "before": "製造LT: 20",
+          "after": "製造LT: 40",
+          "diff": "差分: +20",
+          "expected1": "部品在庫ありLT: 26 → 46",
+          "expected2": "部品在庫なしLT: 132 → 152"
+        }
+      },
+      "mcpPrompt": "Process flow diagram showing 4 steps: email reception, AI analysis, calculation, and response generation. Include calculation formulas in Japanese with mathematical notation. Title '検証方法とサンプルデータ'. Show sample data with arrows indicating before/after values (20→40, 26→46, 132→152). Professional diagram style with blue and green colors, clear step numbers",
+      "imageGenerationNotes": "処理フローを4ステップで図示。計算式とサンプルデータを矢印で視覚化"
+    },
+    {
+      "slideNumber": 4,
+      "title": "検証結果と成功/失敗例",
+      "altText": "検証結果と成功/失敗例",
+      "currentImageUrl": "https://v3b.fal.media/files/b/lion/MJiYEFnnkBKcKGnFTSyHX.png",
+      "content": {
+        "summary": {
+          "mailReception": "✅ 成功",
+          "addressExtraction": "✅ 成功",
+          "numberExtraction": "✅ 成功",
+          "calculation": "❌ 不安定",
+          "mailGeneration": "✅ 成功"
+        },
+        "modelSuccess": {
+          "gemma3n": "推定10%以下（実用不可）",
+          "gptOss20B": "約70%（条件付き可）"
+        },
+        "comparison": {
+          "success": "部品在庫ありLT: 46日 ✅",
+          "failure": "部品在庫ありLT: 132日 ❌"
+        }
+      },
+      "mcpPrompt": "Results dashboard showing success/failure indicators with checkmarks and X marks. Title '検証結果と成功/失敗例' in Japanese. Show success rate comparison: gemma 3n <10% (red), gpt-oss 20B 70% (yellow-green). Side-by-side comparison of correct output (46 days) vs incorrect output (132 days). Clean infographic style with traffic light colors (green/yellow/red)",
+      "imageGenerationNotes": "成功率を棒グラフまたは円グラフで表示。成功例と失敗例を並べて比較"
+    },
+    {
+      "slideNumber": 5,
+      "title": "課題と結論",
+      "altText": "課題と結論",
+      "currentImageUrl": "https://v3b.fal.media/files/b/panda/Lr1B9tmtWmuRsZIDcw6kP.png",
+      "content": {
+        "challenges": [
+          "数値計算の不安定性（30%失敗率）",
+          "gemmaモデルの実用性の低さ",
+          "VRAMの制約（120B未対応）"
+        ],
+        "improvements": [
+          "短期：プロンプト最適化・検証機構導入",
+          "中長期：ハイブリッド実装・ハードウェア強化"
+        ],
+        "conclusion": {
+          "feasibility": "✅ 基本的な実現可能性を確認",
+          "limitation": "⚠️ 完全自動化は現状困難",
+          "recommendation": "段階的導入 + ハイブリッド実装"
+        },
+        "nextSteps": [
+          "1. 段階的導入（人間確認必須）",
+          "2. ハイブリッド実装（LLM+プログラム）",
+          "3. 継続的な検証と改善"
+        ]
+      },
+      "mcpPrompt": "Summary slide with title '課題と結論' showing key challenges (calculation instability 30%, VRAM limitations) and conclusions. Include three recommendation points with numbered list. Use mix of checkmarks (✅) and warning symbols (⚠️). Professional conclusion slide with blue background, clear section divisions, roadmap-style layout for next steps",
+      "imageGenerationNotes": "課題を左側、結論と推奨事項を右側に配置。ロードマップ風のレイアウト"
+    }
+  ],
+  "mcpInstructions": {
+    "tool": "t2i-kamui-fal-nano-banana-pro",
+    "note": "このMCPが未導入の場合は処理を停止すること",
+    "usage": "各スライドのmcpPromptフィールドを使用して画像を生成し、HTMLファイル内の対応するimg srcを更新する",
+    "imageFormat": "推奨解像度: 1920x1080以上、フォーマット: PNG、アスペクト比: 16:9",
+    "updateProcess": [
+      "1. MCPで各スライドの画像を生成",
+      "2. 生成された画像URLを取得",
+      "3. HTMLファイルの対応するimg srcを新しいURLに更新",
+      "4. altテキストはそのまま維持"
+    ]
+  },
+  "colorScheme": {
+    "icon": {
+      "background": "#1E40AF → #3B82F6 (gradient)",
+      "accent1": "#10B981 (green - success)",
+      "accent2": "#F59E0B (orange - warning)",
+      "text": "#FFFFFF (white)"
+    },
+    "slides": {
+      "primary": "#2563EB (blue)",
+      "success": "#10B981 (green)",
+      "warning": "#F59E0B (orange)",
+      "error": "#EF4444 (red)",
+      "text": "#1F2937 (dark gray)"
+    }
+  }
+}

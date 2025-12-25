@@ -1,0 +1,107 @@
+{
+  "presentation": {
+    "title": "ローカルLLM検証報告",
+    "date": "2025/12/26",
+    "totalSlides": 11,
+    "basedOn": "C:\\Users\\SD565\\workspace\\zoltraak_os\\docs\\20251226_報告会.md",
+    "htmlFile": "verification-report-20251226.html",
+    "iconFile": "icons/verification-report-20251226.svg"
+  },
+  "slides": [
+    {
+      "id": 1,
+      "title": "ローカルLLM検証報告 - タイトル",
+      "altText": "ローカルLLM検証報告 - タイトル",
+      "imagePrompt": "Professional title slide for 'Local LLM Verification Report' in Japanese. Blue gradient background (dark blue to light blue). Large title text 'ローカルLLM検証報告' centered. Subtitle '2025年12月26日' below. Modern corporate tech design. Clean and professional layout.",
+      "currentImageUrl": "https://placehold.co/1920x1080/1e3a8a/ffffff?text=Local+LLM+Verification+Report"
+    },
+    {
+      "id": 2,
+      "title": "検証の目的",
+      "altText": "検証の目的",
+      "imagePrompt": "Slide showing verification purpose. Title '検証の目的' at top. Main content: Manufacturing lead time inquiry automation using Local LLM. 4 key points: Email reception analysis, numerical calculation, reply email generation, accuracy evaluation. Icons for email, AI brain, calculator, and checkmark. Professional blue theme. Japanese text layout.",
+      "currentImageUrl": "https://placehold.co/1920x1080/3b82f6/ffffff?text=Verification+Purpose"
+    },
+    {
+      "id": 3,
+      "title": "検証環境",
+      "altText": "検証環境",
+      "imagePrompt": "Verification environment specification slide. Title '検証環境' at top. Two-column layout: Left column shows hardware specs table (OS: Windows 11, CPU: AMD Ryzen AI 7 350, RAM: 64GB, GPU: NVIDIA GeForce RTX 5070 VRAM 8GB, Storage: 1TB SSD). Right column shows software (LM Studio, Models: gemma 3n E4b, gpt-oss 20B, gpt-oss 120B). Tech-themed icons. Professional blue and gray color scheme. Japanese text.",
+      "currentImageUrl": "https://placehold.co/1920x1080/1e3a8a/ffffff?text=Test+Environment"
+    },
+    {
+      "id": 4,
+      "title": "モデル起動検証",
+      "altText": "モデル起動検証",
+      "imagePrompt": "Model startup verification results table. Title 'モデル起動検証' at top. Three rows showing test results: gemma 3n E4b (green checkmark, lightweight and stable), gpt-oss 20B (green checkmark, works with 8GB VRAM), gpt-oss 120B (red X mark, VRAM insufficient - failed to start). Visual indicators with checkmarks and X marks. Professional table layout with Japanese text. Blue and green/red status colors.",
+      "currentImageUrl": "https://placehold.co/1920x1080/3b82f6/ffffff?text=Model+Startup+Test"
+    },
+    {
+      "id": 5,
+      "title": "処理フロー",
+      "altText": "処理フロー",
+      "imagePrompt": "4-step processing workflow diagram. Title '処理フロー' at top. Four connected boxes with arrows: 1) Email reception from scheduler (email icon), 2) AI analyzes email content and extracts values (brain/analysis icon), 3) Lead time recalculation (calculator icon), 4) Generate formatted email and forward to requester (send icon). Clean flowchart style with blue gradient boxes and connecting arrows. Japanese labels. Professional presentation design.",
+      "currentImageUrl": "https://placehold.co/1920x1080/1e3a8a/ffffff?text=Processing+Flow"
+    },
+    {
+      "id": 6,
+      "title": "計算ロジック",
+      "altText": "計算ロジック",
+      "imagePrompt": "Calculation logic explanation slide. Title '計算ロジック' at top. Three mathematical formulas displayed prominently: 1) 製造LT差分 = 製造LT変更後 - 製造LT変更前, 2) 部品在庫ありLT(新) = 部品在庫ありLT(元) + 製造LT差分, 3) 部品在庫なしLT(新) = 部品在庫なしLT(元) + 製造LT差分. Example calculation box below showing: Before 20 → After 40 (difference +20), Parts in stock LT: 26 → Expected 46, Parts out of stock LT: 132 → Expected 152. Clean mathematical presentation with Japanese text. Blue theme.",
+      "currentImageUrl": "https://placehold.co/1920x1080/3b82f6/ffffff?text=Calculation+Logic"
+    },
+    {
+      "id": 7,
+      "title": "検証結果サマリー",
+      "altText": "検証結果サマリー",
+      "imagePrompt": "Verification results summary slide. Title '検証結果サマリー' at top. Two sections: 1) Basic function checklist table with green checkmarks for email reception, address extraction, part number extraction, email generation; yellow triangle for manufacturing LT recognition (partial success); red X for numerical calculation (unstable). 2) Model comparison table showing gemma 3n E4b: Red X (not viable for practical use, ~10% success rate, calculation is disastrous), gpt-oss 20B: Yellow triangle (conditionally viable, 70% success rate, 30% miscalculation). Professional status indicators. Japanese text. Blue theme.",
+      "currentImageUrl": "https://placehold.co/1920x1080/1e3a8a/ffffff?text=Results+Summary"
+    },
+    {
+      "id": 8,
+      "title": "出力例の比較",
+      "altText": "出力例の比較",
+      "imagePrompt": "Output comparison slide showing success vs failure cases. Title '出力例の比較' at top. Side-by-side layout: Left panel (green border) 'Success Example' showing email output with correct values - Part number: 15160410150, Parts in stock LT: 46 days (green checkmark), Parts out of stock LT: 152 days (green checkmark). Right panel (red border) 'Failure Example' showing incorrect values - Parts in stock LT: 132 days (red X, should be 46), Parts out of stock LT: 238 days (red X, should be 152). Comparison table below highlighting differences. Japanese email format. Professional presentation with clear success/fail indicators.",
+      "currentImageUrl": "https://placehold.co/1920x1080/3b82f6/ffffff?text=Output+Comparison"
+    },
+    {
+      "id": 9,
+      "title": "課題と考察",
+      "altText": "課題と考察",
+      "imagePrompt": "Challenges and considerations slide. Title '課題と考察' at top. Three main sections with icons: 1) Numerical calculation instability (warning icon) - Simple addition fails 30% of the time, calculation logic depends on inference and lacks certainty. 2) Gemma model limitations (alert icon) - Lightweight but calculation is critically weak, limited to text generation only. 3) VRAM constraints (hardware icon) - 120B class large models cannot run on 8GB VRAM, requires more powerful hardware. Bottom section: General knowledge about LLMs - Generative AI specializes in text generation, not good at numerical calculations; Token prediction mechanism cannot guarantee arithmetic accuracy; External calculation tools recommended for reliable numerical processing. Professional layout with Japanese text. Orange/yellow warning theme.",
+      "currentImageUrl": "https://placehold.co/1920x1080/1e3a8a/ffffff?text=Challenges"
+    },
+    {
+      "id": 10,
+      "title": "改善提案",
+      "altText": "改善提案",
+      "imagePrompt": "Improvement proposals slide. Title '改善提案' at top. Two sections: 1) Short-term measures (light blue box) - Prompt engineering: explicitly specify calculation steps, provide few-shot examples; Verification mechanism: add output value validity checking, require human confirmation for anomalies. 2) Medium to long-term measures (darker blue box) - Hybrid approach: LLM specialized for information extraction and text generation, numerical calculations implemented in traditional program logic, example: integration with Python scripts; Hardware enhancement: upgrade to GPU with 16GB+ VRAM, ensure availability of larger and more accurate models; External API consideration: concurrent use of cloud APIs like Claude/GPT-4, execute only important calculations with cloud LLM. Professional two-tier strategy presentation. Japanese text. Blue gradient theme.",
+      "currentImageUrl": "https://placehold.co/1920x1080/3b82f6/ffffff?text=Improvement+Proposals"
+    },
+    {
+      "id": 11,
+      "title": "結論と推奨運用",
+      "altText": "結論と推奨運用",
+      "imagePrompt": "Conclusion and recommended operations slide. Title '結論と推奨運用' at top. Summary section with three key findings: 1) Green checkmark: Confirmed basic feasibility of email automation with local LLM. 2) Yellow warning: Numerical calculation accuracy has issues - full automation currently difficult. 3) Green checkmark: gpt-oss 20B achieves 70% success rate - conditionally viable. Recommended operation policy section (numbered list): 1) Phased introduction: Initially require human verification, expand automation range after accuracy improves. 2) Hybrid implementation: LLM handles text processing, program logic handles calculations. 3) Continuous verification: Regular accuracy measurement and improvement implementation. Professional conclusion slide with green accent color. Japanese text. Clean modern layout.",
+      "currentImageUrl": "https://placehold.co/1920x1080/10b981/ffffff?text=Conclusion"
+    }
+  ],
+  "mcpImageGeneration": {
+    "requiredMcp": "t2i-kamui-fal-nano-banana-pro",
+    "instructions": "Use the 'imagePrompt' field for each slide to generate images via the t2i-kamui-fal-nano-banana-pro MCP. After generation, update the 'currentImageUrl' field in this JSON file and replace the corresponding img src URL in the HTML file.",
+    "updateProcess": [
+      "1. Read this metadata file to get the imagePrompt for each slide",
+      "2. Call the t2i-kamui-fal-nano-banana-pro MCP with the imagePrompt",
+      "3. Receive the generated image URL from the MCP",
+      "4. Update the currentImageUrl field in this JSON file",
+      "5. Update the img src attribute in verification-report-20251226.html",
+      "6. Repeat for all 11 slides"
+    ]
+  },
+  "notes": {
+    "baseHtml": "Copied from kamui-os-intro-20251125.html - DO NOT modify HTML/CSS/JS structure",
+    "downloadButton": "Download button must be preserved - NEVER remove or modify",
+    "cssJs": "Uses kamui-os-intro-1732171200.css and kamui-os-intro-1732171200.js from base",
+    "navigation": "Sidebar toggle, keyboard arrows (←/→), click navigation (left/right half), and slide list are all functional"
+  }
+}
