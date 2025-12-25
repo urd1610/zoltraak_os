@@ -1,0 +1,67 @@
+X-Account-Key: account4
+X-UIDL: UID22356-1690866508
+X-Mozilla-Status: 0000
+X-Mozilla-Status2: 00000000
+X-Mozilla-Keys:                                                                                 
+Return-Path: <ai-mail@shoeidenko.co.jp>
+X-Original-To: hiroto-kawaguchi@shoeidenko.co.jp
+Delivered-To: hiroto-kawaguchi@shoeidenko.co.jp
+Received: from [127.0.0.1] (223-29-21-142.dc.ctc.ad.jp [223.29.21.142])
+	by wx105.wadax-sv.jp (Postfix) with ESMTPSA id 6DC00E00D1530
+	for <hiroto-kawaguchi@shoeidenko.co.jp>; Thu, 25 Dec 2025 13:22:44 +0900 (JST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=shoeidenko.co.jp;
+	s=default; t=1766636564;
+	bh=qmPnIub7y58vRxArr0l0uZWZxKv4zg02zrEvP3Y4Syg=; h=From:To:Subject;
+	b=givcoRVZJ4xGp7xPpcYdBATppz6F2upu1bLb+ZuBQfxvQnQk1u1s+qbMlaRGI3UZA
+	 JHLnjl6u6kpIvIgrlqXAWI6TQzOllwjVgvdjZ1aJiCXefboZslgMMH8G+kfLkqqyOX
+	 uXYsok8YYex3F+xI/TQOmX9shIvQ0qdhrjeh+TWM=
+Authentication-Results: wx105.wadax-sv.jp;
+	dkim=pass header.d=shoeidenko.co.jp;
+        spf=pass (sender IP is 223.29.21.142) smtp.mailfrom=ai-mail@shoeidenko.co.jp smtp.helo=[127.0.0.1]
+Received-SPF: pass (wx105.wadax-sv.jp: connection is authenticated)
+From: ai-mail@shoeidenko.co.jp
+To: hiroto-kawaguchi@shoeidenko.co.jp
+Subject: =?UTF-8?B?W0ZXXSDoo73pgKBMVOeiuuiqjeS+nemgvCAoMTUx?=
+ =?UTF-8?B?NjA0MTAxNTAp?=
+Message-ID: <ede0ae16-d3b0-2d71-6ee1-d274c26f62f6@shoeidenko.co.jp>
+Date: Thu, 25 Dec 2025 04:22:45 +0000
+MIME-Version: 1.0
+Content-Type: multipart/alternative;
+ boundary="--_NmP-194d65e20ca7d1f1-Part_1"
+
+----_NmP-194d65e20ca7d1f1-Part_1
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: base64
+
+44GK55ay44KM5qeY44Gn44GZ44CCQUnjg6Hjg7zjg6vjgafjgZnjgIIKCuePvuWgtOOCiOOCiuij
+vemAoExU44Gu5Zue562U44GM44GC44KK44G+44GX44Gf44Gu44Gn6YCj57Wh44GX44G+44GZ44CC
+Cgrlk4HnlarvvJoxNTE2MDQxMDE1MAoK6YOo5ZOB5Zyo5bqr44GC44KKTFTvvJoxMzIK6YOo5ZOB
+5Zyo5bqr44Gq44GXTFTvvJoyMzgKCuaXpeW9k+OBn+OCiueUn+eUo+mHj++8mjEwMAoK6KO96YCg
+TFTlpInmm7TliY3vvJoyMAroo73pgKBMVOWkieabtOW+jO+8mjQwCumDqOWTgeWcqOW6q+OBguOC
+ikxU77yaMjYK6YOo5ZOB5Zyo5bqr44Gq44GXTFTvvJoxMzIKCgotLS0g6Lui6YCB55So44Oh44O8
+44OrIC0tLQrjgYTjgaTjgoLjgYrkuJboqbHjgavjgarjgaPjgabjgYrjgorjgb7jgZnjgIIK5p2+
+5qCE6Zu75bel44CA5pyN6YOo44Gn44GZ44CCCgrkuIvoqJjlk4Hnlarjga7jg6rjg7zjg4njgr/j
+gqTjg6DjgpLjgZTpgKPntaHjgYTjgZ/jgZfjgb7jgZnjgIIKCuOAkOWTgeeVquOAkTE1MTYwNDEw
+MTUwCgrpg6jlk4HlnKjluqvjgYLjgorjga7loLTlkIjvvJoxMzLml6UgCumDqOWTgeWcqOW6q+OB
+quOBl+OBruWgtOWQiO+8mjIzOOaXpQoK44GU56K66KqN44Gu44G744Gp44CB44KI44KN44GX44GP
+44GK6aGY44GE44GE44Gf44GX44G+44GZ44CCCi0tLS0tLS0tLS0tLS0tLS0tLS0t
+----_NmP-194d65e20ca7d1f1-Part_1
+Content-Type: text/html; charset=utf-8
+Content-Transfer-Encoding: base64
+
+PGRpdiBzdHlsZT0id2hpdGUtc3BhY2U6cHJlLXdyYXA7Zm9udC1mYW1pbHk6aW5oZXJpdDsiPuOB
+iueWsuOCjOanmOOBp+OBmeOAgkFJ44Oh44O844Or44Gn44GZ44CCPGJyPjxicj7nj77loLTjgojj
+goroo73pgKBMVOOBruWbnuetlOOBjOOBguOCiuOBvuOBl+OBn+OBruOBp+mAo+e1oeOBl+OBvuOB
+meOAgjxicj48YnI+5ZOB55Wq77yaMTUxNjA0MTAxNTA8YnI+PGJyPumDqOWTgeWcqOW6q+OBguOC
+ikxU77yaMTMyPGJyPumDqOWTgeWcqOW6q+OBquOBl0xU77yaMjM4PGJyPjxicj7ml6XlvZPjgZ/j
+gornlJ/nlKPph4/vvJoxMDA8YnI+PGJyPuijvemAoExU5aSJ5pu05YmN77yaMjA8YnI+6KO96YCg
+TFTlpInmm7TlvozvvJo0MDxicj7pg6jlk4HlnKjluqvjgYLjgopMVO+8mjI2PGJyPumDqOWTgeWc
+qOW6q+OBquOBl0xU77yaMTMyPGJyPjxicj48YnI+LS0tIOi7oumAgeeUqOODoeODvOODqyAtLS08
+YnI+44GE44Gk44KC44GK5LiW6Kmx44Gr44Gq44Gj44Gm44GK44KK44G+44GZ44CCPGJyPuadvuag
+hOmbu+W3peOAgOacjemDqOOBp+OBmeOAgjxicj48YnI+5LiL6KiY5ZOB55Wq44Gu44Oq44O844OJ
+44K/44Kk44Og44KS44GU6YCj57Wh44GE44Gf44GX44G+44GZ44CCPGJyPjxicj7jgJDlk4Hnlarj
+gJExNTE2MDQxMDE1MDxicj48YnI+6YOo5ZOB5Zyo5bqr44GC44KK44Gu5aC05ZCI77yaMTMy5pel
+IDxicj7pg6jlk4HlnKjluqvjgarjgZfjga7loLTlkIjvvJoyMzjml6U8YnI+PGJyPuOBlOeiuuiq
+jeOBruOBu+OBqeOAgeOCiOOCjeOBl+OBj+OBiumhmOOBhOOBhOOBn+OBl+OBvuOBmeOAgjxicj4t
+LS0tLS0tLS0tLS0tLS0tLS0tLTwvZGl2Pg==
+----_NmP-194d65e20ca7d1f1-Part_1--
