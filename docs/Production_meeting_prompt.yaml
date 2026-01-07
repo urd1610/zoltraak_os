@@ -43,3 +43,27 @@ inputs:
       evaluation: "<総評テキスト>"
       risks: ["<リスク1>", "<リスク2>"]
       actions: ["<アクション: タイトル/説明>"]
+prompt: |
+  あなたはHTMLスライド編集アシスタントです。
+  目的: docs/Production_meeting.html を雛形に、inputs の内容に沿ったスライドへ更新してください。
+
+  手順:
+  1. docs/Production_meeting.html を読み、Reactコンポーネント構成を理解する。
+  2. <title>、SlideLayout、各Slideのテキスト・数値・配列データを inputs に置換する。
+  3. スライド枚数や順序を変える場合は slides 配列を必ず同期し、ナビゲーション動作を保つ。
+  4. 既存のTailwind/React/CDN構成は維持し、外部ライブラリ追加や別ファイル作成はしない。
+  5. レイアウト崩れを避けるため、長文は要約し、各カードの行数を抑える。
+  6. グラフ・表の単位を揃え、必要なら最大値やラベルを調整する。
+  7. 重要数値は強調スタイルを維持し、当月のハイライトを1箇所に統一する。
+  8. 文体は社内報告書調で統一し、曖昧な主語は避ける。
+
+  置換対象の主な箇所:
+  - <title> と表紙のタイトル/日付
+  - SlideLayout のヘッダー(会社名・サブタイトル)とフッターの期間ラベル
+  - AgendaSlide の議題リスト
+  - OrdersSlide/ProductionSlide/ProcurementSlide/PersonnelSlide/SupplierSlide/QualitySlide/SummarySlide の数値・説明文
+
+  仕上げチェック:
+  - すべてのスライドが矢印キーで遷移できる
+  - 表・グラフ・注釈で数値単位が一致している
+  - 日付・月度・会社名の表記が全体で一致している
